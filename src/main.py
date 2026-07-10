@@ -1,0 +1,115 @@
+#!/usr/bin/env python3
+"""CLI entry point for the Yahoo Finance data pipeline."""
+
+from __future__ import annotations
+
+import argparse
+import logging
+import sys
+from pathlib import Path
+
+# Allow `python src/main.py` without installing the package.
+ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from src.fetcher import run_pipeline  # noqa: E402
+from src.listings import refresh_listings  # noqa: E402
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Fetch historical and intraday market data from Yahoo Finance "
+        "and store it as partitioned CSV files under data/.",
+    )
+    parser.add_argument(
+        "--config",
+        type=Path,
+        default=ROOT / "config" / "tickers.yaml",
+        help="Path to tickers YAML config (default: config/tickers.yaml)",
+    )
+    parser.add_argument(
+        "--data-dir",
+        type=Path,
+        default=ROOT / "data",
+        help="Root directory for CSV output (default: data/)",
+    )
+    parser.add_argument(
+        "--intervals",
+        nargs="+",
+        default=["1d", "1m"],
+        choices=["1d", "1m"],
+        help="Intervals to fetch (default: 1d 1m)",
+    )
+    parser.add_argument(
+        "--sleep",
+        type=float,
+        default=1.0,
+        help="Seconds to sleep between ticker requests (default: 1.0)",
+    )
+    parser.add_argument(
+        "--skip-listings-refresh",
+        action="store_true",
+        help="Do not check remote listing CSVs for updates before fetching",
+    )
+    parser.add_argument(
+        "--listings-only",
+        action="store_true",
+        help="Only refresh listing CSVs; skip market data fetch",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Enable debug logging",
+    )
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = parse_args(argv)
+
+    logging.basicConfig(
+        level=logging.DEBUG if args.verbose else logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+
+    if not args.config.exists():
+        logging.error("Config file not found: %s", args.config)
+        return 1
+
+    if not args.skip_listings_refresh:
+        listing_summary = refresh_listings(args.config)
+        print(
+            f"Listings: checked={listing_summary['checked']} "
+            f"updated={listing_summary['updated']} "
+            f"failed={listing_summary['failed']}"
+        )
+        if args.listings_only:
+            return 1 if listing_summary["failed"] and not listing_summary["updated"] else 0
+
+    if args.listings_only:
+        return 0
+
+    args.data_dir.mkdir(parents=True, exist_ok=True)
+
+    summary = run_pipeline(
+        config_path=args.config,
+        data_dir=args.data_dir,
+        intervals=args.intervals,
+        sleep_seconds=args.sleep,
+    )
+
+    print(
+        f"\nDone. success={summary['success']} "
+        f"failed={summary['failed']} skipped={summary['skipped']}"
+    )
+    # Non-zero only if everything failed (partial success is still useful).
+    if summary["success"] == 0 and summary["failed"] > 0:
+        return 2
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,50 @@
+name: Fetch Financial Data
+
+on:
+  # Daily run at 23:00 UTC — after major market closes.
+  schedule:
+    - cron: "0 23 * * *"
+  # Allow manual runs from the Actions tab.
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch-and-commit:
+    runs-on: ubuntu-latest
+    # Full NASDAQ + S&P 500 universe is large; allow a long first/daily run.
+    timeout-minutes: 360
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run data pipeline
+        # Refreshes NASDAQ / S&P listing CSVs when remotes changed, then fetches.
+        # Slightly shorter delay than local default to fit the large US universe.
+        run: python src/main.py --sleep 0.5
+
+      - name: Commit and push updates
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add data/ config/listings/
+
+          if git diff --staged --quiet; then
+            echo "No changes in data/ or config/listings/ — nothing to commit."
+          else
+            git commit -m "chore: update financial data $(date -u +%Y-%m-%d)"
+            git push
+            echo "Committed and pushed data/listing updates."
+          fi

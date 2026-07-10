@@ -1,0 +1,150 @@
+# Ticker configuration for the Yahoo Finance data pipeline.
+# Add or remove symbols under each asset class as needed.
+# Yahoo Finance suffixes:
+#   .L  = London Stock Exchange
+#   .PA = Euronext Paris
+#   .DE = XETRA (Germany)
+#   .F  = Frankfurt
+#   .AS = Euronext Amsterdam
+#   .BR = Euronext Brussels
+#   .MI = Borsa Italiana
+#   .MC = Bolsa de Madrid
+#   .SW = SIX Swiss Exchange
+#   .ST = Nasdaq Stockholm
+#   .HE = Nasdaq Helsinki
+#   .HK = Hong Kong Stock Exchange
+#   .T  = Tokyo Stock Exchange
+#   .KS = Korea Exchange (KOSPI)
+#   .KQ = Korea Exchange (KOSDAQ)
+#   =F  = Futures
+#   =X  = Forex
+#   -USD = Crypto quoted in USD
+#
+# `listings` maps an asset class to CSV entries. Each entry has a local
+# `path` (relative to this config directory) plus either a remote `url`
+# or a `source` (e.g. krx, tse, europe) used to refresh the file on each run.
+# Symbol columns are unioned into that class. US share-class dots are
+# converted for Yahoo (BRK.B → BRK-B); NASDAQ Test Issue = Y rows are skipped.
+
+listings:
+  stocks_us:
+    - path: listings/nasdaq-listed-symbols.csv
+      url: https://raw.githubusercontent.com/datasets/nasdaq-listings/master/data/nasdaq-listed-symbols.csv
+    - path: listings/sp500-constituents.csv
+      url: https://raw.githubusercontent.com/datasets/s-and-p-500-companies/master/data/constituents.csv
+  stocks_kr:
+    - path: listings/krx-listed-symbols.csv
+      source: krx   # rebuild from KOSPI + KOSDAQ via FinanceDataReader
+  stocks_jp:
+    - path: listings/tse-listed-symbols.csv
+      source: tse   # rebuild from Tokyo Stock Exchange via FinanceDataReader
+  stocks_eu:
+    - path: listings/europe-listed-symbols.csv
+      source: europe  # STOXX 50, DAX, CAC, FTSE 100, AEX, IBEX, …
+
+# Optional extra tickers beyond the listing CSVs (usually empty).
+stocks_us: []
+stocks_kr: []
+stocks_jp: []
+stocks_eu: []
+
+stocks_hk:
+  - "0700.HK"   # Tencent
+  - "9988.HK"   # Alibaba
+  - "0005.HK"   # HSBC
+  - "0941.HK"   # China Mobile
+  - "1299.HK"   # AIA
+  - "2318.HK"   # Ping An
+  - "1398.HK"   # ICBC
+  - "0388.HK"   # HKEX
+  - "1810.HK"   # Xiaomi
+  - "3690.HK"   # Meituan
+
+indices:
+  # Americas
+  - "^GSPC"       # S&P 500
+  - "^DJI"        # Dow Jones
+  - "^IXIC"       # Nasdaq Composite
+  - "^RUI"        # Russell 1000
+  - "^RUT"        # Russell 2000
+  - "^RUA"        # Russell 3000
+  - "^VIX"        # CBOE Volatility Index
+  # Europe
+  - "^FTSE"       # FTSE 100
+  - "^GDAXI"      # DAX
+  - "^FCHI"       # CAC 40
+  - "^STOXX50E"   # EURO STOXX 50
+  - "^STOXX"      # STOXX Europe 600
+  - "^AEX"        # AEX (Netherlands)
+  - "^BFX"        # BEL 20 (Belgium)
+  - "^IBEX"       # IBEX 35 (Spain)
+  - "^FTSEMIB"    # FTSE MIB (Italy)
+  - "^SSMI"       # Swiss Market Index
+  - "^OMXS30"     # OMX Stockholm 30
+  - "^OMXH25"     # OMX Helsinki 25
+  # Asia
+  - "^HSI"        # Hang Seng
+  - "^N225"       # Nikkei 225
+  - "^KS11"       # KOSPI Composite Index
+  - "^KQ11"       # KOSDAQ Composite Index
+  - "^KS200"      # KOSPI 200 Index
+
+rates:
+  - "^IRX"        # 13-Week Treasury Bill yield
+  - "^FVX"        # 5-Year Treasury yield
+  - "^TNX"        # 10-Year Treasury yield
+  - "^TYX"        # 30-Year Treasury yield
+
+futures:
+  - CL=F        # Crude Oil WTI
+  - GC=F        # Gold
+  - SI=F        # Silver
+  - ES=F        # E-mini S&P 500
+  - NQ=F        # E-mini Nasdaq-100
+  - ZN=F        # 10-Year T-Note
+  - NG=F        # Natural Gas
+  - HG=F        # Copper
+
+crypto:
+  - BTC-USD
+  - ETH-USD
+  - SOL-USD
+  - XRP-USD
+  - ADA-USD
+  - DOGE-USD
+  - AVAX-USD
+  - LINK-USD
+
+currencies:
+  - AUDUSD=X    # AUD/USD
+  - CHF=X       # USD/CHF
+  - CNY=X       # USD/CNY
+  - CZK=X       # USD/CZK
+  - DKK=X       # USD/DKK
+  - EURCAD=X    # EUR/CAD
+  - EURCHF=X    # EUR/CHF
+  - EURGBP=X    # EUR/GBP
+  - EURHUF=X    # EUR/HUF
+  - EURJPY=X    # EUR/JPY
+  - EURSEK=X    # EUR/SEK
+  - EURUSD=X    # EUR/USD
+  - GBPJPY=X    # GBP/JPY
+  - GBPUSD=X    # GBP/USD
+  - HKD=X       # USD/HKD
+  - HUF=X       # USD/HUF
+  - IDR=X       # USD/IDR
+  - INR=X       # USD/INR
+  - JPY=X       # USD/JPY
+  - KRW=X       # USD/KRW
+  - MXN=X       # USD/MXN
+  - MYR=X       # USD/MYR
+  - NOK=X       # USD/NOK
+  - NZDUSD=X    # NZD/USD
+  - PHP=X       # USD/PHP
+  - PLN=X       # USD/PLN
+  - RUB=X       # USD/RUB
+  - SEK=X       # USD/SEK
+  - SGD=X       # USD/SGD
+  - THB=X       # USD/THB
+  - TRY=X       # USD/TRY
+  - ZAR=X       # USD/ZAR
