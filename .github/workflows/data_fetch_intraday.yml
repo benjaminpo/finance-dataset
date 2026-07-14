@@ -1,0 +1,65 @@
+name: Fetch Intraday Bars
+
+on:
+  # US cash session roughly 14:30–21:00 UTC; grab a few windows on weekdays.
+  schedule:
+    - cron: "15 15,18,21 * * 1-5"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Serialize Kaggle pull/publish with the daily workflow.
+concurrency:
+  group: finance-dataset-kaggle
+  cancel-in-progress: false
+
+jobs:
+  fetch-intraday:
+    runs-on: ubuntu-latest
+    # S&P 500 + liquid crypto/FX/futures × intraday intervals.
+    timeout-minutes: 180
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Pull latest Kaggle dataset
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+          KAGGLE_DATASET_HANDLE: benjaminpo/finance-dataset
+        run: python scripts/pull_kaggle.py --optional
+
+      - name: Fetch intraday bars (S&P 500 + liquid universe)
+        # Skip full listing rebuild (KRX/TSE/Europe); only S&P CSV is used.
+        run: >
+          python src/main.py
+          --config config/tickers_intraday.yaml
+          --intervals 1m 2m 5m 15m 30m 60m 90m 1h
+          --workers 8
+          --sleep 0.25
+
+      - name: Publish OHLCV to Kaggle
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+          KAGGLE_DATASET_HANDLE: benjaminpo/finance-dataset
+        run: >
+          python scripts/publish_kaggle.py
+          --version-notes "Intraday refresh (1m–1h, S&P 500 + liquid)"
+
+      - name: Commit listing updates
+        env:
+          GIT_AUTHOR_NAME: github-actions[bot]
+          GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+          GIT_COMMITTER_NAME: github-actions[bot]
+          GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+        run: python scripts/batch_commit.py --batch-size 100

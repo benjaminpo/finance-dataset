@@ -1,0 +1,55 @@
+# Smaller universe for intraday (1m…1h) CI.
+# S&P 500 equities + liquid crypto / major indices / futures / FX.
+# Full NASDAQ and international listings are daily (1d/1wk) only — see tickers.yaml.
+#
+# Listing paths are relative to this config directory (config/).
+
+listings:
+  stocks_us:
+    - path: listings/sp500-constituents.csv
+      url: https://raw.githubusercontent.com/datasets/s-and-p-500-companies/master/data/constituents.csv
+
+stocks_us: []
+
+indices:
+  - "^GSPC"       # S&P 500
+  - "^DJI"        # Dow Jones
+  - "^IXIC"       # Nasdaq Composite
+  - "^RUT"        # Russell 2000
+  - "^VIX"        # CBOE Volatility Index
+  - "^FTSE"       # FTSE 100
+  - "^GDAXI"      # DAX
+  - "^N225"       # Nikkei 225
+  - "^HSI"        # Hang Seng
+  - "^KS11"       # KOSPI
+
+rates:
+  - "^IRX"
+  - "^TNX"
+  - "^TYX"
+
+futures:
+  - CL=F          # Crude Oil WTI
+  - GC=F          # Gold
+  - ES=F          # E-mini S&P 500
+  - NQ=F          # E-mini Nasdaq-100
+  - NG=F          # Natural Gas
+
+crypto:
+  - BTC-USD
+  - ETH-USD
+  - SOL-USD
+  - XRP-USD
+  - ADA-USD
+  - DOGE-USD
+  - AVAX-USD
+  - LINK-USD
+
+currencies:
+  - EURUSD=X    # EUR/USD
+  - GBPUSD=X    # GBP/USD
+  - AUDUSD=X    # AUD/USD
+  - JPY=X       # USD/JPY
+  - CNY=X       # USD/CNY
+  - HKD=X       # USD/HKD
+  - KRW=X       # USD/KRW

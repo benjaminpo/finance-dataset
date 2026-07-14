@@ -1,6 +1,6 @@
 # Finance Dataset Pipeline
 
-Automated pipeline that pulls historical and intraday market data from [Yahoo Finance](https://finance.yahoo.com/) via [`yfinance`](https://github.com/ranaroussi/yfinance) and writes partitioned CSV files under `data/`. A GitHub Actions workflow runs daily, **publishes OHLCV to [Kaggle](https://www.kaggle.com/datasets/benjaminpo/finance-dataset)**, and commits listing CSV updates (not the bulk price files) back to this repository.
+Automated pipeline that pulls historical and intraday market data from [Yahoo Finance](https://finance.yahoo.com/) via [`yfinance`](https://github.com/ranaroussi/yfinance) and writes partitioned CSV files under `data/`. GitHub Actions run on a **split schedule** (daily bars for the full universe; intraday for a smaller liquid set), **publish OHLCV to [Kaggle](https://www.kaggle.com/datasets/benjaminpo/finance-dataset)**, and commit listing CSV updates (not the bulk price files) back to this repository.
 
 ## Asset classes
 
@@ -69,15 +69,18 @@ CSV index column is `Datetime` (UTC, ISO-8601). Columns: Open, High, Low, Close,
 
 ```
 ├── .github/workflows/
-│   ├── data_fetch.yml
+│   ├── data_fetch_daily.yml
+│   ├── data_fetch_intraday.yml
 │   └── tests.yml
 ├── config/
-│   ├── tickers.yaml
+│   ├── tickers.yaml            # full universe (daily/weekly)
+│   ├── tickers_intraday.yaml   # S&P 500 + liquid (intraday)
 │   └── kaggle/
 │       └── dataset-metadata.json
 ├── data/                 # local OHLCV (gitignored; published to Kaggle)
 ├── scripts/
 │   ├── batch_commit.py   # commit listing CSV updates
+│   ├── pull_kaggle.py    # download latest Kaggle version into data/
 │   └── publish_kaggle.py # upload data/ as a Kaggle dataset version
 ├── src/
 │   ├── __init__.py
@@ -113,14 +116,18 @@ Runs the unit suite under `tests/` with coverage on `src/` and `scripts/` (fail 
 ### Run the pipeline
 
 ```bash
-# All intervals (default) — 8 parallel workers
+# All intervals (default) — 8 parallel workers; full universe
 python src/main.py
+
+# Match CI daily job (full universe, 1d + 1wk)
+python src/main.py --intervals 1d 1wk
+
+# Match CI intraday job (S&P 500 + liquid)
+python src/main.py --config config/tickers_intraday.yaml \
+  --intervals 1m 2m 5m 15m 30m 60m 90m 1h
 
 # Faster first backfill: daily only, then resume if interrupted
 python src/main.py --intervals 1d --skip-existing
-
-# Intraday only (1m + multi-minute + hourly)
-python src/main.py --intervals 1m 2m 5m 15m 30m 60m 90m 1h
 
 # Custom config / workers / delay
 python src/main.py --config config/tickers.yaml --data-dir data --workers 12 --sleep 0.25 -v
@@ -136,28 +143,31 @@ python src/main.py --config config/tickers.yaml --data-dir data --workers 12 --s
 | `--skip-existing` | off                     | Skip tickers that already have data (resume)     |
 | `-v`              | off                     | Debug logging                                    |
 
-The full universe is ~12k symbols × 13 intervals. Sequential fetching with a 1s delay takes many hours; parallel workers cut that roughly by `--workers`. Prefer `--intervals 1d` for the first backfill, then run intraday intervals separately. Use `--skip-existing` to resume after an interrupt.
+CI splits the work so Actions stays practical: **daily** refreshes `1d` + `1wk` for the full listing universe (~12k symbols); **intraday** refreshes `1m`…`1h` only for S&P 500 + liquid crypto/indices/futures/FX ([`config/tickers_intraday.yaml`](config/tickers_intraday.yaml)). Prefer `--intervals 1d` for the first local backfill, then publish. Use `--skip-existing` to resume after an interrupt.
 
 Progress is printed per job, e.g. `Fetching AAPL [1d]... Success — 2 new/updated row(s)`.
 
 ## GitHub Actions
 
-Workflow: [`.github/workflows/data_fetch.yml`](.github/workflows/data_fetch.yml)
+| Workflow | File | Schedule | Config | Intervals |
+|----------|------|----------|--------|-----------|
+| **Fetch Daily Bars** | [`data_fetch_daily.yml`](.github/workflows/data_fetch_daily.yml) | `0 23 * * *` (23:00 UTC daily) | `tickers.yaml` | `1d` `1wk` |
+| **Fetch Intraday Bars** | [`data_fetch_intraday.yml`](.github/workflows/data_fetch_intraday.yml) | `15 15,18,21 * * 1-5` (weekdays) | `tickers_intraday.yaml` | `1m`…`1h` |
 
-| Trigger            | When                                      |
-|--------------------|-------------------------------------------|
-| `schedule`         | Cron `0 23 * * *` (23:00 UTC daily)       |
-| `workflow_dispatch`| Manual run from the Actions tab           |
+Both also support `workflow_dispatch`. They share concurrency group `finance-dataset-kaggle` so pull/publish cannot race.
 
-Steps: checkout → Python 3.11 → install deps → `python src/main.py` → [`scripts/publish_kaggle.py`](scripts/publish_kaggle.py) uploads `data/` to Kaggle → [`scripts/batch_commit.py`](scripts/batch_commit.py) commits listing CSV updates under `config/listings/`.
+Steps (each workflow): checkout → install → [`pull_kaggle.py --optional`](scripts/pull_kaggle.py) (merge previous Kaggle version into `data/`) → `python src/main.py …` → [`publish_kaggle.py`](scripts/publish_kaggle.py) → [`batch_commit.py`](scripts/batch_commit.py) for listing CSV updates.
 
 ### Kaggle publish
 
 Dataset: [benjaminpo/finance-dataset](https://www.kaggle.com/datasets/benjaminpo/finance-dataset)
 
+Each workflow **pulls the current Kaggle version first**, updates its slice, then re-uploads the full tree so the other slice is not wiped.
+
 ```bash
-# After a local fetch:
 export KAGGLE_API_TOKEN=...          # from https://www.kaggle.com/settings/api
+python scripts/pull_kaggle.py --optional
+python src/main.py --intervals 1d 1wk
 python scripts/publish_kaggle.py
 
 # Or validate without uploading:
@@ -167,10 +177,10 @@ python scripts/publish_kaggle.py --dry-run
 | Flag / env                 | Default                         | Description                                      |
 |----------------------------|---------------------------------|--------------------------------------------------|
 | `--handle` / `KAGGLE_DATASET_HANDLE` | `benjaminpo/finance-dataset` | Kaggle dataset slug                          |
-| `--data-dir`               | `data`                          | Local OHLCV root to upload                       |
+| `--data-dir`               | `data`                          | Local OHLCV root                                 |
 | `--metadata`               | `config/kaggle/dataset-metadata.json` | Dataset title/id/license metadata      |
 | `--version-notes`          | dated file-count summary        | Notes shown on the new Kaggle version            |
-| `--dry-run`                | off                             | Plan only; no upload                             |
+| `--dry-run` / `--optional` | off                             | Plan-only publish / soft-fail pull               |
 
 Auth: set `KAGGLE_API_TOKEN`, or legacy `KAGGLE_USERNAME` + `KAGGLE_KEY`, or `~/.kaggle/kaggle.json`.
 
@@ -179,7 +189,7 @@ Auth: set `KAGGLE_API_TOKEN`, or legacy `KAGGLE_USERNAME` + `KAGGLE_KEY`, or `~/
 1. Push this repo to GitHub and enable Actions.
 2. Add repository secret `KAGGLE_API_TOKEN` (Settings → Secrets and variables → Actions) from [Kaggle API settings](https://www.kaggle.com/settings/api) → **Generate New Token**.
 3. Ensure the default branch allows the `GITHUB_TOKEN` to write contents (Settings → Actions → General → Workflow permissions → **Read and write**) so listing commits can push.
-4. Trigger **Fetch Financial Data** via *Run workflow* for an initial backfill (first `1d` run downloads full history and can take a long time for the full universe; prefer a local `--intervals 1d --workers 8` run, then `python scripts/publish_kaggle.py`).
+4. Run **Fetch Daily Bars** first (or locally: `--intervals 1d 1wk`, then `publish_kaggle.py`). Then enable/run **Fetch Intraday Bars**.
 
 ## Robustness
 

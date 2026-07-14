@@ -1,19 +1,23 @@
-name: Fetch Financial Data
+name: Fetch Daily Bars
 
 on:
-  # Daily run at 23:00 UTC — after major market closes.
+  # After major market closes.
   schedule:
     - cron: "0 23 * * *"
-  # Allow manual runs from the Actions tab.
   workflow_dispatch:
 
 permissions:
   contents: write
 
+# Serialize Kaggle pull/publish with the intraday workflow.
+concurrency:
+  group: finance-dataset-kaggle
+  cancel-in-progress: false
+
 jobs:
-  fetch-and-publish:
+  fetch-daily:
     runs-on: ubuntu-latest
-    # Full NASDAQ + S&P 500 universe is large; allow a long first/daily run.
+    # Full listing universe × 1d + 1wk.
     timeout-minutes: 360
 
     steps:
@@ -29,16 +33,27 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run data pipeline
-        # Refreshes listing CSVs when remotes changed, then fetches with
-        # parallel workers. Use --skip-existing on manual re-runs to resume.
-        run: python src/main.py --workers 8 --sleep 0.25
+      - name: Pull latest Kaggle dataset
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+          KAGGLE_DATASET_HANDLE: benjaminpo/finance-dataset
+        run: python scripts/pull_kaggle.py --optional
+
+      - name: Fetch daily + weekly bars (full universe)
+        run: >
+          python src/main.py
+          --config config/tickers.yaml
+          --intervals 1d 1wk
+          --workers 8
+          --sleep 0.25
 
       - name: Publish OHLCV to Kaggle
         env:
           KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
           KAGGLE_DATASET_HANDLE: benjaminpo/finance-dataset
-        run: python scripts/publish_kaggle.py
+        run: >
+          python scripts/publish_kaggle.py
+          --version-notes "Daily bars refresh (1d + 1wk, full universe)"
 
       - name: Commit listing updates
         env:

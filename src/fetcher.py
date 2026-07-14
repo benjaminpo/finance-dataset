@@ -46,6 +46,21 @@ ALL_INTERVALS: tuple[str, ...] = (
 # Default fetch set when --intervals is omitted.
 DEFAULT_INTERVALS: list[str] = list(ALL_INTERVALS)
 
+# CI daily workflow: full universe, lower volume.
+DAILY_INTERVALS: tuple[str, ...] = ("1d", "1wk")
+
+# CI intraday workflow: smaller universe (see config/tickers_intraday.yaml).
+INTRADAY_INTERVALS: tuple[str, ...] = (
+    "1m",
+    "2m",
+    "5m",
+    "15m",
+    "30m",
+    "60m",
+    "90m",
+    "1h",
+)
+
 # Intraday intervals: Yahoo keeps a rolling window only. We store dated day
 # snapshot CSVs so history accumulates across runs.
 # 1m ≈ 7 days; other intraday ≤ 60 days.
