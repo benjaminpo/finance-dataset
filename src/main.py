@@ -13,7 +13,12 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.fetcher import DEFAULT_WORKERS, run_pipeline  # noqa: E402
+from src.fetcher import (  # noqa: E402
+    ALL_INTERVALS,
+    DEFAULT_INTERVALS,
+    DEFAULT_WORKERS,
+    run_pipeline,
+)
 from src.listings import refresh_listings  # noqa: E402
 
 
@@ -37,9 +42,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--intervals",
         nargs="+",
-        default=["1d", "1m"],
-        choices=["1d", "1m"],
-        help="Intervals to fetch (default: 1d 1m)",
+        default=list(DEFAULT_INTERVALS),
+        choices=list(ALL_INTERVALS),
+        help=(
+            "Intervals to fetch (default: all supported — "
+            + " ".join(ALL_INTERVALS)
+            + ")"
+        ),
     )
     parser.add_argument(
         "--sleep",
@@ -57,8 +66,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--skip-existing",
         action="store_true",
-        help="Skip tickers that already have a 1d CSV (or today's 1m snapshot); "
-        "useful to resume a long first backfill",
+        help="Skip tickers that already have a cumulative CSV (or today's "
+        "intraday snapshot); useful to resume a long first backfill",
     )
     parser.add_argument(
         "--skip-listings-refresh",

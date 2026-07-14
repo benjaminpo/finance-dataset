@@ -9,8 +9,10 @@ from src.main import main, parse_args
 
 
 def test_parse_args_defaults() -> None:
+    from src.fetcher import DEFAULT_INTERVALS
+
     args = parse_args([])
-    assert args.intervals == ["1d", "1m"]
+    assert args.intervals == list(DEFAULT_INTERVALS)
     assert args.workers == 8
     assert args.skip_existing is False
     assert args.listings_only is False

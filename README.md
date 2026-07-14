@@ -41,9 +41,13 @@ data/
 ├── stocks_us/
 │   ├── 1d/
 │   │   └── AAPL.csv              # cumulative daily bars (incremental)
-│   └── 1m/
-│       ├── AAPL_2026-07-09.csv   # dated 1-minute snapshots
-│       └── AAPL_2026-07-10.csv
+│   ├── 1wk/
+│   │   └── AAPL.csv              # cumulative weekly bars
+│   ├── 1m/
+│   │   ├── AAPL_2026-07-09.csv   # dated 1-minute snapshots
+│   │   └── AAPL_2026-07-10.csv
+│   └── 5m/
+│       └── AAPL_2026-07-10.csv   # dated 5-minute snapshots
 ├── crypto/
 │   ├── 1d/
 │   │   └── BTC-USD.csv
@@ -54,8 +58,10 @@ data/
 
 ### Interval strategy
 
-- **`1d`** — Cumulative file per ticker. New bars are appended; duplicate timestamps are dropped (last write wins), so re-runs refresh the latest candle safely.
-- **`1m`** — Yahoo only keeps ~7 days of 1-minute history. Each run writes **dated snapshot files** (`TICKER_YYYY-MM-DD.csv`) for every calendar day in the returned window. Recent days are overwritten on subsequent runs; older snapshots remain, so history accumulates without one giant rolling file.
+Supported Yahoo intervals: `1m`, `2m`, `5m`, `15m`, `30m`, `60m`, `90m`, `1h`, `1d`, `5d`, `1wk`, `1mo`, `3mo`.
+
+- **Cumulative** (`1d`, `5d`, `1wk`, `1mo`, `3mo`) — One file per ticker. New bars are appended; duplicate timestamps are dropped (last write wins), so re-runs refresh the latest candle safely.
+- **Intraday snapshots** (`1m`, `2m`, `5m`, `15m`, `30m`, `60m`, `90m`, `1h`) — Yahoo only keeps a rolling window (`1m` ≈ 7 days; other intraday ≈ 60 days). Each run writes **dated snapshot files** (`TICKER_YYYY-MM-DD.csv`) for every calendar day in the returned window. Recent days are overwritten on subsequent runs; older snapshots remain, so history accumulates without one giant rolling file.
 
 CSV index column is `Datetime` (UTC, ISO-8601). Columns: Open, High, Low, Close, Adj Close, Volume (plus Dividends / Stock Splits when present).
 
@@ -103,11 +109,14 @@ Runs the unit suite under `tests/` with coverage on `src/` and `scripts/` (fail 
 ### Run the pipeline
 
 ```bash
-# Both intervals (default) — 8 parallel workers
+# All intervals (default) — 8 parallel workers
 python src/main.py
 
 # Faster first backfill: daily only, then resume if interrupted
 python src/main.py --intervals 1d --skip-existing
+
+# Intraday only (1m + multi-minute + hourly)
+python src/main.py --intervals 1m 2m 5m 15m 30m 60m 90m 1h
 
 # Custom config / workers / delay
 python src/main.py --config config/tickers.yaml --data-dir data --workers 12 --sleep 0.25 -v
@@ -117,13 +126,13 @@ python src/main.py --config config/tickers.yaml --data-dir data --workers 12 --s
 |-------------------|-------------------------|--------------------------------------------------|
 | `--config`        | `config/tickers.yaml`   | Ticker lists                                     |
 | `--data-dir`      | `data`                  | CSV root                                         |
-| `--intervals`     | `1d 1m`                 | One or both of `1d`, `1m`                        |
+| `--intervals`     | all 13 Yahoo intervals  | Any of `1m`/`2m`/`5m`/`15m`/`30m`/`60m`/`90m`/`1h`/`1d`/`5d`/`1wk`/`1mo`/`3mo` |
 | `--workers`       | `8`                     | Parallel Yahoo fetch threads                     |
 | `--sleep`         | `0.25`                  | Seconds to pause after each request              |
 | `--skip-existing` | off                     | Skip tickers that already have data (resume)     |
 | `-v`              | off                     | Debug logging                                    |
 
-The full universe is ~12k symbols × 2 intervals. Sequential fetching with a 1s delay takes many hours; parallel workers cut that roughly by `--workers`. Prefer `--intervals 1d` for the first backfill, then run `1m` separately. Use `--skip-existing` to resume after an interrupt.
+The full universe is ~12k symbols × 13 intervals. Sequential fetching with a 1s delay takes many hours; parallel workers cut that roughly by `--workers`. Prefer `--intervals 1d` for the first backfill, then run intraday intervals separately. Use `--skip-existing` to resume after an interrupt.
 
 Progress is printed per job, e.g. `Fetching AAPL [1d]... Success — 2 new/updated row(s)`.
 

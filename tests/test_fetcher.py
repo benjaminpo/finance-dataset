@@ -324,7 +324,7 @@ def test_fetch_daily_history_with_start_skips_fallback() -> None:
 
 def test_update_ticker_1d_full_and_incremental(tmp_path: Path) -> None:
     data = _sample_daily(MIN_TRUSTED_DAILY_ROWS + 5)
-    with patch("src.fetcher.fetch_daily_history", return_value=data):
+    with patch("src.fetcher.fetch_cumulative_history", return_value=data):
         ok, msg = update_ticker_1d("AAPL", "stocks_us", tmp_path)
         assert ok
         assert "new/updated" in msg
@@ -333,10 +333,10 @@ def test_update_ticker_1d_full_and_incremental(tmp_path: Path) -> None:
     short_path = tmp_path / "stocks_us" / "1d" / "MSFT.csv"
     short_path.parent.mkdir(parents=True, exist_ok=True)
     save_daily(_sample_daily(5), short_path)
-    with patch("src.fetcher.fetch_daily_history", return_value=data) as mock_fd:
+    with patch("src.fetcher.fetch_cumulative_history", return_value=data) as mock_fc:
         ok, _ = update_ticker_1d("MSFT", "stocks_us", tmp_path)
         assert ok
-        assert mock_fd.call_args.kwargs.get("start") is None
+        assert mock_fc.call_args.kwargs.get("start") is None
 
 
 def test_update_ticker_1d_skip_existing(tmp_path: Path) -> None:
@@ -344,21 +344,23 @@ def test_update_ticker_1d_skip_existing(tmp_path: Path) -> None:
     path = tmp_path / "stocks_us" / "1d" / "AAPL.csv"
     path.parent.mkdir(parents=True, exist_ok=True)
     save_daily(data, path)
-    with patch("src.fetcher.fetch_daily_history") as mock_fd:
+    with patch("src.fetcher.fetch_cumulative_history") as mock_fc:
         ok, msg = update_ticker_1d(
             "AAPL", "stocks_us", tmp_path, skip_existing=True
         )
         assert ok and "skipped" in msg
-        mock_fd.assert_not_called()
+        mock_fc.assert_not_called()
 
 
 def test_update_ticker_1d_empty_and_error(tmp_path: Path) -> None:
-    with patch("src.fetcher.fetch_daily_history", return_value=pd.DataFrame()):
+    with patch("src.fetcher.fetch_cumulative_history", return_value=pd.DataFrame()):
         ok, msg = update_ticker_1d("NONE", "stocks_us", tmp_path)
         assert not ok
-        assert "No daily data" in msg
+        assert "No 1d data" in msg
 
-    with patch("src.fetcher.fetch_daily_history", side_effect=RuntimeError("boom")):
+    with patch(
+        "src.fetcher.fetch_cumulative_history", side_effect=RuntimeError("boom")
+    ):
         ok, msg = update_ticker_1d("BAD", "stocks_us", tmp_path)
         assert not ok
         assert "boom" in msg
@@ -469,10 +471,10 @@ def test_update_ticker_1d_incremental_start(tmp_path: Path) -> None:
     update.index = pd.to_datetime([last, last + pd.Timedelta(days=1)], utc=True)
     update.index.name = "Datetime"
 
-    with patch("src.fetcher.fetch_daily_history", return_value=update) as mock_fd:
+    with patch("src.fetcher.fetch_cumulative_history", return_value=update) as mock_fc:
         ok, msg = update_ticker_1d("AAPL", "stocks_us", tmp_path)
         assert ok
-        assert mock_fd.call_args.kwargs.get("start") is not None
+        assert mock_fc.call_args.kwargs.get("start") is not None
         assert "new/updated" in msg
 
 
@@ -481,7 +483,7 @@ def test_update_ticker_1d_incremental_empty(tmp_path: Path) -> None:
     path = tmp_path / "stocks_us" / "1d" / "AAPL.csv"
     path.parent.mkdir(parents=True, exist_ok=True)
     save_daily(existing, path)
-    with patch("src.fetcher.fetch_daily_history", return_value=pd.DataFrame()):
+    with patch("src.fetcher.fetch_cumulative_history", return_value=pd.DataFrame()):
         ok, msg = update_ticker_1d("AAPL", "stocks_us", tmp_path)
         assert ok
         assert "0 new/updated" in msg
@@ -499,7 +501,7 @@ def test_fetch_daily_history_all_empty() -> None:
 
 
 def test_run_one_job_success_paths(tmp_path: Path) -> None:
-    with patch("src.fetcher.update_ticker_1d", return_value=(True, "ok")):
+    with patch("src.fetcher.update_ticker_cumulative", return_value=(True, "ok")):
         assert (
             fetcher._run_one_job(
                 done=1,
@@ -513,7 +515,7 @@ def test_run_one_job_success_paths(tmp_path: Path) -> None:
             )
             == "success"
         )
-    with patch("src.fetcher.update_ticker_1m", return_value=(False, "nope")):
+    with patch("src.fetcher.update_ticker_snapshot", return_value=(False, "nope")):
         assert (
             fetcher._run_one_job(
                 done=1,
@@ -526,6 +528,34 @@ def test_run_one_job_success_paths(tmp_path: Path) -> None:
                 skip_existing=False,
             )
             == "failed"
+        )
+    with patch("src.fetcher.update_ticker_snapshot", return_value=(True, "ok")):
+        assert (
+            fetcher._run_one_job(
+                done=1,
+                total=1,
+                ticker="AAPL",
+                asset_class="stocks_us",
+                interval="15m",
+                data_dir=tmp_path,
+                sleep_seconds=0,
+                skip_existing=False,
+            )
+            == "success"
+        )
+    with patch("src.fetcher.update_ticker_cumulative", return_value=(True, "ok")):
+        assert (
+            fetcher._run_one_job(
+                done=1,
+                total=1,
+                ticker="AAPL",
+                asset_class="stocks_us",
+                interval="1mo",
+                data_dir=tmp_path,
+                sleep_seconds=0,
+                skip_existing=False,
+            )
+            == "success"
         )
 
 
@@ -596,9 +626,45 @@ def test_run_one_job_unsupported_interval(tmp_path: Path) -> None:
         total=1,
         ticker="AAPL",
         asset_class="stocks_us",
-        interval="1h",
+        interval="4h",
         data_dir=tmp_path,
         sleep_seconds=0,
         skip_existing=False,
     )
     assert status == "skipped"
+
+
+def test_update_ticker_snapshot_5m(tmp_path: Path) -> None:
+    idx = pd.to_datetime(["2024-06-01 14:30:00+00:00", "2024-06-01 14:35:00+00:00"])
+    df = pd.DataFrame(
+        {
+            "Open": [1.0, 1.1],
+            "High": [1.2, 1.3],
+            "Low": [0.9, 1.0],
+            "Close": [1.1, 1.2],
+            "Adj Close": [1.1, 1.2],
+            "Volume": [10, 11],
+        },
+        index=idx,
+    ).rename_axis("Datetime")
+    with patch("src.fetcher.fetch_history", return_value=df) as mock_fh:
+        ok, msg = fetcher.update_ticker_snapshot(
+            "BTC-USD", "crypto", "5m", tmp_path
+        )
+        assert ok
+        assert "row(s)" in msg
+        mock_fh.assert_called_once_with("BTC-USD", "5m", period="60d")
+        assert (tmp_path / "crypto" / "5m" / "BTC-USD_2024-06-01.csv").exists()
+
+
+def test_update_ticker_cumulative_1wk(tmp_path: Path) -> None:
+    data = _sample_daily(MIN_TRUSTED_DAILY_ROWS + 2)
+    with patch("src.fetcher.fetch_cumulative_history", return_value=data) as mock_fc:
+        ok, msg = fetcher.update_ticker_cumulative(
+            "AAPL", "stocks_us", "1wk", tmp_path
+        )
+        assert ok
+        assert "new/updated" in msg
+        mock_fc.assert_called_once()
+        assert mock_fc.call_args.args[:2] == ("AAPL", "1wk")
+        assert (tmp_path / "stocks_us" / "1wk" / "AAPL.csv").exists()
