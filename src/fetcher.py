@@ -26,11 +26,48 @@ REQUEST_DELAY_SECONDS = 0.25
 # Default parallel Yahoo requests. Keep modest to avoid hard rate limits.
 DEFAULT_WORKERS = 8
 
-# Yahoo Finance only retains ~7 days of 1-minute bars.
-INTRADAY_PERIOD = "7d"
+# Yahoo Finance intervals this pipeline supports (all valid yfinance intervals).
+ALL_INTERVALS: tuple[str, ...] = (
+    "1m",
+    "2m",
+    "5m",
+    "15m",
+    "30m",
+    "60m",
+    "90m",
+    "1h",
+    "1d",
+    "5d",
+    "1wk",
+    "1mo",
+    "3mo",
+)
 
-# Daily CSVs shorter than this are treated as truncated (e.g. period=5d fallback
-# during a rate-limited bulk run) and re-fetched with full history.
+# Default fetch set when --intervals is omitted.
+DEFAULT_INTERVALS: list[str] = list(ALL_INTERVALS)
+
+# Intraday intervals: Yahoo keeps a rolling window only. We store dated day
+# snapshot CSVs so history accumulates across runs.
+# 1m ≈ 7 days; other intraday ≤ 60 days.
+SNAPSHOT_PERIODS: dict[str, str] = {
+    "1m": "7d",
+    "2m": "60d",
+    "5m": "60d",
+    "15m": "60d",
+    "30m": "60d",
+    "60m": "60d",
+    "90m": "60d",
+    "1h": "60d",
+}
+
+# Day-or-longer bars: one cumulative CSV per ticker with incremental merges.
+CUMULATIVE_INTERVALS: frozenset[str] = frozenset({"1d", "5d", "1wk", "1mo", "3mo"})
+
+# Backward-compat alias used by older call sites / docs.
+INTRADAY_PERIOD = SNAPSHOT_PERIODS["1m"]
+
+# Cumulative CSVs shorter than this are treated as truncated (e.g. period=5d
+# fallback during a rate-limited bulk run) and re-fetched with full history.
 MIN_TRUSTED_DAILY_ROWS = 20
 
 # Fixed decimal places for OHLCV price columns in CSV output (Volume stays int).
@@ -283,8 +320,29 @@ def fetch_daily_history(
 
     Thin names (new listings, some SPACs) only allow ``1d``/``5d`` on Yahoo.
     """
+    return fetch_cumulative_history(ticker, "1d", start=start)
+
+
+def fetch_cumulative_history(
+    ticker: str,
+    interval: str,
+    *,
+    start: Optional[str] = None,
+) -> pd.DataFrame:
+    """
+    Fetch day-or-longer bars for *interval*.
+
+    For ``1d``, fall back through shorter periods when ``max`` is rejected.
+    Other cumulative intervals use ``period=max`` (or ``start`` when set).
+    """
+    if interval not in CUMULATIVE_INTERVALS:
+        raise ValueError(f"Not a cumulative interval: {interval}")
+
     if start is not None:
-        return fetch_history(ticker, "1d", start=start)
+        return fetch_history(ticker, interval, start=start)
+
+    if interval != "1d":
+        return fetch_history(ticker, interval, period="max")
 
     for period in DAILY_PERIOD_FALLBACKS:
         df = fetch_history(ticker, "1d", period=period)
@@ -295,20 +353,39 @@ def fetch_daily_history(
     return pd.DataFrame()
 
 
+def _safe_ticker_filename(ticker: str) -> str:
+    """Sanitize ticker for use in filenames."""
+    return ticker.replace("^", "").replace("=", "_").replace("/", "_")
+
+
+def _csv_path_cumulative(
+    data_dir: Path, asset_class: str, interval: str, ticker: str
+) -> Path:
+    """Path for a cumulative CSV, e.g. data/stocks_us/1d/AAPL.csv."""
+    return data_dir / asset_class / interval / f"{_safe_ticker_filename(ticker)}.csv"
+
+
 def _csv_path_1d(data_dir: Path, asset_class: str, ticker: str) -> Path:
     """Path for a cumulative daily CSV, e.g. data/stocks_us/1d/AAPL.csv."""
-    safe = ticker.replace("^", "").replace("=", "_").replace("/", "_")
-    return data_dir / asset_class / "1d" / f"{safe}.csv"
+    return _csv_path_cumulative(data_dir, asset_class, "1d", ticker)
+
+
+def _csv_path_snapshot(
+    data_dir: Path, asset_class: str, interval: str, ticker: str, day: str
+) -> Path:
+    """
+    Path for a dated intraday snapshot.
+
+    Example: data/crypto/5m/BTC-USD_2026-07-10.csv
+    """
+    return (
+        data_dir / asset_class / interval / f"{_safe_ticker_filename(ticker)}_{day}.csv"
+    )
 
 
 def _csv_path_1m(data_dir: Path, asset_class: str, ticker: str, day: str) -> Path:
-    """
-    Path for a dated 1-minute snapshot.
-
-    Example: data/crypto/1m/BTC-USD_2026-07-10.csv
-    """
-    safe = ticker.replace("^", "").replace("=", "_").replace("/", "_")
-    return data_dir / asset_class / "1m" / f"{safe}_{day}.csv"
+    """Path for a dated 1-minute snapshot."""
+    return _csv_path_snapshot(data_dir, asset_class, "1m", ticker, day)
 
 
 def _last_timestamp(csv_path: Path) -> Optional[pd.Timestamp]:
@@ -370,9 +447,10 @@ def save_intraday_snapshots(
     data_dir: Path,
     asset_class: str,
     ticker: str,
+    interval: str = "1m",
 ) -> int:
     """
-    Split 1-minute bars by calendar day and write dated snapshot CSVs.
+    Split intraday bars by calendar day and write dated snapshot CSVs.
 
     Re-running the pipeline overwrites recent day files with the latest
     Yahoo window, so corrections land without unbounded single-file growth.
@@ -384,7 +462,7 @@ def save_intraday_snapshots(
     rows_written = 0
     # Group by UTC calendar date.
     for day, day_df in df.groupby(df.index.strftime("%Y-%m-%d")):
-        path = _csv_path_1m(data_dir, asset_class, ticker, day)
+        path = _csv_path_snapshot(data_dir, asset_class, interval, ticker, day)
         path.parent.mkdir(parents=True, exist_ok=True)
         day_df = day_df.sort_index()
         day_df = day_df[~day_df.index.duplicated(keep="last")]
@@ -392,6 +470,42 @@ def save_intraday_snapshots(
         rows_written += len(day_df)
 
     return rows_written
+
+
+def update_ticker_cumulative(
+    ticker: str,
+    asset_class: str,
+    interval: str,
+    data_dir: Path,
+    *,
+    skip_existing: bool = False,
+) -> tuple[bool, str]:
+    """Fetch and incrementally update a cumulative (day+) interval for one ticker."""
+    if interval not in CUMULATIVE_INTERVALS:
+        return False, f"Unsupported cumulative interval '{interval}'"
+
+    csv_path = _csv_path_cumulative(data_dir, asset_class, interval, ticker)
+    last_ts = _last_timestamp(csv_path)
+
+    if skip_existing and last_ts is not None:
+        return True, f"skipped (exists) → {csv_path.relative_to(data_dir.parent)}"
+
+    try:
+        if last_ts is not None:
+            # Start one day before the last bar so the latest candle can be refreshed.
+            start = (last_ts - pd.Timedelta(days=1)).strftime("%Y-%m-%d")
+            df = fetch_cumulative_history(ticker, interval, start=start)
+            if df.empty:
+                return True, f"0 new/updated row(s) → {csv_path.relative_to(data_dir.parent)}"
+        else:
+            df = fetch_cumulative_history(ticker, interval)
+            if df.empty:
+                return False, f"No {interval} data returned"
+
+        n = save_daily(df, csv_path)
+        return True, f"{n} new/updated row(s) → {csv_path.relative_to(data_dir.parent)}"
+    except Exception as exc:  # noqa: BLE001 — isolate per-ticker failures
+        return False, str(exc)
 
 
 def update_ticker_1d(
@@ -402,27 +516,38 @@ def update_ticker_1d(
     skip_existing: bool = False,
 ) -> tuple[bool, str]:
     """Fetch and incrementally update 1-day data for one ticker."""
-    csv_path = _csv_path_1d(data_dir, asset_class, ticker)
-    last_ts = _last_timestamp(csv_path)
+    return update_ticker_cumulative(
+        ticker, asset_class, "1d", data_dir, skip_existing=skip_existing
+    )
 
-    if skip_existing and last_ts is not None:
-        return True, f"skipped (exists) → {csv_path.relative_to(data_dir.parent)}"
+
+def update_ticker_snapshot(
+    ticker: str,
+    asset_class: str,
+    interval: str,
+    data_dir: Path,
+    *,
+    skip_existing: bool = False,
+) -> tuple[bool, str]:
+    """Fetch the rolling intraday window and write dated snapshots."""
+    period = SNAPSHOT_PERIODS.get(interval)
+    if period is None:
+        return False, f"Unsupported snapshot interval '{interval}'"
+
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    if skip_existing:
+        today_path = _csv_path_snapshot(data_dir, asset_class, interval, ticker, today)
+        if today_path.exists():
+            return True, f"skipped (exists) → {today_path.relative_to(data_dir.parent)}"
 
     try:
-        if last_ts is not None:
-            # Start one day before the last bar so the latest candle can be refreshed.
-            start = (last_ts - pd.Timedelta(days=1)).strftime("%Y-%m-%d")
-            df = fetch_daily_history(ticker, start=start)
-            if df.empty:
-                return True, f"0 new/updated row(s) → {csv_path.relative_to(data_dir.parent)}"
-        else:
-            df = fetch_daily_history(ticker)
-            if df.empty:
-                return False, "No daily data returned"
+        df = fetch_history(ticker, interval, period=period)
+        if df.empty:
+            return False, f"No {interval} data (illiquid, halted, or unsupported)"
 
-        n = save_daily(df, csv_path)
-        return True, f"{n} new/updated row(s) → {csv_path.relative_to(data_dir.parent)}"
-    except Exception as exc:  # noqa: BLE001 — isolate per-ticker failures
+        n = save_intraday_snapshots(df, data_dir, asset_class, ticker, interval=interval)
+        return True, f"{n} row(s) across day snapshots (through {today})"
+    except Exception as exc:  # noqa: BLE001
         return False, str(exc)
 
 
@@ -434,21 +559,9 @@ def update_ticker_1m(
     skip_existing: bool = False,
 ) -> tuple[bool, str]:
     """Fetch the rolling 7-day 1-minute window and write dated snapshots."""
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    if skip_existing:
-        today_path = _csv_path_1m(data_dir, asset_class, ticker, today)
-        if today_path.exists():
-            return True, f"skipped (exists) → {today_path.relative_to(data_dir.parent)}"
-
-    try:
-        df = fetch_history(ticker, "1m", period=INTRADAY_PERIOD)
-        if df.empty:
-            return False, "No 1m data (illiquid, halted, or unsupported)"
-
-        n = save_intraday_snapshots(df, data_dir, asset_class, ticker)
-        return True, f"{n} row(s) across day snapshots (through {today})"
-    except Exception as exc:  # noqa: BLE001
-        return False, str(exc)
+    return update_ticker_snapshot(
+        ticker, asset_class, "1m", data_dir, skip_existing=skip_existing
+    )
 
 
 def _run_one_job(
@@ -465,13 +578,13 @@ def _run_one_job(
     """Execute a single ticker/interval job; return summary status key."""
     label = f"[{done}/{total}] Fetching {ticker} [{interval}]..."
 
-    if interval == "1d":
-        ok, msg = update_ticker_1d(
-            ticker, asset_class, data_dir, skip_existing=skip_existing
+    if interval in CUMULATIVE_INTERVALS:
+        ok, msg = update_ticker_cumulative(
+            ticker, asset_class, interval, data_dir, skip_existing=skip_existing
         )
-    elif interval == "1m":
-        ok, msg = update_ticker_1m(
-            ticker, asset_class, data_dir, skip_existing=skip_existing
+    elif interval in SNAPSHOT_PERIODS:
+        ok, msg = update_ticker_snapshot(
+            ticker, asset_class, interval, data_dir, skip_existing=skip_existing
         )
     else:
         with _print_lock:
@@ -501,13 +614,13 @@ def run_pipeline(
 
     ``workers`` > 1 fetches tickers concurrently (much faster for large universes).
     ``skip_existing`` resumes a long first backfill by skipping tickers that
-    already have a daily CSV (or today's 1m snapshot).
+    already have a cumulative CSV (or today's intraday snapshot).
 
     Identical Yahoo requests (same ticker/interval/window) are cached in-process,
     so a symbol listed under more than one asset class only hits Yahoo once.
     """
     clear_fetch_cache()
-    intervals = intervals or ["1d", "1m"]
+    intervals = intervals or list(DEFAULT_INTERVALS)
     tickers_by_class = load_tickers(config_path)
 
     jobs: list[tuple[str, str, str]] = [
