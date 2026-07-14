@@ -49,16 +49,52 @@ stocks_jp: []
 stocks_eu: []
 
 stocks_hk:
-  - "0700.HK"   # Tencent
-  - "9988.HK"   # Alibaba
+  # Conglomerates / financials / property
+  - "0001.HK"   # CK Hutchison
+  - "0002.HK"   # CLP Holdings
+  - "0003.HK"   # HK & China Gas
   - "0005.HK"   # HSBC
-  - "0941.HK"   # China Mobile
+  - "0011.HK"   # Hang Seng Bank
+  - "0016.HK"   # Sun Hung Kai Properties
+  - "0027.HK"   # Galaxy Entertainment
+  - "0066.HK"   # MTR Corporation
+  - "0267.HK"   # CITIC
+  - "0388.HK"   # HKEX
   - "1299.HK"   # AIA
   - "2318.HK"   # Ping An
+  - "2388.HK"   # BOC Hong Kong
+  - "2628.HK"   # China Life
+  - "3968.HK"   # China Merchants Bank
+  # Energy / telecom / banks (China)
+  - "0386.HK"   # Sinopec
+  - "0857.HK"   # PetroChina
+  - "0883.HK"   # CNOOC
+  - "0939.HK"   # CCB
+  - "0941.HK"   # China Mobile
   - "1398.HK"   # ICBC
-  - "0388.HK"   # HKEX
+  - "3988.HK"   # Bank of China
+  # Tech / internet / consumer
+  - "0700.HK"   # Tencent
+  - "0981.HK"   # SMIC
+  - "1024.HK"   # Kuaishou
+  - "1211.HK"   # BYD
   - "1810.HK"   # Xiaomi
+  - "2015.HK"   # Li Auto
+  - "2020.HK"   # Anta Sports
+  - "2269.HK"   # Wuxi Biologics
+  - "2313.HK"   # Shenzhou International
+  - "2319.HK"   # Mengniu Dairy
+  - "2331.HK"   # Li Ning
+  - "2382.HK"   # Sunny Optical
   - "3690.HK"   # Meituan
+  - "9618.HK"   # JD.com
+  - "9866.HK"   # NIO
+  - "9868.HK"   # XPeng
+  - "9888.HK"   # Baidu
+  - "9988.HK"   # Alibaba
+  - "9999.HK"   # NetEase
+  - "2057.HK"   # ZTO Express
+  - "9992.HK"   # Pop Mart
 
 indices:
   # Americas
@@ -106,14 +142,54 @@ futures:
   - HG=F        # Copper
 
 crypto:
+  # Large caps
   - BTC-USD
   - ETH-USD
+  - BNB-USD
   - SOL-USD
   - XRP-USD
   - ADA-USD
   - DOGE-USD
+  - TRX-USD
+  - TON-USD
   - AVAX-USD
   - LINK-USD
+  - SHIB-USD
+  - DOT-USD
+  - BCH-USD
+  - LTC-USD
+  # L2 / smart contract / DeFi
+  - MATIC-USD
+  - ATOM-USD
+  - NEAR-USD
+  - APT-USD
+  - ARB-USD
+  - OP-USD
+  - SUI-USD
+  - SEI-USD
+  - INJ-USD
+  - UNI-USD
+  - AAVE-USD
+  - MKR-USD
+  - FIL-USD
+  - ICP-USD
+  - HBAR-USD
+  - STX-USD
+  - IMX-USD
+  # Mentions / memes / other liquid
+  - ETC-USD
+  - XLM-USD
+  - ALGO-USD
+  - VET-USD
+  - RENDER-USD
+  - PEPE-USD
+  - WIF-USD
+  - BONK-USD
+  - FLOKI-USD
+  - CRO-USD
+  - SAND-USD
+  - MANA-USD
+  - AXS-USD
 
 currencies:
   - AUDUSD=X    # AUD/USD

@@ -10,11 +10,11 @@ Automated pipeline that pulls historical and intraday market data from [Yahoo Fi
 | `stocks_kr`  | KOSPI + KOSDAQ (`.KS` / `.KQ`)   | `data/stocks_kr/`    |
 | `stocks_jp`  | Tokyo Stock Exchange (`.T`)      | `data/stocks_jp/`    |
 | `stocks_eu`  | STOXX/DAX/CAC/FTSE/AEX/IBEX/…    | `data/stocks_eu/`    |
-| `stocks_hk`  | 0700.HK, 9988.HK                 | `data/stocks_hk/`    |
+| `stocks_hk`  | Hang Seng / China internet (HK)  | `data/stocks_hk/`    |
 | `indices`    | ^GSPC, ^RUT, ^STOXX50E, ^KS11, … | `data/indices/`      |
 | `rates`      | ^IRX, ^FVX, ^TNX, ^TYX           | `data/rates/`        |
 | `futures`    | CL=F, ES=F                       | `data/futures/`      |
-| `crypto`     | BTC-USD, ETH-USD                 | `data/crypto/`       |
+| `crypto`     | BTC-USD, ETH-USD, SOL-USD, …     | `data/crypto/`       |
 | `currencies` | EURUSD=X, GBPUSD=X, KRW=X, …     | `data/currencies/`   |
 
 Edit the lists in [`config/tickers.yaml`](config/tickers.yaml) to add or remove symbols.

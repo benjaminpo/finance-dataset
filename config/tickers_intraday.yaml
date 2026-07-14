@@ -1,5 +1,5 @@
 # Smaller universe for intraday (1m…1h) CI.
-# S&P 500 equities + liquid crypto / major indices / futures / FX.
+# S&P 500 + liquid HK / crypto / indices / futures / FX.
 # Full NASDAQ and international listings are daily (1d/1wk) only — see tickers.yaml.
 #
 # Listing paths are relative to this config directory (config/).
@@ -11,45 +11,180 @@ listings:
 
 stocks_us: []
 
+# Liquid Hang Seng / China ADRs listed in HK (subset of tickers.yaml).
+stocks_hk:
+  # Conglomerates / financials / property
+  - "0001.HK"   # CK Hutchison
+  - "0002.HK"   # CLP Holdings
+  - "0003.HK"   # HK & China Gas
+  - "0005.HK"   # HSBC
+  - "0011.HK"   # Hang Seng Bank
+  - "0016.HK"   # Sun Hung Kai Properties
+  - "0027.HK"   # Galaxy Entertainment
+  - "0066.HK"   # MTR Corporation
+  - "0267.HK"   # CITIC
+  - "0388.HK"   # HKEX
+  - "1299.HK"   # AIA
+  - "2318.HK"   # Ping An
+  - "2388.HK"   # BOC Hong Kong
+  - "2628.HK"   # China Life
+  - "3968.HK"   # China Merchants Bank
+  # Energy / telecom / banks (China)
+  - "0386.HK"   # Sinopec
+  - "0857.HK"   # PetroChina
+  - "0883.HK"   # CNOOC
+  - "0939.HK"   # CCB
+  - "0941.HK"   # China Mobile
+  - "1398.HK"   # ICBC
+  - "3988.HK"   # Bank of China
+  # Tech / internet / consumer
+  - "0700.HK"   # Tencent
+  - "0981.HK"   # SMIC
+  - "1024.HK"   # Kuaishou
+  - "1211.HK"   # BYD
+  - "1810.HK"   # Xiaomi
+  - "2015.HK"   # Li Auto
+  - "2020.HK"   # Anta Sports
+  - "2269.HK"   # Wuxi Biologics
+  - "2313.HK"   # Shenzhou International
+  - "2319.HK"   # Mengniu Dairy
+  - "2331.HK"   # Li Ning
+  - "2382.HK"   # Sunny Optical
+  - "3690.HK"   # Meituan
+  - "9618.HK"   # JD.com
+  - "9866.HK"   # NIO
+  - "9868.HK"   # XPeng
+  - "9888.HK"   # Baidu
+  - "9988.HK"   # Alibaba
+  - "9999.HK"   # NetEase
+  - "2057.HK"   # ZTO Express
+  - "9992.HK"   # Pop Mart
+
 indices:
+  # Americas
   - "^GSPC"       # S&P 500
   - "^DJI"        # Dow Jones
   - "^IXIC"       # Nasdaq Composite
+  - "^RUI"        # Russell 1000
   - "^RUT"        # Russell 2000
+  - "^RUA"        # Russell 3000
   - "^VIX"        # CBOE Volatility Index
+  # Europe
   - "^FTSE"       # FTSE 100
   - "^GDAXI"      # DAX
-  - "^N225"       # Nikkei 225
+  - "^FCHI"       # CAC 40
+  - "^STOXX50E"   # EURO STOXX 50
+  - "^STOXX"      # STOXX Europe 600
+  - "^AEX"        # AEX (Netherlands)
+  - "^BFX"        # BEL 20 (Belgium)
+  - "^IBEX"       # IBEX 35 (Spain)
+  - "^FTSEMIB"    # FTSE MIB (Italy)
+  - "^SSMI"       # Swiss Market Index
+  - "^OMXS30"     # OMX Stockholm 30
+  - "^OMXH25"     # OMX Helsinki 25
+  # Asia
   - "^HSI"        # Hang Seng
-  - "^KS11"       # KOSPI
+  - "^N225"       # Nikkei 225
+  - "^KS11"       # KOSPI Composite Index
+  - "^KQ11"       # KOSDAQ Composite Index
+  - "^KS200"      # KOSPI 200 Index
 
 rates:
-  - "^IRX"
-  - "^TNX"
-  - "^TYX"
+  - "^IRX"        # 13-Week Treasury Bill yield
+  - "^FVX"        # 5-Year Treasury yield
+  - "^TNX"        # 10-Year Treasury yield
+  - "^TYX"        # 30-Year Treasury yield
 
 futures:
-  - CL=F          # Crude Oil WTI
-  - GC=F          # Gold
-  - ES=F          # E-mini S&P 500
-  - NQ=F          # E-mini Nasdaq-100
-  - NG=F          # Natural Gas
+  - CL=F        # Crude Oil WTI
+  - GC=F        # Gold
+  - SI=F        # Silver
+  - ES=F        # E-mini S&P 500
+  - NQ=F        # E-mini Nasdaq-100
+  - ZN=F        # 10-Year T-Note
+  - NG=F        # Natural Gas
+  - HG=F        # Copper
 
 crypto:
+  # Large caps
   - BTC-USD
   - ETH-USD
+  - BNB-USD
   - SOL-USD
   - XRP-USD
   - ADA-USD
   - DOGE-USD
+  - TRX-USD
+  - TON-USD
   - AVAX-USD
   - LINK-USD
+  - SHIB-USD
+  - DOT-USD
+  - BCH-USD
+  - LTC-USD
+  # L2 / smart contract / DeFi
+  - MATIC-USD
+  - ATOM-USD
+  - NEAR-USD
+  - APT-USD
+  - ARB-USD
+  - OP-USD
+  - SUI-USD
+  - SEI-USD
+  - INJ-USD
+  - UNI-USD
+  - AAVE-USD
+  - MKR-USD
+  - FIL-USD
+  - ICP-USD
+  - HBAR-USD
+  - STX-USD
+  - IMX-USD
+  # Mentions / memes / other liquid
+  - ETC-USD
+  - XLM-USD
+  - ALGO-USD
+  - VET-USD
+  - RENDER-USD
+  - PEPE-USD
+  - WIF-USD
+  - BONK-USD
+  - FLOKI-USD
+  - CRO-USD
+  - SAND-USD
+  - MANA-USD
+  - AXS-USD
 
 currencies:
-  - EURUSD=X    # EUR/USD
-  - GBPUSD=X    # GBP/USD
   - AUDUSD=X    # AUD/USD
-  - JPY=X       # USD/JPY
+  - CHF=X       # USD/CHF
   - CNY=X       # USD/CNY
+  - CZK=X       # USD/CZK
+  - DKK=X       # USD/DKK
+  - EURCAD=X    # EUR/CAD
+  - EURCHF=X    # EUR/CHF
+  - EURGBP=X    # EUR/GBP
+  - EURHUF=X    # EUR/HUF
+  - EURJPY=X    # EUR/JPY
+  - EURSEK=X    # EUR/SEK
+  - EURUSD=X    # EUR/USD
+  - GBPJPY=X    # GBP/JPY
+  - GBPUSD=X    # GBP/USD
   - HKD=X       # USD/HKD
+  - HUF=X       # USD/HUF
+  - IDR=X       # USD/IDR
+  - INR=X       # USD/INR
+  - JPY=X       # USD/JPY
   - KRW=X       # USD/KRW
+  - MXN=X       # USD/MXN
+  - MYR=X       # USD/MYR
+  - NOK=X       # USD/NOK
+  - NZDUSD=X    # NZD/USD
+  - PHP=X       # USD/PHP
+  - PLN=X       # USD/PLN
+  - RUB=X       # USD/RUB
+  - SEK=X       # USD/SEK
+  - SGD=X       # USD/SGD
+  - THB=X       # USD/THB
+  - TRY=X       # USD/TRY
+  - ZAR=X       # USD/ZAR
