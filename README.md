@@ -1,6 +1,6 @@
 # Finance Dataset Pipeline
 
-Automated pipeline that pulls historical and intraday market data from [Yahoo Finance](https://finance.yahoo.com/) via [`yfinance`](https://github.com/ranaroussi/yfinance) and stores it as partitioned CSV files in this repository. A GitHub Actions workflow runs daily and commits updates back to `data/`. The dataset is also published on [Kaggle](https://www.kaggle.com/datasets/benjaminpo/finance-dataset).
+Automated pipeline that pulls historical and intraday market data from [Yahoo Finance](https://finance.yahoo.com/) via [`yfinance`](https://github.com/ranaroussi/yfinance) and writes partitioned CSV files under `data/`. A GitHub Actions workflow runs daily, **publishes OHLCV to [Kaggle](https://www.kaggle.com/datasets/benjaminpo/finance-dataset)**, and commits listing CSV updates (not the bulk price files) back to this repository.
 
 ## Asset classes
 
@@ -26,7 +26,7 @@ Edit the lists in [`config/tickers.yaml`](config/tickers.yaml) to add or remove 
 
 Share classes like `BRK.B` are rewritten to Yahoo form (`BRK-B`). NASDAQ rows with `Test Issue = Y` are skipped, as are warrants / rights / units (limited Yahoo history).
 
-Each pipeline run (including the scheduled GitHub Action) checks those remote URLs first, compares SHA-256 hashes, and updates the local CSVs when content changed. Listing updates are committed alongside `data/`. Use `--skip-listings-refresh` to skip the check, or `--listings-only` to refresh listings without fetching market data.
+Each pipeline run (including the scheduled GitHub Action) checks those remote URLs first, compares SHA-256 hashes, and updates the local CSVs when content changed. Listing updates are committed to git; OHLCV under `data/` is uploaded to Kaggle. Use `--skip-listings-refresh` to skip the check, or `--listings-only` to refresh listings without fetching market data.
 
 **Korean stocks** (`stocks_kr`) are rebuilt each run from KOSPI + KOSDAQ via [FinanceDataReader](https://github.com/FinanceData/FinanceDataReader) into [`config/listings/krx-listed-symbols.csv`](config/listings/krx-listed-symbols.csv), with Yahoo suffixes `.KS` (KOSPI) and `.KQ` (KOSDAQ).
 
@@ -71,10 +71,14 @@ CSV index column is `Datetime` (UTC, ISO-8601). Columns: Open, High, Low, Close,
 ├── .github/workflows/
 │   ├── data_fetch.yml
 │   └── tests.yml
-├── config/tickers.yaml
-├── data/
+├── config/
+│   ├── tickers.yaml
+│   └── kaggle/
+│       └── dataset-metadata.json
+├── data/                 # local OHLCV (gitignored; published to Kaggle)
 ├── scripts/
-│   └── batch_commit.py
+│   ├── batch_commit.py   # commit listing CSV updates
+│   └── publish_kaggle.py # upload data/ as a Kaggle dataset version
 ├── src/
 │   ├── __init__.py
 │   ├── fetcher.py      # download + CSV merge logic
@@ -145,13 +149,37 @@ Workflow: [`.github/workflows/data_fetch.yml`](.github/workflows/data_fetch.yml)
 | `schedule`         | Cron `0 23 * * *` (23:00 UTC daily)       |
 | `workflow_dispatch`| Manual run from the Actions tab           |
 
-Steps: checkout → Python 3.11 → `pip install -r requirements.txt` → `python src/main.py` → [`scripts/batch_commit.py`](scripts/batch_commit.py) commits & pushes `data/` in batches of 400 files (avoids huge single pushes).
+Steps: checkout → Python 3.11 → install deps → `python src/main.py` → [`scripts/publish_kaggle.py`](scripts/publish_kaggle.py) uploads `data/` to Kaggle → [`scripts/batch_commit.py`](scripts/batch_commit.py) commits listing CSV updates under `config/listings/`.
+
+### Kaggle publish
+
+Dataset: [benjaminpo/finance-dataset](https://www.kaggle.com/datasets/benjaminpo/finance-dataset)
+
+```bash
+# After a local fetch:
+export KAGGLE_API_TOKEN=...          # from https://www.kaggle.com/settings/api
+python scripts/publish_kaggle.py
+
+# Or validate without uploading:
+python scripts/publish_kaggle.py --dry-run
+```
+
+| Flag / env                 | Default                         | Description                                      |
+|----------------------------|---------------------------------|--------------------------------------------------|
+| `--handle` / `KAGGLE_DATASET_HANDLE` | `benjaminpo/finance-dataset` | Kaggle dataset slug                          |
+| `--data-dir`               | `data`                          | Local OHLCV root to upload                       |
+| `--metadata`               | `config/kaggle/dataset-metadata.json` | Dataset title/id/license metadata      |
+| `--version-notes`          | dated file-count summary        | Notes shown on the new Kaggle version            |
+| `--dry-run`                | off                             | Plan only; no upload                             |
+
+Auth: set `KAGGLE_API_TOKEN`, or legacy `KAGGLE_USERNAME` + `KAGGLE_KEY`, or `~/.kaggle/kaggle.json`.
 
 ### First-time notes
 
 1. Push this repo to GitHub and enable Actions.
-2. Ensure the default branch allows the `GITHUB_TOKEN` to write contents (Settings → Actions → General → Workflow permissions → **Read and write**), or use a PAT with `contents: write` if your org restricts the default token.
-3. Trigger **Fetch Financial Data** via *Run workflow* for an initial backfill (first `1d` run downloads full history and can take a long time for the full universe; prefer a local `--intervals 1d --workers 8` run first).
+2. Add repository secret `KAGGLE_API_TOKEN` (Settings → Secrets and variables → Actions) from [Kaggle API settings](https://www.kaggle.com/settings/api) → **Generate New Token**.
+3. Ensure the default branch allows the `GITHUB_TOKEN` to write contents (Settings → Actions → General → Workflow permissions → **Read and write**) so listing commits can push.
+4. Trigger **Fetch Financial Data** via *Run workflow* for an initial backfill (first `1d` run downloads full history and can take a long time for the full universe; prefer a local `--intervals 1d --workers 8` run, then `python scripts/publish_kaggle.py`).
 
 ## Robustness
 

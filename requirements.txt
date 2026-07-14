@@ -4,3 +4,4 @@ pyyaml>=6.0
 finance-datareader>=0.9.50
 lxml>=4.9.0
 pytickersymbols>=1.15.0
+kagglehub>=0.3.0

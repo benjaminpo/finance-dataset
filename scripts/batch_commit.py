@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Commit and push data/ changes in small batches (for large dataset repos)."""
+"""Commit and push listing CSV changes in small batches."""
 
 from __future__ import annotations
 
@@ -9,7 +9,8 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-DEFAULT_ROOTS = ("config/listings", "data")
+# Listings stay in git; OHLCV under data/ is published to Kaggle instead.
+DEFAULT_ROOTS = ("config/listings",)
 DEFAULT_BATCH_SIZE = 400
 
 
@@ -132,7 +133,9 @@ def batch_commit(
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Commit data/ changes in batches and push.")
+    parser = argparse.ArgumentParser(
+        description="Commit listing CSV changes in batches and push.",
+    )
     parser.add_argument(
         "--batch-size",
         type=int,
@@ -148,7 +151,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--roots",
         nargs="+",
         default=list(DEFAULT_ROOTS),
-        help="Directories to include (default: config/listings data)",
+        help="Directories to include (default: config/listings)",
     )
     return parser.parse_args(argv)
 

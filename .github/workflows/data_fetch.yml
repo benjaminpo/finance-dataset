@@ -11,7 +11,7 @@ permissions:
   contents: write
 
 jobs:
-  fetch-and-commit:
+  fetch-and-publish:
     runs-on: ubuntu-latest
     # Full NASDAQ + S&P 500 universe is large; allow a long first/daily run.
     timeout-minutes: 360
@@ -34,7 +34,13 @@ jobs:
         # parallel workers. Use --skip-existing on manual re-runs to resume.
         run: python src/main.py --workers 8 --sleep 0.25
 
-      - name: Commit and push updates in batches
+      - name: Publish OHLCV to Kaggle
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+          KAGGLE_DATASET_HANDLE: benjaminpo/finance-dataset
+        run: python scripts/publish_kaggle.py
+
+      - name: Commit listing updates
         env:
           GIT_AUTHOR_NAME: github-actions[bot]
           GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com

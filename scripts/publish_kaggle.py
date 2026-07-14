@@ -1,0 +1,165 @@
+#!/usr/bin/env python3
+"""Publish local OHLCV CSVs under data/ as a new Kaggle dataset version."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+DEFAULT_HANDLE = "benjaminpo/finance-dataset"
+DEFAULT_DATA_DIR = "data"
+DEFAULT_METADATA = "config/kaggle/dataset-metadata.json"
+IGNORE_PATTERNS = [".DS_Store", ".gitkeep", "**/__pycache__/", "*.pyc"]
+METADATA_NAME = "dataset-metadata.json"
+
+
+def has_kaggle_credentials() -> bool:
+    if os.environ.get("KAGGLE_API_TOKEN"):
+        return True
+    if os.environ.get("KAGGLE_USERNAME") and os.environ.get("KAGGLE_KEY"):
+        return True
+    home = Path.home() / ".kaggle"
+    return (home / "access_token").is_file() or (home / "kaggle.json").is_file()
+
+
+def count_data_files(data_dir: Path) -> int:
+    if not data_dir.is_dir():
+        return 0
+    return sum(
+        1
+        for p in data_dir.rglob("*")
+        if p.is_file() and p.name not in {".gitkeep", METADATA_NAME}
+    )
+
+
+def load_metadata(path: Path, handle: str) -> dict:
+    meta = json.loads(path.read_text(encoding="utf-8"))
+    if "id" not in meta:
+        meta["id"] = handle
+    if "title" not in meta:
+        meta["title"] = handle.split("/", 1)[-1].replace("-", " ").title()
+    if "licenses" not in meta:
+        meta["licenses"] = [{"name": "CC0-1.0"}]
+    return meta
+
+
+def write_upload_metadata(data_dir: Path, metadata_path: Path, handle: str) -> Path:
+    """Write dataset-metadata.json into *data_dir* for the Kaggle upload API."""
+    if not data_dir.is_dir():
+        raise FileNotFoundError(f"Data directory not found: {data_dir}")
+    n_files = count_data_files(data_dir)
+    if n_files == 0:
+        raise FileNotFoundError(f"No data files to publish under {data_dir}")
+
+    dest = data_dir / METADATA_NAME
+    meta = load_metadata(metadata_path, handle)
+    dest.write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
+    return dest
+
+
+def publish(
+    handle: str = DEFAULT_HANDLE,
+    data_dir: str | Path = DEFAULT_DATA_DIR,
+    metadata: str | Path = DEFAULT_METADATA,
+    version_notes: str | None = None,
+    *,
+    dry_run: bool = False,
+) -> str:
+    """
+    Upload *data_dir* as a new version of the Kaggle dataset *handle*.
+
+    Returns the version notes used for the upload.
+    """
+    data_path = Path(data_dir)
+    meta_path = Path(metadata)
+    if not meta_path.is_file():
+        raise FileNotFoundError(f"Metadata file not found: {meta_path}")
+    if not has_kaggle_credentials() and not dry_run:
+        raise RuntimeError(
+            "Missing Kaggle credentials. Set KAGGLE_API_TOKEN "
+            "(or KAGGLE_USERNAME + KAGGLE_KEY), or place credentials in ~/.kaggle/."
+        )
+
+    n_files = count_data_files(data_path)
+    if n_files == 0:
+        raise FileNotFoundError(f"No data files to publish under {data_path}")
+    date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    notes = version_notes or f"Daily OHLCV refresh {date} ({n_files} file(s))"
+
+    meta_dest = write_upload_metadata(data_path, meta_path, handle)
+    try:
+        if dry_run:
+            print(f"[dry-run] Would upload {n_files} file(s) to {handle}")
+            print(f"[dry-run] Upload root: {data_path.resolve()}")
+            print(f"[dry-run] Version notes: {notes}")
+            return notes
+
+        import kagglehub
+
+        print(f"Uploading {n_files} file(s) to https://www.kaggle.com/datasets/{handle} ...")
+        kagglehub.dataset_upload(
+            handle,
+            str(data_path),
+            version_notes=notes,
+            ignore_patterns=IGNORE_PATTERNS,
+        )
+        print(f"Published {handle}: {notes}")
+        return notes
+    finally:
+        meta_dest.unlink(missing_ok=True)
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Publish data/ OHLCV CSVs to a Kaggle dataset version.",
+    )
+    parser.add_argument(
+        "--handle",
+        default=os.environ.get("KAGGLE_DATASET_HANDLE", DEFAULT_HANDLE),
+        help=f"Kaggle dataset handle (default: {DEFAULT_HANDLE})",
+    )
+    parser.add_argument(
+        "--data-dir",
+        default=DEFAULT_DATA_DIR,
+        help="Local OHLCV root to upload (default: data)",
+    )
+    parser.add_argument(
+        "--metadata",
+        default=DEFAULT_METADATA,
+        help=f"Path to dataset-metadata.json (default: {DEFAULT_METADATA})",
+    )
+    parser.add_argument(
+        "--version-notes",
+        default=None,
+        help="Kaggle version notes (default: dated summary with file count)",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Validate inputs and print plan without uploading",
+    )
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = parse_args(argv)
+    try:
+        publish(
+            handle=args.handle,
+            data_dir=args.data_dir,
+            metadata=args.metadata,
+            version_notes=args.version_notes,
+            dry_run=args.dry_run,
+        )
+    except (FileNotFoundError, RuntimeError, OSError) as exc:
+        print(exc, file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -183,6 +183,8 @@ def test_batch_commit_skips_empty_staged() -> None:
 
 
 def test_parse_args_and_main_success() -> None:
+    defaults = parse_args([])
+    assert defaults.roots == ["config/listings"]
     args = parse_args(["--batch-size", "10", "--no-push", "--roots", "data"])
     assert args.batch_size == 10
     assert args.no_push is True

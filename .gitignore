@@ -29,3 +29,7 @@ htmlcov/
 # Local env files
 .env
 .env.*
+
+# OHLCV CSVs are published to Kaggle, not committed to git
+data/**
+!data/.gitkeep
