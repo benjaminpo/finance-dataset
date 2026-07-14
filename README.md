@@ -62,14 +62,22 @@ CSV index column is `Datetime` (UTC, ISO-8601). Columns: Open, High, Low, Close,
 ## Repository layout
 
 ```
-├── .github/workflows/data_fetch.yml
+├── .github/workflows/
+│   ├── data_fetch.yml
+│   └── tests.yml
 ├── config/tickers.yaml
 ├── data/
+├── scripts/
+│   └── batch_commit.py
 ├── src/
 │   ├── __init__.py
 │   ├── fetcher.py      # download + CSV merge logic
+│   ├── listings.py     # remote/KRX/TSE/Europe listing refresh
 │   └── main.py         # CLI entry point
+├── tests/
 ├── requirements.txt
+├── requirements-dev.txt
+├── pyproject.toml
 └── README.md
 ```
 
@@ -82,6 +90,15 @@ python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
+
+### Tests
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
+
+Runs the unit suite under `tests/` with coverage on `src/` and `scripts/` (fail under 80%). CI workflow: [`.github/workflows/tests.yml`](.github/workflows/tests.yml).
 
 ### Run the pipeline
 
