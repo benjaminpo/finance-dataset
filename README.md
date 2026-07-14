@@ -24,7 +24,7 @@ Edit the lists in [`config/tickers.yaml`](config/tickers.yaml) to add or remove 
 - [`config/listings/nasdaq-listed-symbols.csv`](config/listings/nasdaq-listed-symbols.csv) ([source](https://raw.githubusercontent.com/datasets/nasdaq-listings/master/data/nasdaq-listed-symbols.csv))
 - [`config/listings/sp500-constituents.csv`](config/listings/sp500-constituents.csv) ([source](https://raw.githubusercontent.com/datasets/s-and-p-500-companies/master/data/constituents.csv))
 
-Share classes like `BRK.B` are rewritten to Yahoo form (`BRK-B`). NASDAQ rows with `Test Issue = Y` are skipped.
+Share classes like `BRK.B` are rewritten to Yahoo form (`BRK-B`). NASDAQ rows with `Test Issue = Y` are skipped, as are warrants / rights / units (limited Yahoo history).
 
 Each pipeline run (including the scheduled GitHub Action) checks those remote URLs first, compares SHA-256 hashes, and updates the local CSVs when content changed. Listing updates are committed alongside `data/`. Use `--skip-listings-refresh` to skip the check, or `--listings-only` to refresh listings without fetching market data.
 
@@ -75,7 +75,7 @@ CSV index column is `Datetime` (UTC, ISO-8601). Columns: Open, High, Low, Close,
 
 ## Local setup
 
-Requires **Python 3.10+**.
+Requires **Python 3.11+** (`pytickersymbols` and related deps no longer support 3.10).
 
 ```bash
 python -m venv .venv
@@ -86,23 +86,27 @@ pip install -r requirements.txt
 ### Run the pipeline
 
 ```bash
-# Both intervals (default)
+# Both intervals (default) — 8 parallel workers
 python src/main.py
 
-# Daily bars only
-python src/main.py --intervals 1d
+# Faster first backfill: daily only, then resume if interrupted
+python src/main.py --intervals 1d --skip-existing
 
-# Custom config / output / delay
-python src/main.py --config config/tickers.yaml --data-dir data --sleep 1.5 -v
+# Custom config / workers / delay
+python src/main.py --config config/tickers.yaml --data-dir data --workers 12 --sleep 0.25 -v
 ```
 
-| Flag           | Default                 | Description                          |
-|----------------|-------------------------|--------------------------------------|
-| `--config`     | `config/tickers.yaml`   | Ticker lists                         |
-| `--data-dir`   | `data`                  | CSV root                             |
-| `--intervals`  | `1d 1m`                 | One or both of `1d`, `1m`            |
-| `--sleep`      | `1.0`                   | Seconds between ticker requests      |
-| `-v`           | off                     | Debug logging                        |
+| Flag              | Default                 | Description                                      |
+|-------------------|-------------------------|--------------------------------------------------|
+| `--config`        | `config/tickers.yaml`   | Ticker lists                                     |
+| `--data-dir`      | `data`                  | CSV root                                         |
+| `--intervals`     | `1d 1m`                 | One or both of `1d`, `1m`                        |
+| `--workers`       | `8`                     | Parallel Yahoo fetch threads                     |
+| `--sleep`         | `0.25`                  | Seconds to pause after each request              |
+| `--skip-existing` | off                     | Skip tickers that already have data (resume)     |
+| `-v`              | off                     | Debug logging                                    |
+
+The full universe is ~12k symbols × 2 intervals. Sequential fetching with a 1s delay takes many hours; parallel workers cut that roughly by `--workers`. Prefer `--intervals 1d` for the first backfill, then run `1m` separately. Use `--skip-existing` to resume after an interrupt.
 
 Progress is printed per job, e.g. `Fetching AAPL [1d]... Success — 2 new/updated row(s)`.
 
@@ -115,21 +119,19 @@ Workflow: [`.github/workflows/data_fetch.yml`](.github/workflows/data_fetch.yml)
 | `schedule`         | Cron `0 23 * * *` (23:00 UTC daily)       |
 | `workflow_dispatch`| Manual run from the Actions tab           |
 
-Steps: checkout → Python 3.10 → `pip install -r requirements.txt` → `python src/main.py` → commit & push changes under `data/` as `github-actions[bot]` when the tree changed.
+Steps: checkout → Python 3.11 → `pip install -r requirements.txt` → `python src/main.py` → [`scripts/batch_commit.py`](scripts/batch_commit.py) commits & pushes `data/` in batches of 400 files (avoids huge single pushes).
 
 ### First-time notes
 
 1. Push this repo to GitHub and enable Actions.
 2. Ensure the default branch allows the `GITHUB_TOKEN` to write contents (Settings → Actions → General → Workflow permissions → **Read and write**), or use a PAT with `contents: write` if your org restricts the default token.
-3. Trigger **Fetch Financial Data** via *Run workflow* for an initial backfill (first `1d` run downloads full history and may take several minutes).
+3. Trigger **Fetch Financial Data** via *Run workflow* for an initial backfill (first `1d` run downloads full history and can take a long time for the full universe; prefer a local `--intervals 1d --workers 8` run first).
 
 ## Robustness
 
 - Per-ticker `try/except` — one failure does not abort the run.
-- Configurable sleep between requests (default 1s) to ease Yahoo rate limits.
+- Parallel workers (default 8) plus a short per-request sleep to ease Yahoo rate limits.
+- In-process Yahoo response cache — identical ticker/interval requests are not downloaded twice in one run.
+- `--skip-existing` resumes long backfills without re-downloading completed tickers.
 - Corrupt or unreadable existing CSVs trigger a full refetch for that ticker rather than a crash.
 - Exit code `2` only if **every** fetch failed; partial success exits `0`.
-
-## License
-
-Use and modify freely for your own datasets and research.

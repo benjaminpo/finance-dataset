@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.fetcher import run_pipeline  # noqa: E402
+from src.fetcher import DEFAULT_WORKERS, run_pipeline  # noqa: E402
 from src.listings import refresh_listings  # noqa: E402
 
 
@@ -44,8 +44,21 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--sleep",
         type=float,
-        default=1.0,
-        help="Seconds to sleep between ticker requests (default: 1.0)",
+        default=0.25,
+        help="Seconds to sleep after each ticker request (default: 0.25; "
+        "raise if Yahoo rate-limits)",
+    )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=DEFAULT_WORKERS,
+        help=f"Parallel Yahoo fetch workers (default: {DEFAULT_WORKERS})",
+    )
+    parser.add_argument(
+        "--skip-existing",
+        action="store_true",
+        help="Skip tickers that already have a 1d CSV (or today's 1m snapshot); "
+        "useful to resume a long first backfill",
     )
     parser.add_argument(
         "--skip-listings-refresh",
@@ -99,6 +112,8 @@ def main(argv: list[str] | None = None) -> int:
         data_dir=args.data_dir,
         intervals=args.intervals,
         sleep_seconds=args.sleep,
+        workers=args.workers,
+        skip_existing=args.skip_existing,
     )
 
     print(

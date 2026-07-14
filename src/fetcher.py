@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import logging
+import re
+import threading
 import time
+from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -17,11 +20,49 @@ logger = logging.getLogger(__name__)
 # Columns we persist to CSV (OHLCV + Dividends/Stock Splits when present).
 OHLCV_COLUMNS = ["Open", "High", "Low", "Close", "Adj Close", "Volume"]
 
-# Pause between individual ticker requests to reduce rate-limit risk.
-REQUEST_DELAY_SECONDS = 1.0
+# Pause after each ticker request (per worker) to reduce rate-limit risk.
+REQUEST_DELAY_SECONDS = 0.25
+
+# Default parallel Yahoo requests. Keep modest to avoid hard rate limits.
+DEFAULT_WORKERS = 8
 
 # Yahoo Finance only retains ~7 days of 1-minute bars.
 INTRADAY_PERIOD = "7d"
+
+# Daily CSVs shorter than this are treated as truncated (e.g. period=5d fallback
+# during a rate-limited bulk run) and re-fetched with full history.
+MIN_TRUSTED_DAILY_ROWS = 20
+
+# Fixed decimal places for OHLCV price columns in CSV output (Volume stays int).
+CSV_FLOAT_FORMAT = "%.10f"
+
+# Some thin instruments (new SPACs, warrants) reject period=max; try shorter windows.
+# Put 5d early — some names only allow 1d/5d on Yahoo.
+DAILY_PERIOD_FALLBACKS = (
+    "max",
+    "5d",
+    "1mo",
+    "3mo",
+    "6mo",
+    "1y",
+    "2y",
+    "5y",
+    "10y",
+)
+
+# Process-wide cache so the same Yahoo request is not repeated in one run
+# (e.g. a symbol listed under more than one asset class).
+# In-flight Futures coalesce concurrent duplicate keys (singleflight).
+_fetch_cache: dict[tuple, pd.DataFrame] = {}
+_fetch_inflight: dict[tuple, Future] = {}
+_fetch_cache_lock = threading.Lock()
+_print_lock = threading.Lock()
+
+# NASDAQ Security Name tokens with very limited Yahoo history.
+_SKIP_SECURITY_NAME_RE = re.compile(
+    r"\b(?:Warrant|Warrants|Right|Rights|Unit|Units)\b",
+    re.IGNORECASE,
+)
 
 
 def _to_yahoo_symbol(symbol: str) -> str:
@@ -55,6 +96,8 @@ def load_symbols_from_csv(csv_path: Path) -> list[str]:
     Read a Symbol column from a listing CSV.
 
     Drops NASDAQ test issues when a ``Test Issue`` column is present.
+    Drops warrants / rights / units when a ``Security Name`` column is present
+    (Yahoo often only allows 1d/5d history for those).
     Converts share-class dots to hyphens for Yahoo Finance compatibility.
     """
     df = pd.read_csv(csv_path)
@@ -63,6 +106,10 @@ def load_symbols_from_csv(csv_path: Path) -> list[str]:
 
     if "Test Issue" in df.columns:
         df = df[df["Test Issue"].fillna("N").astype(str).str.upper() != "Y"]
+
+    if "Security Name" in df.columns:
+        names = df["Security Name"].fillna("").astype(str)
+        df = df[~names.str.contains(_SKIP_SECURITY_NAME_RE, regex=True)]
 
     symbols: list[str] = []
     seen: set[str] = set()
@@ -154,6 +201,13 @@ def _normalize_frame(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def clear_fetch_cache() -> None:
+    """Drop the in-process Yahoo response cache (mainly for tests)."""
+    with _fetch_cache_lock:
+        _fetch_cache.clear()
+        _fetch_inflight.clear()
+
+
 def fetch_history(
     ticker: str,
     interval: str,
@@ -166,17 +220,79 @@ def fetch_history(
 
     Prefer ``start`` for incremental daily updates; use ``period`` for
     full history or the fixed 7-day intraday window.
-    """
-    kwargs: dict = {"interval": interval, "auto_adjust": False, "progress": False}
-    if start is not None:
-        kwargs["start"] = start
-    elif period is not None:
-        kwargs["period"] = period
-    else:
-        kwargs["period"] = "max"
 
-    raw = yf.download(ticker, **kwargs)
-    return _normalize_frame(raw)
+    Identical requests within one process are served from an in-memory cache
+    so duplicate symbols across asset classes do not hit Yahoo twice.
+    Concurrent callers with the same key share one in-flight request
+    (singleflight) rather than racing duplicate Yahoo downloads.
+    """
+    cache_key = (ticker, interval, start, period)
+    with _fetch_cache_lock:
+        cached = _fetch_cache.get(cache_key)
+        if cached is not None:
+            return cached.copy()
+        inflight = _fetch_inflight.get(cache_key)
+        if inflight is None:
+            inflight = Future()
+            _fetch_inflight[cache_key] = inflight
+            is_leader = True
+        else:
+            is_leader = False
+
+    if not is_leader:
+        return inflight.result().copy()
+
+    try:
+        kwargs: dict = {"interval": interval, "auto_adjust": False, "progress": False}
+        if start is not None:
+            kwargs["start"] = start
+        elif period is not None:
+            kwargs["period"] = period
+        else:
+            kwargs["period"] = "max"
+
+        # yfinance logs noisy ERROR lines for empty/invalid downloads; keep ours.
+        yf_logger = logging.getLogger("yfinance")
+        prev_level = yf_logger.level
+        yf_logger.setLevel(logging.CRITICAL)
+        try:
+            raw = yf.download(ticker, **kwargs)
+        finally:
+            yf_logger.setLevel(prev_level)
+
+        df = _normalize_frame(raw)
+        with _fetch_cache_lock:
+            _fetch_cache[cache_key] = df
+            _fetch_inflight.pop(cache_key, None)
+        inflight.set_result(df)
+        return df.copy()
+    except Exception as exc:
+        with _fetch_cache_lock:
+            _fetch_inflight.pop(cache_key, None)
+        inflight.set_exception(exc)
+        raise
+
+
+def fetch_daily_history(
+    ticker: str,
+    *,
+    start: Optional[str] = None,
+) -> pd.DataFrame:
+    """
+    Fetch daily bars, falling back through shorter periods when ``max`` is rejected.
+
+    Thin names (new listings, some SPACs) only allow ``1d``/``5d`` on Yahoo.
+    """
+    if start is not None:
+        return fetch_history(ticker, "1d", start=start)
+
+    for period in DAILY_PERIOD_FALLBACKS:
+        df = fetch_history(ticker, "1d", period=period)
+        if not df.empty:
+            if period != "max":
+                logger.info("%s: daily history via period=%s (max unavailable)", ticker, period)
+            return df
+    return pd.DataFrame()
 
 
 def _csv_path_1d(data_dir: Path, asset_class: str, ticker: str) -> Path:
@@ -203,11 +319,27 @@ def _last_timestamp(csv_path: Path) -> Optional[pd.Timestamp]:
         existing = pd.read_csv(csv_path, index_col="Datetime", parse_dates=True)
         if existing.empty:
             return None
+        if len(existing) < MIN_TRUSTED_DAILY_ROWS:
+            logger.info(
+                "%s has only %d row(s); will refetch full history.",
+                csv_path.name,
+                len(existing),
+            )
+            return None
         ts = pd.to_datetime(existing.index, utc=True).max()
         return ts
     except Exception as exc:  # noqa: BLE001 — corrupt CSV should not abort the run
         logger.warning("Could not read %s (%s); will refetch full history.", csv_path, exc)
         return None
+
+
+def _write_ohlcv_csv(df: pd.DataFrame, csv_path: Path) -> None:
+    """Write a normalized OHLCV frame with consistent float formatting."""
+    df.to_csv(
+        csv_path,
+        date_format="%Y-%m-%dT%H:%M:%S%z",
+        float_format=CSV_FLOAT_FORMAT,
+    )
 
 
 def save_daily(df: pd.DataFrame, csv_path: Path) -> int:
@@ -229,7 +361,7 @@ def save_daily(df: pd.DataFrame, csv_path: Path) -> int:
         combined = df
         new_rows = len(combined)
 
-    combined.to_csv(csv_path, date_format="%Y-%m-%dT%H:%M:%S%z")
+    _write_ohlcv_csv(combined, csv_path)
     return max(new_rows, 0)
 
 
@@ -256,7 +388,7 @@ def save_intraday_snapshots(
         path.parent.mkdir(parents=True, exist_ok=True)
         day_df = day_df.sort_index()
         day_df = day_df[~day_df.index.duplicated(keep="last")]
-        day_df.to_csv(path, date_format="%Y-%m-%dT%H:%M:%S%z")
+        _write_ohlcv_csv(day_df, path)
         rows_written += len(day_df)
 
     return rows_written
@@ -266,21 +398,27 @@ def update_ticker_1d(
     ticker: str,
     asset_class: str,
     data_dir: Path,
+    *,
+    skip_existing: bool = False,
 ) -> tuple[bool, str]:
     """Fetch and incrementally update 1-day data for one ticker."""
     csv_path = _csv_path_1d(data_dir, asset_class, ticker)
     last_ts = _last_timestamp(csv_path)
 
+    if skip_existing and last_ts is not None:
+        return True, f"skipped (exists) → {csv_path.relative_to(data_dir.parent)}"
+
     try:
         if last_ts is not None:
             # Start one day before the last bar so the latest candle can be refreshed.
             start = (last_ts - pd.Timedelta(days=1)).strftime("%Y-%m-%d")
-            df = fetch_history(ticker, "1d", start=start)
+            df = fetch_daily_history(ticker, start=start)
+            if df.empty:
+                return True, f"0 new/updated row(s) → {csv_path.relative_to(data_dir.parent)}"
         else:
-            df = fetch_history(ticker, "1d", period="max")
-
-        if df.empty:
-            return False, "No data returned"
+            df = fetch_daily_history(ticker)
+            if df.empty:
+                return False, "No daily data returned"
 
         n = save_daily(df, csv_path)
         return True, f"{n} new/updated row(s) → {csv_path.relative_to(data_dir.parent)}"
@@ -292,18 +430,60 @@ def update_ticker_1m(
     ticker: str,
     asset_class: str,
     data_dir: Path,
+    *,
+    skip_existing: bool = False,
 ) -> tuple[bool, str]:
     """Fetch the rolling 7-day 1-minute window and write dated snapshots."""
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    if skip_existing:
+        today_path = _csv_path_1m(data_dir, asset_class, ticker, today)
+        if today_path.exists():
+            return True, f"skipped (exists) → {today_path.relative_to(data_dir.parent)}"
+
     try:
         df = fetch_history(ticker, "1m", period=INTRADAY_PERIOD)
         if df.empty:
-            return False, "No data returned"
+            return False, "No 1m data (illiquid, halted, or unsupported)"
 
         n = save_intraday_snapshots(df, data_dir, asset_class, ticker)
-        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         return True, f"{n} row(s) across day snapshots (through {today})"
     except Exception as exc:  # noqa: BLE001
         return False, str(exc)
+
+
+def _run_one_job(
+    *,
+    done: int,
+    total: int,
+    ticker: str,
+    asset_class: str,
+    interval: str,
+    data_dir: Path,
+    sleep_seconds: float,
+    skip_existing: bool,
+) -> str:
+    """Execute a single ticker/interval job; return summary status key."""
+    label = f"[{done}/{total}] Fetching {ticker} [{interval}]..."
+
+    if interval == "1d":
+        ok, msg = update_ticker_1d(
+            ticker, asset_class, data_dir, skip_existing=skip_existing
+        )
+    elif interval == "1m":
+        ok, msg = update_ticker_1m(
+            ticker, asset_class, data_dir, skip_existing=skip_existing
+        )
+    else:
+        with _print_lock:
+            print(f"{label} Skipped (unsupported interval '{interval}')")
+        return "skipped"
+
+    with _print_lock:
+        print(f"{label} {'Success' if ok else 'FAILED'} — {msg}")
+
+    if sleep_seconds > 0:
+        time.sleep(sleep_seconds)
+    return "success" if ok else "failed"
 
 
 def run_pipeline(
@@ -311,50 +491,85 @@ def run_pipeline(
     data_dir: Path,
     intervals: Optional[list[str]] = None,
     sleep_seconds: float = REQUEST_DELAY_SECONDS,
+    workers: int = DEFAULT_WORKERS,
+    skip_existing: bool = False,
 ) -> dict[str, int]:
     """
     Run the full fetch pipeline for every ticker in the config.
 
     Returns a summary dict with success / failure counts.
+
+    ``workers`` > 1 fetches tickers concurrently (much faster for large universes).
+    ``skip_existing`` resumes a long first backfill by skipping tickers that
+    already have a daily CSV (or today's 1m snapshot).
+
+    Identical Yahoo requests (same ticker/interval/window) are cached in-process,
+    so a symbol listed under more than one asset class only hits Yahoo once.
     """
+    clear_fetch_cache()
     intervals = intervals or ["1d", "1m"]
     tickers_by_class = load_tickers(config_path)
 
+    jobs: list[tuple[str, str, str]] = [
+        (asset_class, ticker, interval)
+        for asset_class, symbols in tickers_by_class.items()
+        for ticker in symbols
+        for interval in intervals
+    ]
+
     summary = {"success": 0, "failed": 0, "skipped": 0}
-    total = sum(len(v) for v in tickers_by_class.values()) * len(intervals)
-    done = 0
+    total = len(jobs)
+    workers = max(1, int(workers))
+    n_tickers = sum(len(v) for v in tickers_by_class.values())
 
     logger.info(
-        "Starting pipeline: %d ticker(s) × %s interval(s) = %d job(s)",
-        sum(len(v) for v in tickers_by_class.values()),
+        "Starting pipeline: %d ticker(s) × %s interval(s) = %d job(s), "
+        "workers=%d, skip_existing=%s",
+        n_tickers,
         intervals,
         total,
+        workers,
+        skip_existing,
     )
 
-    for asset_class, symbols in tickers_by_class.items():
-        for ticker in symbols:
-            for interval in intervals:
-                done += 1
-                label = f"[{done}/{total}] Fetching {ticker} [{interval}]..."
-                print(label, end=" ", flush=True)
-
-                if interval == "1d":
-                    ok, msg = update_ticker_1d(ticker, asset_class, data_dir)
-                elif interval == "1m":
-                    ok, msg = update_ticker_1m(ticker, asset_class, data_dir)
-                else:
-                    print(f"Skipped (unsupported interval '{interval}')")
-                    summary["skipped"] += 1
-                    continue
-
-                if ok:
-                    print(f"Success — {msg}")
-                    summary["success"] += 1
-                else:
-                    print(f"FAILED — {msg}")
-                    summary["failed"] += 1
-
-                time.sleep(sleep_seconds)
+    if workers == 1:
+        for idx, (asset_class, ticker, interval) in enumerate(jobs, start=1):
+            status = _run_one_job(
+                done=idx,
+                total=total,
+                ticker=ticker,
+                asset_class=asset_class,
+                interval=interval,
+                data_dir=data_dir,
+                sleep_seconds=sleep_seconds,
+                skip_existing=skip_existing,
+            )
+            summary[status] = summary.get(status, 0) + 1
+    else:
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = [
+                pool.submit(
+                    _run_one_job,
+                    done=idx,
+                    total=total,
+                    ticker=ticker,
+                    asset_class=asset_class,
+                    interval=interval,
+                    data_dir=data_dir,
+                    sleep_seconds=sleep_seconds,
+                    skip_existing=skip_existing,
+                )
+                for idx, (asset_class, ticker, interval) in enumerate(jobs, start=1)
+            ]
+            for fut in as_completed(futures):
+                try:
+                    status = fut.result()
+                except Exception as exc:  # noqa: BLE001
+                    logger.exception("Worker crashed: %s", exc)
+                    status = "failed"
+                    with _print_lock:
+                        print(f"Worker FAILED — {exc}")
+                summary[status] = summary.get(status, 0) + 1
 
     logger.info(
         "Pipeline finished: %d success, %d failed, %d skipped",
