@@ -1,6 +1,6 @@
 # Finance Dataset Pipeline
 
-Automated pipeline that pulls historical and intraday market data from [Yahoo Finance](https://finance.yahoo.com/) via [`yfinance`](https://github.com/ranaroussi/yfinance) and stores it as partitioned CSV files in this repository. A GitHub Actions workflow runs daily and commits updates back to `data/`.
+Automated pipeline that pulls historical and intraday market data from [Yahoo Finance](https://finance.yahoo.com/) via [`yfinance`](https://github.com/ranaroussi/yfinance) and stores it as partitioned CSV files in this repository. A GitHub Actions workflow runs daily and commits updates back to `data/`. The dataset is also published on [Kaggle](https://www.kaggle.com/datasets/benjaminpo/finance-dataset).
 
 ## Asset classes
 
