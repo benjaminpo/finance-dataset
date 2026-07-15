@@ -9,13 +9,23 @@ import time
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Optional, TypedDict
 
 import pandas as pd
 import yaml
 import yfinance as yf
 
 logger = logging.getLogger(__name__)
+
+
+class JobResult(TypedDict):
+    """Outcome of a single ticker/interval fetch job."""
+
+    status: str  # success | failed | skipped
+    ticker: str
+    asset_class: str
+    interval: str
+    message: str
 
 # Columns we persist to CSV (OHLCV + Dividends/Stock Splits when present).
 OHLCV_COLUMNS = ["Open", "High", "Low", "Close", "Adj Close", "Volume"]
@@ -579,6 +589,82 @@ def update_ticker_1m(
     )
 
 
+def _job_result(
+    status: str,
+    *,
+    ticker: str,
+    asset_class: str,
+    interval: str,
+    message: str = "",
+) -> JobResult:
+    return {
+        "status": status,
+        "ticker": ticker,
+        "asset_class": asset_class,
+        "interval": interval,
+        "message": message,
+    }
+
+
+def _empty_count_bucket() -> dict[str, int]:
+    return {"success": 0, "failed": 0, "skipped": 0}
+
+
+def _new_pipeline_summary() -> dict:
+    return {
+        "success": 0,
+        "failed": 0,
+        "skipped": 0,
+        "total": 0,
+        "attempted": 0,
+        "failure_rate": 0.0,
+        "by_interval": {},
+        "by_asset_class": {},
+        "failures": [],
+    }
+
+
+def _record_job_result(summary: dict, result: JobResult) -> None:
+    """Accumulate one job outcome into the pipeline summary."""
+    status = result["status"]
+    if status not in ("success", "failed", "skipped"):
+        status = "failed"
+        result = {**result, "status": status}
+
+    summary[status] = int(summary.get(status, 0)) + 1
+    summary["total"] = int(summary.get("total", 0)) + 1
+
+    interval = result["interval"] or "(unknown)"
+    asset_class = result["asset_class"] or "(unknown)"
+    by_interval = summary.setdefault("by_interval", {})
+    by_asset = summary.setdefault("by_asset_class", {})
+    if interval not in by_interval:
+        by_interval[interval] = _empty_count_bucket()
+    if asset_class not in by_asset:
+        by_asset[asset_class] = _empty_count_bucket()
+    by_interval[interval][status] = by_interval[interval].get(status, 0) + 1
+    by_asset[asset_class][status] = by_asset[asset_class].get(status, 0) + 1
+
+    if status == "failed":
+        summary.setdefault("failures", []).append(
+            {
+                "ticker": result["ticker"],
+                "asset_class": result["asset_class"],
+                "interval": result["interval"],
+                "message": result["message"],
+            }
+        )
+
+
+def _finalize_pipeline_summary(summary: dict) -> dict:
+    attempted = int(summary.get("success", 0)) + int(summary.get("failed", 0))
+    summary["attempted"] = attempted
+    summary["failure_rate"] = (
+        round(int(summary.get("failed", 0)) / attempted, 6) if attempted else 0.0
+    )
+    return summary
+
+
 def _run_one_job(
     *,
     done: int,
@@ -589,8 +675,8 @@ def _run_one_job(
     data_dir: Path,
     sleep_seconds: float,
     skip_existing: bool,
-) -> str:
-    """Execute a single ticker/interval job; return summary status key."""
+) -> JobResult:
+    """Execute a single ticker/interval job; return a structured result."""
     label = f"[{done}/{total}] Fetching {ticker} [{interval}]..."
 
     if interval in CUMULATIVE_INTERVALS:
@@ -604,14 +690,26 @@ def _run_one_job(
     else:
         with _print_lock:
             print(f"{label} Skipped (unsupported interval '{interval}')")
-        return "skipped"
+        return _job_result(
+            "skipped",
+            ticker=ticker,
+            asset_class=asset_class,
+            interval=interval,
+            message=f"unsupported interval '{interval}'",
+        )
 
     with _print_lock:
         print(f"{label} {'Success' if ok else 'FAILED'} — {msg}")
 
     if sleep_seconds > 0:
         time.sleep(sleep_seconds)
-    return "success" if ok else "failed"
+    return _job_result(
+        "success" if ok else "failed",
+        ticker=ticker,
+        asset_class=asset_class,
+        interval=interval,
+        message=msg,
+    )
 
 
 def run_pipeline(
@@ -621,11 +719,13 @@ def run_pipeline(
     sleep_seconds: float = REQUEST_DELAY_SECONDS,
     workers: int = DEFAULT_WORKERS,
     skip_existing: bool = False,
-) -> dict[str, int]:
+) -> dict:
     """
     Run the full fetch pipeline for every ticker in the config.
 
-    Returns a summary dict with success / failure counts.
+    Returns a summary dict with success / failure counts, per-interval and
+    per-asset-class breakdowns, ``failure_rate`` (failed / attempted), and a
+    ``failures`` list of ``{ticker, asset_class, interval, message}``.
 
     ``workers`` > 1 fetches tickers concurrently (much faster for large universes).
     ``skip_existing`` resumes a long first backfill by skipping tickers that
@@ -645,7 +745,7 @@ def run_pipeline(
         for interval in intervals
     ]
 
-    summary = {"success": 0, "failed": 0, "skipped": 0}
+    summary = _new_pipeline_summary()
     total = len(jobs)
     workers = max(1, int(workers))
     n_tickers = sum(len(v) for v in tickers_by_class.values())
@@ -662,7 +762,7 @@ def run_pipeline(
 
     if workers == 1:
         for idx, (asset_class, ticker, interval) in enumerate(jobs, start=1):
-            status = _run_one_job(
+            result = _run_one_job(
                 done=idx,
                 total=total,
                 ticker=ticker,
@@ -672,10 +772,10 @@ def run_pipeline(
                 sleep_seconds=sleep_seconds,
                 skip_existing=skip_existing,
             )
-            summary[status] = summary.get(status, 0) + 1
+            _record_job_result(summary, result)
     else:
         with ThreadPoolExecutor(max_workers=workers) as pool:
-            futures = [
+            futures: dict[Future, tuple[str, str, str]] = {
                 pool.submit(
                     _run_one_job,
                     done=idx,
@@ -686,23 +786,34 @@ def run_pipeline(
                     data_dir=data_dir,
                     sleep_seconds=sleep_seconds,
                     skip_existing=skip_existing,
-                )
+                ): (asset_class, ticker, interval)
                 for idx, (asset_class, ticker, interval) in enumerate(jobs, start=1)
-            ]
+            }
             for fut in as_completed(futures):
+                asset_class, ticker, interval = futures[fut]
                 try:
-                    status = fut.result()
+                    result = fut.result()
                 except Exception as exc:  # noqa: BLE001
                     logger.exception("Worker crashed: %s", exc)
-                    status = "failed"
                     with _print_lock:
-                        print(f"Worker FAILED — {exc}")
-                summary[status] = summary.get(status, 0) + 1
+                        print(f"Worker FAILED — {ticker} [{interval}]: {exc}")
+                    result = _job_result(
+                        "failed",
+                        ticker=ticker,
+                        asset_class=asset_class,
+                        interval=interval,
+                        message=f"Worker crashed: {exc}",
+                    )
+                _record_job_result(summary, result)
 
+    _finalize_pipeline_summary(summary)
     logger.info(
-        "Pipeline finished: %d success, %d failed, %d skipped",
+        "Pipeline finished: %d success, %d failed, %d skipped "
+        "(attempted=%d, failure_rate=%.2f%%)",
         summary["success"],
         summary["failed"],
         summary["skipped"],
+        summary["attempted"],
+        100.0 * summary["failure_rate"],
     )
     return summary

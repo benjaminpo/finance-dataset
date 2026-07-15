@@ -418,8 +418,20 @@ def test_run_pipeline_summary(tmp_path: Path) -> None:
 
     def fake_run_one(**kwargs):
         if kwargs["interval"] == "1d":
-            return "success"
-        return "failed"
+            return {
+                "status": "success",
+                "ticker": kwargs["ticker"],
+                "asset_class": kwargs["asset_class"],
+                "interval": kwargs["interval"],
+                "message": "ok",
+            }
+        return {
+            "status": "failed",
+            "ticker": kwargs["ticker"],
+            "asset_class": kwargs["asset_class"],
+            "interval": kwargs["interval"],
+            "message": "no data",
+        }
 
     with patch("src.fetcher._run_one_job", side_effect=fake_run_one):
         summary = run_pipeline(
@@ -429,13 +441,39 @@ def test_run_pipeline_summary(tmp_path: Path) -> None:
             workers=1,
             sleep_seconds=0,
         )
-    assert summary == {"success": 1, "failed": 1, "skipped": 0}
+    assert summary["success"] == 1
+    assert summary["failed"] == 1
+    assert summary["skipped"] == 0
+    assert summary["total"] == 2
+    assert summary["attempted"] == 2
+    assert summary["failure_rate"] == 0.5
+    assert summary["failures"] == [
+        {
+            "ticker": "BTC-USD",
+            "asset_class": "crypto",
+            "interval": "1m",
+            "message": "no data",
+        }
+    ]
+    assert summary["by_interval"]["1d"]["success"] == 1
+    assert summary["by_interval"]["1m"]["failed"] == 1
+    assert summary["by_asset_class"]["crypto"]["failed"] == 1
 
 
 def test_run_pipeline_parallel_workers(tmp_path: Path) -> None:
     config = tmp_path / "tickers.yaml"
     config.write_text("indices:\n  - ^GSPC\n  - ^DJI\n", encoding="utf-8")
-    with patch("src.fetcher._run_one_job", return_value="success") as mock_job:
+
+    def ok_job(**kwargs):
+        return {
+            "status": "success",
+            "ticker": kwargs["ticker"],
+            "asset_class": kwargs["asset_class"],
+            "interval": kwargs["interval"],
+            "message": "ok",
+        }
+
+    with patch("src.fetcher._run_one_job", side_effect=ok_job) as mock_job:
         summary = run_pipeline(
             config,
             tmp_path / "data",
@@ -444,6 +482,7 @@ def test_run_pipeline_parallel_workers(tmp_path: Path) -> None:
             sleep_seconds=0,
         )
     assert summary["success"] == 2
+    assert summary["failure_rate"] == 0.0
     assert mock_job.call_count == 2
 
 
@@ -502,33 +541,32 @@ def test_fetch_daily_history_all_empty() -> None:
 
 def test_run_one_job_success_paths(tmp_path: Path) -> None:
     with patch("src.fetcher.update_ticker_cumulative", return_value=(True, "ok")):
-        assert (
-            fetcher._run_one_job(
-                done=1,
-                total=1,
-                ticker="AAPL",
-                asset_class="stocks_us",
-                interval="1d",
-                data_dir=tmp_path,
-                sleep_seconds=0,
-                skip_existing=False,
-            )
-            == "success"
+        result = fetcher._run_one_job(
+            done=1,
+            total=1,
+            ticker="AAPL",
+            asset_class="stocks_us",
+            interval="1d",
+            data_dir=tmp_path,
+            sleep_seconds=0,
+            skip_existing=False,
         )
+        assert result["status"] == "success"
+        assert result["ticker"] == "AAPL"
+        assert result["message"] == "ok"
     with patch("src.fetcher.update_ticker_snapshot", return_value=(False, "nope")):
-        assert (
-            fetcher._run_one_job(
-                done=1,
-                total=1,
-                ticker="AAPL",
-                asset_class="stocks_us",
-                interval="1m",
-                data_dir=tmp_path,
-                sleep_seconds=0,
-                skip_existing=False,
-            )
-            == "failed"
+        result = fetcher._run_one_job(
+            done=1,
+            total=1,
+            ticker="AAPL",
+            asset_class="stocks_us",
+            interval="1m",
+            data_dir=tmp_path,
+            sleep_seconds=0,
+            skip_existing=False,
         )
+        assert result["status"] == "failed"
+        assert result["message"] == "nope"
     with patch("src.fetcher.update_ticker_snapshot", return_value=(True, "ok")):
         assert (
             fetcher._run_one_job(
@@ -540,7 +578,7 @@ def test_run_one_job_success_paths(tmp_path: Path) -> None:
                 data_dir=tmp_path,
                 sleep_seconds=0,
                 skip_existing=False,
-            )
+            )["status"]
             == "success"
         )
     with patch("src.fetcher.update_ticker_cumulative", return_value=(True, "ok")):
@@ -554,7 +592,7 @@ def test_run_one_job_success_paths(tmp_path: Path) -> None:
                 data_dir=tmp_path,
                 sleep_seconds=0,
                 skip_existing=False,
-            )
+            )["status"]
             == "success"
         )
 
@@ -571,6 +609,9 @@ def test_run_pipeline_worker_crash(tmp_path: Path) -> None:
             sleep_seconds=0,
         )
     assert summary["failed"] == 1
+    assert summary["failures"][0]["ticker"] == "BTC-USD"
+    assert "crash" in summary["failures"][0]["message"]
+    assert summary["failure_rate"] == 1.0
 
 
 def test_normalize_retains_dividends() -> None:
@@ -621,7 +662,7 @@ def test_fetch_history_with_start() -> None:
 
 
 def test_run_one_job_unsupported_interval(tmp_path: Path) -> None:
-    status = fetcher._run_one_job(
+    result = fetcher._run_one_job(
         done=1,
         total=1,
         ticker="AAPL",
@@ -631,7 +672,8 @@ def test_run_one_job_unsupported_interval(tmp_path: Path) -> None:
         sleep_seconds=0,
         skip_existing=False,
     )
-    assert status == "skipped"
+    assert result["status"] == "skipped"
+    assert "unsupported" in result["message"]
 
 
 def test_update_ticker_snapshot_5m(tmp_path: Path) -> None:

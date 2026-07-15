@@ -75,7 +75,15 @@ def test_main_runs_pipeline(tmp_path: Path) -> None:
         ),
         patch(
             "src.main.run_pipeline",
-            return_value={"success": 2, "failed": 0, "skipped": 0},
+            return_value={
+                "success": 2,
+                "failed": 0,
+                "skipped": 0,
+                "total": 2,
+                "attempted": 2,
+                "failure_rate": 0.0,
+                "failures": [],
+            },
         ) as mock_pipe,
     ):
         code = main(
@@ -97,6 +105,48 @@ def test_main_runs_pipeline(tmp_path: Path) -> None:
     mock_pipe.assert_called_once()
 
 
+def test_main_writes_summary_path(tmp_path: Path) -> None:
+    config = tmp_path / "tickers.yaml"
+    config.write_text("crypto:\n  - BTC-USD\n", encoding="utf-8")
+    summary_path = tmp_path / "artifacts" / "fetch-summary.json"
+    pipeline_summary = {
+        "success": 1,
+        "failed": 1,
+        "skipped": 0,
+        "total": 2,
+        "attempted": 2,
+        "failure_rate": 0.5,
+        "by_interval": {"1d": {"success": 1, "failed": 1, "skipped": 0}},
+        "by_asset_class": {"crypto": {"success": 1, "failed": 1, "skipped": 0}},
+        "failures": [
+            {
+                "ticker": "BAD",
+                "asset_class": "crypto",
+                "interval": "1d",
+                "message": "blank",
+            }
+        ],
+    }
+    with (
+        patch("src.main.refresh_listings"),
+        patch("src.main.run_pipeline", return_value=pipeline_summary),
+    ):
+        code = main(
+            [
+                "--config",
+                str(config),
+                "--data-dir",
+                str(tmp_path / "data"),
+                "--skip-listings-refresh",
+                "--summary-path",
+                str(summary_path),
+            ]
+        )
+    assert code == 0
+    assert summary_path.is_file()
+    assert summary_path.with_suffix(".md").is_file()
+
+
 def test_main_all_fetch_failed(tmp_path: Path) -> None:
     config = tmp_path / "tickers.yaml"
     config.write_text("crypto:\n  - BTC-USD\n", encoding="utf-8")
@@ -107,7 +157,15 @@ def test_main_all_fetch_failed(tmp_path: Path) -> None:
         ),
         patch(
             "src.main.run_pipeline",
-            return_value={"success": 0, "failed": 3, "skipped": 0},
+            return_value={
+                "success": 0,
+                "failed": 3,
+                "skipped": 0,
+                "total": 3,
+                "attempted": 3,
+                "failure_rate": 1.0,
+                "failures": [],
+            },
         ),
     ):
         assert main(
@@ -128,7 +186,15 @@ def test_main_skip_listings_refresh(tmp_path: Path) -> None:
         patch("src.main.refresh_listings") as mock_ref,
         patch(
             "src.main.run_pipeline",
-            return_value={"success": 1, "failed": 0, "skipped": 0},
+            return_value={
+                "success": 1,
+                "failed": 0,
+                "skipped": 0,
+                "total": 1,
+                "attempted": 1,
+                "failure_rate": 0.0,
+                "failures": [],
+            },
         ),
     ):
         code = main(

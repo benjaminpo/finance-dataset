@@ -20,6 +20,7 @@ from src.fetcher import (  # noqa: E402
     run_pipeline,
 )
 from src.listings import refresh_listings  # noqa: E402
+from src.summary import write_fetch_summary  # noqa: E402
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -80,6 +81,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Only refresh listing CSVs; skip market data fetch",
     )
     parser.add_argument(
+        "--summary-path",
+        type=Path,
+        default=None,
+        help="Write fetch counts/failure details as JSON (also writes sibling "
+        ".md). Under GitHub Actions, Markdown is appended to the job summary.",
+    )
+    parser.add_argument(
         "-v",
         "--verbose",
         action="store_true",
@@ -125,10 +133,17 @@ def main(argv: list[str] | None = None) -> int:
         skip_existing=args.skip_existing,
     )
 
+    rate_pct = 100.0 * float(summary.get("failure_rate", 0.0))
     print(
         f"\nDone. success={summary['success']} "
-        f"failed={summary['failed']} skipped={summary['skipped']}"
+        f"failed={summary['failed']} skipped={summary['skipped']} "
+        f"failure_rate={rate_pct:.2f}%"
     )
+
+    if args.summary_path is not None:
+        out = write_fetch_summary(summary, args.summary_path)
+        print(f"Wrote fetch summary → {out} (+ {out.with_suffix('.md').name})")
+
     # Non-zero only if everything failed (partial success is still useful).
     if summary["success"] == 0 and summary["failed"] > 0:
         return 2

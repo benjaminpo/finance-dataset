@@ -33,3 +33,6 @@ htmlcov/
 # OHLCV CSVs are published to Kaggle, not committed to git
 data/**
 !data/.gitkeep
+
+# Local / CI fetch summary reports
+artifacts/

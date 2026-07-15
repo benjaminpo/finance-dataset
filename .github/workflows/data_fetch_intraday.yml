@@ -47,6 +47,17 @@ jobs:
           --intervals 1m 2m 5m 15m 30m 60m 90m 1h
           --workers 8
           --sleep 0.25
+          --summary-path artifacts/fetch-summary.json
+
+      - name: Upload fetch summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fetch-summary-intraday
+          path: |
+            artifacts/fetch-summary.json
+            artifacts/fetch-summary.md
+          if-no-files-found: warn
 
       - name: Publish OHLCV to Kaggle
         env:

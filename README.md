@@ -86,7 +86,8 @@ CSV index column is `Datetime` (UTC, ISO-8601). Columns: Open, High, Low, Close,
 │   ├── __init__.py
 │   ├── fetcher.py      # download + CSV merge logic
 │   ├── listings.py     # remote/KRX/TSE/Europe listing refresh
-│   └── main.py         # CLI entry point
+│   ├── main.py         # CLI entry point
+│   └── summary.py      # fetch failure-rate report (CI artifact)
 ├── tests/
 ├── requirements.txt
 ├── requirements-dev.txt
@@ -141,6 +142,7 @@ python src/main.py --config config/tickers.yaml --data-dir data --workers 12 --s
 | `--workers`       | `8`                     | Parallel Yahoo fetch threads                     |
 | `--sleep`         | `0.25`                  | Seconds to pause after each request              |
 | `--skip-existing` | off                     | Skip tickers that already have data (resume)     |
+| `--summary-path`  | off                     | Write JSON (+ sibling `.md`) fetch failure report |
 | `-v`              | off                     | Debug logging                                    |
 
 CI splits the work so Actions stays practical: **daily** refreshes `1d` + `1wk` for the full listing universe (~12k symbols); **intraday** refreshes `1m`…`1h` only for S&P 500 + liquid crypto/indices/futures/FX ([`config/tickers_intraday.yaml`](config/tickers_intraday.yaml)). Prefer `--intervals 1d` for the first local backfill, then publish. Use `--skip-existing` to resume after an interrupt.
@@ -156,7 +158,9 @@ Progress is printed per job, e.g. `Fetching AAPL [1d]... Success — 2 new/updat
 
 Both also support `workflow_dispatch`. They share concurrency group `finance-dataset-kaggle` so pull/publish cannot race.
 
-Steps (each workflow): checkout → install → [`pull_kaggle.py --optional`](scripts/pull_kaggle.py) (merge previous Kaggle version into `data/`) → `python src/main.py …` → [`publish_kaggle.py`](scripts/publish_kaggle.py) → [`batch_commit.py`](scripts/batch_commit.py) for listing CSV updates.
+Steps (each workflow): checkout → install → [`pull_kaggle.py --optional`](scripts/pull_kaggle.py) (merge previous Kaggle version into `data/`) → `python src/main.py … --summary-path artifacts/fetch-summary.json` → upload **fetch summary** artifact (JSON + Markdown; also written to the job summary) → [`publish_kaggle.py`](scripts/publish_kaggle.py) → [`batch_commit.py`](scripts/batch_commit.py) for listing CSV updates.
+
+The summary includes success/fail/skip counts, **failure rate** (failed ÷ attempted), breakdowns by interval and asset class, and per-ticker failure messages so Yahoo blanks / rate-limit gaps are visible without digging through the full log. Exit behavior is unchanged: the job only fails the fetch step when *every* ticker fails.
 
 ### Kaggle publish
 
