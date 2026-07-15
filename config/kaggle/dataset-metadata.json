@@ -1,9 +1,20 @@
 {
   "title": "Global Markets OHLCV Dataset (~12k tickers)",
+  "subtitle": "Daily and intraday OHLCV CSVs from Yahoo Finance",
+  "description": "## Overview\n\nHistorical and intraday **OHLCV** market data for ~12k tickers, pulled from [Yahoo Finance](https://finance.yahoo.com/) via [`yfinance`](https://github.com/ranaroussi/yfinance) and published as partitioned CSVs.\n\nUpdated automatically by [GitHub Actions](https://github.com/benjaminpo/finance-dataset): **daily** bars for the full universe, **intraday** for a smaller liquid set (S&P 500 + liquid crypto / indices / futures / FX).\n\nSource repository: [benjaminpo/finance-dataset](https://github.com/benjaminpo/finance-dataset)\n\n## Asset classes\n\n| Path | Coverage |\n|------|----------|\n| `stocks_us/` | NASDAQ listings ∪ S&P 500 |\n| `stocks_kr/` | KOSPI + KOSDAQ (`.KS` / `.KQ`) |\n| `stocks_jp/` | Tokyo Stock Exchange (`.T`) |\n| `stocks_eu/` | STOXX / DAX / CAC / FTSE / AEX / IBEX / … |\n| `stocks_hk/` | Hang Seng / China internet (HK) |\n| `indices/` | Major global equity indices |\n| `rates/` | US Treasury yield proxies (`^IRX` … `^TYX`) |\n| `futures/` | e.g. `CL=F`, `ES=F` |\n| `crypto/` | BTC, ETH, SOL, … |\n| `currencies/` | Major FX pairs |\n\n## Layout & intervals\n\n```\ndata/\n├── stocks_us/\n│   ├── 1d/AAPL.csv              # cumulative daily\n│   ├── 1wk/AAPL.csv             # cumulative weekly\n│   ├── 1m/AAPL_2026-07-10.csv   # dated intraday snapshot\n│   └── 5m/…\n└── …\n```\n\n- **Cumulative** (`1d`, `5d`, `1wk`, `1mo`, `3mo`): one file per ticker; new bars append, duplicate timestamps keep the last write.\n- **Intraday snapshots** (`1m` … `1h`): Yahoo only retains a short rolling window, so each run writes dated files (`TICKER_YYYY-MM-DD.csv`). Older snapshots stay on disk so history accumulates.\n\n## Schema\n\n- Index: `Datetime` (UTC, ISO-8601)\n- Columns: `Open`, `High`, `Low`, `Close`, `Adj Close`, `Volume` (plus `Dividends` / `Stock Splits` when present)\n\n## License & attribution\n\nDistributed under **CC0-1.0**. Underlying quotes come from Yahoo Finance; use of this dataset should comply with Yahoo’s terms of use.",
   "id": "benjaminpo/finance-dataset",
   "licenses": [
     {
       "name": "CC0-1.0"
     }
-  ]
+  ],
+  "keywords": [
+    "finance",
+    "stocks",
+    "crypto",
+    "time series",
+    "ohlcv"
+  ],
+  "expectedUpdateFrequency": "daily",
+  "userSpecifiedSources": "Yahoo Finance via [yfinance](https://github.com/ranaroussi/yfinance). Pipeline and listing sources: [benjaminpo/finance-dataset](https://github.com/benjaminpo/finance-dataset)."
 }
