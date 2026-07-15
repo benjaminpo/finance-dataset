@@ -746,7 +746,7 @@ Symbol,Name,Industry
 3232.T,Mie Kotsu Group Holdings Inc,"부동산 임대, 개발 및 운영"
 3234.T,Mori Hills Reit Investment Corp,상업용 REITs
 3236.T,Properst Co Ltd,"부동산 임대, 개발 및 운영"
-3237.T,Intrance Co. ltd,"호텔, 모텔 및 크루즈 라인"
+3237.T,Intrance Co Ltd,"호텔, 모텔 및 크루즈 라인"
 3238.T,Central General Development Co Ltd,"부동산 임대, 개발 및 운영"
 323A.T,Flier Inc,온라인 서비스
 3241.T,Will Co Ltd,"부동산 임대, 개발 및 운영"
@@ -2121,6 +2121,7 @@ Symbol,Name,Industry
 5974.T,ChugokuKogyo Co Ltd,오일 관련 서비스 및 장비
 5975.T,Topre Corp,"자동차, 트럭 및 오토바이 부품"
 5976.T,Neturen Co Ltd,철 및 강철
+597A.T,andUS. Inc,개인 생활 필수 용품
 5981.T,Tokyo Rope Mfg Co Ltd,철 및 강철
 5982.T,Maruzen Co Ltd,산업용 기계 및 장비
 5983.T,Iwabuchi Corp,산업용 기계 및 장비
@@ -2130,12 +2131,14 @@ Symbol,Name,Industry
 5987.T,Onex Corp,철 및 강철
 5988.T,Piolax Inc,"자동차, 트럭 및 오토바이 부품"
 5989.T,H-One Co Ltd,"자동차, 트럭 및 오토바이 부품"
+598A.T,Chatplus Co Ltd,소프트웨어
 5990.T,Super Tool Co Ltd,산업용 기계 및 장비
 5991.T,NHK Spring Co Ltd,"자동차, 트럭 및 오토바이 부품"
 5992.T,Chuo Spring Co Ltd,"자동차, 트럭 및 오토바이 부품"
 5994.T,Fine Sinter Co Ltd,"자동차, 트럭 및 오토바이 부품"
 5997.T,Kyoritsu Air Tech Inc,전기 부품 및 장비
 5998.T,Advanex Inc,산업용 기계 및 장비
+599A.T,Genkinakaigo Co Ltd,의료 시설 및 서비스
 6005.T,Miura Co Ltd,산업용 기계 및 장비
 6013.T,Takuma Co Ltd,환경 서비스 및 장비
 6016.T,Japan Engine Corp,조선
@@ -3880,7 +3883,7 @@ Symbol,Name,Industry
 9744.T,MEITEC Group Holdings Inc,고용 서비스
 9746.T,TKC Corp,경영 지원 서비스
 9753.T,I X Knowledge Inc,IT 서비스 및 컨설팅
-9755.T,Oyo Corp,건설 및 엔지니어링
+9755.T,OYO Corp,건설 및 엔지니어링
 9757.T,Funai Soken Holdings Inc,경영 지원 서비스
 9759.T,NSD Co Ltd,IT 서비스 및 컨설팅
 9760.T,Shingakukai Holdings Co Ltd,기타 교육 서비스 제공
