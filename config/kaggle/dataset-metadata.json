@@ -1,5 +1,5 @@
 {
-  "title": "Finance Dataset",
+  "title": "Global Markets OHLCV Dataset (~12k tickers)",
   "id": "benjaminpo/finance-dataset",
   "licenses": [
     {

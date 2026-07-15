@@ -113,7 +113,9 @@ def test_publish_uploads(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Non
     monkeypatch.setenv("KAGGLE_API_TOKEN", "tok")
 
     mock_hub = MagicMock()
-    with patch.dict("sys.modules", {"kagglehub": mock_hub}):
+    mock_exc = MagicMock()
+    mock_exc.BackendError = type("BackendError", (Exception,), {})
+    with patch.dict("sys.modules", {"kagglehub": mock_hub, "kagglehub.exceptions": mock_exc}):
         notes = publish(
             handle="benjaminpo/finance-dataset",
             data_dir=data,
@@ -127,6 +129,27 @@ def test_publish_uploads(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Non
     assert Path(args[1]) == data
     assert kwargs["version_notes"] == "test notes"
     assert not (data / "dataset-metadata.json").exists()
+
+
+def test_publish_incompatible_dataset_type(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    data = tmp_path / "data"
+    data.mkdir()
+    (data / "x.csv").write_text("1", encoding="utf-8")
+    meta = _write_metadata(tmp_path / "meta.json")
+    monkeypatch.setenv("KAGGLE_API_TOKEN", "tok")
+
+    class BackendError(Exception):
+        pass
+
+    mock_hub = MagicMock()
+    mock_hub.dataset_upload.side_effect = BackendError("Incompatible Dataset Type")
+    mock_exc = MagicMock()
+    mock_exc.BackendError = BackendError
+    with patch.dict("sys.modules", {"kagglehub": mock_hub, "kagglehub.exceptions": mock_exc}):
+        with pytest.raises(RuntimeError, match="GitHub-synced"):
+            publish(data_dir=data, metadata=meta, dry_run=False)
 
 
 def test_publish_missing_credentials(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

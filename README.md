@@ -189,7 +189,8 @@ Auth: set `KAGGLE_API_TOKEN`, or legacy `KAGGLE_USERNAME` + `KAGGLE_KEY`, or `~/
 1. Push this repo to GitHub and enable Actions.
 2. Add repository secret `KAGGLE_API_TOKEN` (Settings → Secrets and variables → Actions) from [Kaggle API settings](https://www.kaggle.com/settings/api) → **Generate New Token**.
 3. Ensure the default branch allows the `GITHUB_TOKEN` to write contents (Settings → Actions → General → Workflow permissions → **Read and write**) so listing commits can push.
-4. Run **Fetch Daily Bars** first (or locally: `--intervals 1d 1wk`, then `publish_kaggle.py`). Then enable/run **Fetch Intraday Bars**.
+4. The Kaggle target must be a **normal file dataset** (CSV tree under `data/`), not a “Create from GitHub” / repo-synced dataset. A GitHub-synced slug returns `Incompatible Dataset Type` on upload — delete it (or use a new `--handle`) before the first publish. After create, set the public title/description on the Kaggle UI if needed (`kagglehub` creates private datasets titled with the slug).
+5. Run **Fetch Daily Bars** first (or locally: `--intervals 1d 1wk`, then `publish_kaggle.py`). Then enable/run **Fetch Intraday Bars**.
 
 ## Robustness
 

@@ -99,14 +99,29 @@ def publish(
             return notes
 
         import kagglehub
+        from kagglehub.exceptions import BackendError
 
         print(f"Uploading {n_files} file(s) to https://www.kaggle.com/datasets/{handle} ...")
-        kagglehub.dataset_upload(
-            handle,
-            str(data_path),
-            version_notes=notes,
-            ignore_patterns=IGNORE_PATTERNS,
-        )
+        try:
+            kagglehub.dataset_upload(
+                handle,
+                str(data_path),
+                version_notes=notes,
+                ignore_patterns=IGNORE_PATTERNS,
+            )
+        except BackendError as exc:
+            message = str(exc)
+            if "Incompatible Dataset Type" in message:
+                raise RuntimeError(
+                    f"Kaggle rejected a new version of {handle}: Incompatible Dataset Type.\n"
+                    "The existing dataset is almost certainly a GitHub-synced (or otherwise "
+                    "non-file) dataset, not a normal file upload — check the Data Explorer: "
+                    "repo files (README, src/, …) instead of OHLCV CSVs.\n"
+                    "Fix: delete that dataset on Kaggle (or publish to a new --handle / "
+                    "KAGGLE_DATASET_HANDLE slug), then re-run so kagglehub can create a "
+                    "file-based dataset."
+                ) from exc
+            raise
         print(f"Published {handle}: {notes}")
         return notes
     finally:
