@@ -77,6 +77,8 @@ CSV index column is `Datetime` (UTC, ISO-8601). Columns: Open, High, Low, Close,
 │   ├── tickers_intraday.yaml   # S&P 500 + liquid (intraday)
 │   └── kaggle/
 │       └── dataset-metadata.json
+├── notebooks/
+│   └── kaggle-returns-demo/  # Kaggle kernel stub (returns plot)
 ├── data/                 # local OHLCV (gitignored; published to Kaggle)
 ├── scripts/
 │   ├── batch_commit.py   # commit listing CSV updates
@@ -161,6 +163,17 @@ Both also support `workflow_dispatch`. They share concurrency group `finance-dat
 Steps (each workflow): checkout → install → [`pull_kaggle.py --optional`](scripts/pull_kaggle.py) (merge previous Kaggle version into `data/`) → `python src/main.py … --summary-path artifacts/fetch-summary.json` → upload **fetch summary** artifact (JSON + Markdown; also written to the job summary) → [`publish_kaggle.py`](scripts/publish_kaggle.py) → [`batch_commit.py`](scripts/batch_commit.py) for listing CSV updates.
 
 The summary includes success/fail/skip counts, **failure rate** (failed ÷ attempted), breakdowns by interval and asset class, and per-ticker failure messages so Yahoo blanks / rate-limit gaps are visible without digging through the full log. Exit behavior is unchanged: the job only fails the fetch step when *every* ticker fails.
+
+### Kaggle demo notebook
+
+[`notebooks/kaggle-returns-demo/`](notebooks/kaggle-returns-demo/) is a public Kaggle kernel stub that attaches this dataset, loads a few liquid daily tickers, and plots cumulative returns + correlations.
+
+```bash
+# Requires Kaggle CLI auth (same token as publish)
+kaggle kernels push -p notebooks/kaggle-returns-demo
+```
+
+After the first push, open the kernel on Kaggle, click **Save Version**, and optionally pin it on the [dataset page](https://www.kaggle.com/datasets/benjaminpo/finance-dataset) so it shows under **Code**.
 
 ### Kaggle publish
 
