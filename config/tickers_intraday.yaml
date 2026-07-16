@@ -6,10 +6,25 @@
 
 listings:
   stocks_us:
+    - path: listings/nasdaq-listed-symbols.csv
+      url: https://raw.githubusercontent.com/datasets/nasdaq-listings/master/data/nasdaq-listed-symbols.csv
     - path: listings/sp500-constituents.csv
       url: https://raw.githubusercontent.com/datasets/s-and-p-500-companies/master/data/constituents.csv
+  stocks_kr:
+    - path: listings/krx-listed-symbols.csv
+      source: krx   # rebuild from KOSPI + KOSDAQ via FinanceDataReader
+  stocks_jp:
+    - path: listings/tse-listed-symbols.csv
+      source: tse   # rebuild from Tokyo Stock Exchange via FinanceDataReader
+  stocks_eu:
+    - path: listings/europe-listed-symbols.csv
+      source: europe  # STOXX 50, DAX, CAC, FTSE 100, AEX, IBEX, …
 
+# Optional extra tickers beyond the listing CSVs (usually empty).
 stocks_us: []
+stocks_kr: []
+stocks_jp: []
+stocks_eu: []
 
 # Liquid Hang Seng / China ADRs listed in HK (subset of tickers.yaml).
 stocks_hk:
