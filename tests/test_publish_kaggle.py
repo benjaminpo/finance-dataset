@@ -38,7 +38,7 @@ def test_has_kaggle_credentials_token(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("KAGGLE_API_TOKEN", raising=False)
     monkeypatch.delenv("KAGGLE_USERNAME", raising=False)
     monkeypatch.delenv("KAGGLE_KEY", raising=False)
-    with patch("scripts.publish_kaggle.Path.home") as home:
+    with patch("scripts.kaggle_util.Path.home") as home:
         home.return_value = Path("/nonexistent-home-for-test")
         assert has_kaggle_credentials() is False
     monkeypatch.setenv("KAGGLE_API_TOKEN", "tok")
@@ -121,14 +121,28 @@ def test_publish_uploads(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Non
             data_dir=data,
             metadata=meta,
             version_notes="test notes",
+            wait_ready=False,
         )
-    assert notes == "test notes"
+    assert notes == "test notes (1 file(s))"
     mock_hub.dataset_upload.assert_called_once()
     args, kwargs = mock_hub.dataset_upload.call_args
     assert args[0] == "benjaminpo/finance-dataset"
     assert Path(args[1]) == data
-    assert kwargs["version_notes"] == "test notes"
+    assert kwargs["version_notes"] == "test notes (1 file(s))"
     assert not (data / "dataset-metadata.json").exists()
+
+
+def test_publish_refuses_shrink(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    data = tmp_path / "data"
+    (data / "rates" / "1d").mkdir(parents=True)
+    (data / "rates" / "1d" / "TNX.csv").write_text("x", encoding="utf-8")
+    meta = _write_metadata(tmp_path / "meta.json")
+    from scripts.kaggle_util import write_pull_state
+
+    write_pull_state(data, "benjaminpo/finance-dataset", 2, 100)
+    monkeypatch.setenv("KAGGLE_API_TOKEN", "tok")
+    with pytest.raises(RuntimeError, match="Refusing to publish"):
+        publish(data_dir=data, metadata=meta, dry_run=True)
 
 
 def test_publish_incompatible_dataset_type(
@@ -149,7 +163,7 @@ def test_publish_incompatible_dataset_type(
     mock_exc.BackendError = BackendError
     with patch.dict("sys.modules", {"kagglehub": mock_hub, "kagglehub.exceptions": mock_exc}):
         with pytest.raises(RuntimeError, match="GitHub-synced"):
-            publish(data_dir=data, metadata=meta, dry_run=False)
+            publish(data_dir=data, metadata=meta, dry_run=False, wait_ready=False)
 
 
 def test_publish_missing_credentials(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -160,7 +174,7 @@ def test_publish_missing_credentials(tmp_path: Path, monkeypatch: pytest.MonkeyP
     monkeypatch.delenv("KAGGLE_API_TOKEN", raising=False)
     monkeypatch.delenv("KAGGLE_USERNAME", raising=False)
     monkeypatch.delenv("KAGGLE_KEY", raising=False)
-    with patch("scripts.publish_kaggle.Path.home") as home:
+    with patch("scripts.kaggle_util.Path.home") as home:
         home.return_value = tmp_path / "no-kaggle-home"
         with pytest.raises(RuntimeError, match="Missing Kaggle credentials"):
             publish(data_dir=data, metadata=meta, dry_run=False)

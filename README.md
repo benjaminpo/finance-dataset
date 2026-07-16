@@ -82,7 +82,8 @@ CSV index column is `Datetime` (UTC, ISO-8601). Columns: Open, High, Low, Close,
 ├── data/                 # local OHLCV (gitignored; published to Kaggle)
 ├── scripts/
 │   ├── batch_commit.py   # commit listing CSV updates
-│   ├── pull_kaggle.py    # download latest Kaggle version into data/
+│   ├── kaggle_util.py    # shared Ready polling / pull-state guards
+│   ├── pull_kaggle.py    # download latest Ready Kaggle version into data/
 │   └── publish_kaggle.py # upload data/ as a Kaggle dataset version
 ├── src/
 │   ├── __init__.py
@@ -160,7 +161,9 @@ Progress is printed per job, e.g. `Fetching AAPL [1d]... Success — 2 new/updat
 
 Both also support `workflow_dispatch`. They share concurrency group `finance-dataset-kaggle` so pull/publish cannot race.
 
-Steps (each workflow): checkout → install → [`pull_kaggle.py --optional`](scripts/pull_kaggle.py) (merge previous Kaggle version into `data/`) → `python src/main.py … --summary-path artifacts/fetch-summary.json` → upload **fetch summary** artifact (JSON + Markdown; also written to the job summary) → [`publish_kaggle.py`](scripts/publish_kaggle.py) → [`batch_commit.py`](scripts/batch_commit.py) for listing CSV updates.
+Steps (each workflow): checkout → install → [`pull_kaggle.py --optional`](scripts/pull_kaggle.py) (wait until the latest Kaggle version is **Ready**, then merge it into `data/`) → `python src/main.py … --summary-path artifacts/fetch-summary.json` → upload **fetch summary** artifact (JSON + Markdown; also written to the job summary) → [`publish_kaggle.py`](scripts/publish_kaggle.py) (upload, then wait until the new version is Ready) → [`batch_commit.py`](scripts/batch_commit.py) for listing CSV updates.
+
+`--optional` only soft-fails when the dataset does not exist yet (first publish). Auth / permission errors fail the job. Publish also refuses to upload fewer files than this job pulled, so a partial tree cannot wipe the other interval slice.
 
 The summary includes success/fail/skip counts, **failure rate** (failed ÷ attempted), breakdowns by interval and asset class, and per-ticker failure messages so Yahoo blanks / rate-limit gaps are visible without digging through the full log. Exit behavior is unchanged: the job only fails the fetch step when *every* ticker fails.
 
@@ -179,7 +182,7 @@ After the first push, open the kernel on Kaggle, click **Save Version**, and opt
 
 Dataset: [benjaminpo/finance-dataset](https://www.kaggle.com/datasets/benjaminpo/finance-dataset)
 
-Each workflow **pulls the current Kaggle version first**, updates its slice, then re-uploads the full tree so the other slice is not wiped.
+Each workflow **waits for the latest Ready Kaggle version**, pulls it, updates its slice, re-uploads the full tree, then **waits until that new version is Ready** before exiting (so the next job cannot pull a stale prior version and wipe the other slice).
 
 ```bash
 export KAGGLE_API_TOKEN=...          # from https://www.kaggle.com/settings/api
@@ -197,7 +200,9 @@ python scripts/publish_kaggle.py --dry-run
 | `--data-dir`               | `data`                          | Local OHLCV root                                 |
 | `--metadata`               | `config/kaggle/dataset-metadata.json` | Dataset title/id/license metadata      |
 | `--version-notes`          | dated file-count summary        | Notes shown on the new Kaggle version            |
-| `--dry-run` / `--optional` | off                             | Plan-only publish / soft-fail pull               |
+| `--dry-run` / `--optional` | off                             | Plan-only publish / soft-fail pull if dataset missing |
+| `--no-wait-ready`          | off                             | Skip Ready polling (not recommended in CI)       |
+| `--allow-shrink`           | off                             | Allow publish with fewer files than pulled       |
 
 Auth: set `KAGGLE_API_TOKEN`, or legacy `KAGGLE_USERNAME` + `KAGGLE_KEY`, or `~/.kaggle/kaggle.json`.
 

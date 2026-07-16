@@ -10,30 +10,28 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+_ROOT = Path(__file__).resolve().parents[1]
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+
+from scripts.kaggle_util import (
+    METADATA_NAME,
+    PULL_STATE_NAME,
+    clear_pull_state,
+    count_data_files,
+    get_dataset_snapshot,
+    has_kaggle_credentials,
+    is_missing_dataset_error,
+    read_pull_state,
+    wait_until_ready,
+)
+
 DEFAULT_HANDLE = "benjaminpo/finance-dataset"
 DEFAULT_DATA_DIR = "data"
 DEFAULT_METADATA = "config/kaggle/dataset-metadata.json"
-IGNORE_PATTERNS = [".DS_Store", ".gitkeep", "**/__pycache__/", "*.pyc"]
-METADATA_NAME = "dataset-metadata.json"
-
-
-def has_kaggle_credentials() -> bool:
-    if os.environ.get("KAGGLE_API_TOKEN"):
-        return True
-    if os.environ.get("KAGGLE_USERNAME") and os.environ.get("KAGGLE_KEY"):
-        return True
-    home = Path.home() / ".kaggle"
-    return (home / "access_token").is_file() or (home / "kaggle.json").is_file()
-
-
-def count_data_files(data_dir: Path) -> int:
-    if not data_dir.is_dir():
-        return 0
-    return sum(
-        1
-        for p in data_dir.rglob("*")
-        if p.is_file() and p.name not in {".gitkeep", METADATA_NAME}
-    )
+DEFAULT_READY_TIMEOUT_SEC = 14400
+DEFAULT_READY_POLL_SEC = 60
+IGNORE_PATTERNS = [".DS_Store", ".gitkeep", "**/__pycache__/", "*.pyc", PULL_STATE_NAME]
 
 
 def load_metadata(path: Path, handle: str) -> dict:
@@ -61,6 +59,25 @@ def write_upload_metadata(data_dir: Path, metadata_path: Path, handle: str) -> P
     return dest
 
 
+def _guard_no_shrink(data_dir: Path, n_files: int, *, allow_shrink: bool) -> None:
+    """Refuse to publish a smaller tree than the one pulled this job."""
+    state = read_pull_state(data_dir)
+    if not state:
+        return
+    pulled = int(state.get("file_count") or 0)
+    if pulled <= 0 or n_files >= pulled:
+        return
+    msg = (
+        f"Refusing to publish {n_files} file(s): this job pulled {pulled} file(s) "
+        f"from {state.get('handle')} v{state.get('version')}. Publishing fewer "
+        "files would wipe the other interval slice on Kaggle."
+    )
+    if allow_shrink:
+        print(f"WARNING: {msg} Continuing because --allow-shrink was set.", flush=True)
+        return
+    raise RuntimeError(msg)
+
+
 def publish(
     handle: str = DEFAULT_HANDLE,
     data_dir: str | Path = DEFAULT_DATA_DIR,
@@ -68,6 +85,10 @@ def publish(
     version_notes: str | None = None,
     *,
     dry_run: bool = False,
+    wait_ready: bool = True,
+    ready_timeout_sec: float = DEFAULT_READY_TIMEOUT_SEC,
+    ready_poll_sec: float = DEFAULT_READY_POLL_SEC,
+    allow_shrink: bool = False,
 ) -> str:
     """
     Upload *data_dir* as a new version of the Kaggle dataset *handle*.
@@ -87,8 +108,20 @@ def publish(
     n_files = count_data_files(data_path)
     if n_files == 0:
         raise FileNotFoundError(f"No data files to publish under {data_path}")
+    _guard_no_shrink(data_path, n_files, allow_shrink=allow_shrink)
+
     date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     notes = version_notes or f"Daily OHLCV refresh {date} ({n_files} file(s))"
+    if f"{n_files} file" not in notes:
+        notes = f"{notes} ({n_files} file(s))"
+
+    before_version = 0
+    if not dry_run:
+        try:
+            before_version = get_dataset_snapshot(handle).current_version
+        except Exception as exc:  # noqa: BLE001 — first create has no dataset yet
+            if not is_missing_dataset_error(exc):
+                print(f"WARNING: could not read current Kaggle version ({exc})", flush=True)
 
     meta_dest = write_upload_metadata(data_path, meta_path, handle)
     try:
@@ -122,7 +155,18 @@ def publish(
                     "file-based dataset."
                 ) from exc
             raise
-        print(f"Published {handle}: {notes}")
+        print(f"Published {handle}: {notes}", flush=True)
+
+        if wait_ready:
+            target = before_version + 1 if before_version > 0 else None
+            wait_until_ready(
+                handle,
+                min_version=target,
+                timeout_sec=ready_timeout_sec,
+                poll_sec=ready_poll_sec,
+            )
+
+        clear_pull_state(data_path)
         return notes
     finally:
         meta_dest.unlink(missing_ok=True)
@@ -157,6 +201,28 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Validate inputs and print plan without uploading",
     )
+    parser.add_argument(
+        "--no-wait-ready",
+        action="store_true",
+        help="Return immediately after upload without waiting for Ready",
+    )
+    parser.add_argument(
+        "--ready-timeout-sec",
+        type=float,
+        default=DEFAULT_READY_TIMEOUT_SEC,
+        help=f"Max seconds to wait for Ready (default: {DEFAULT_READY_TIMEOUT_SEC})",
+    )
+    parser.add_argument(
+        "--ready-poll-sec",
+        type=float,
+        default=DEFAULT_READY_POLL_SEC,
+        help=f"Seconds between Ready polls (default: {DEFAULT_READY_POLL_SEC})",
+    )
+    parser.add_argument(
+        "--allow-shrink",
+        action="store_true",
+        help="Allow publishing fewer files than were pulled (dangerous)",
+    )
     return parser.parse_args(argv)
 
 
@@ -169,8 +235,12 @@ def main(argv: list[str] | None = None) -> int:
             metadata=args.metadata,
             version_notes=args.version_notes,
             dry_run=args.dry_run,
+            wait_ready=not args.no_wait_ready,
+            ready_timeout_sec=args.ready_timeout_sec,
+            ready_poll_sec=args.ready_poll_sec,
+            allow_shrink=args.allow_shrink,
         )
-    except (FileNotFoundError, RuntimeError, OSError) as exc:
+    except (FileNotFoundError, RuntimeError, OSError, TimeoutError, ValueError) as exc:
         print(exc, file=sys.stderr)
         return 1
     return 0

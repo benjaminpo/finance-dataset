@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from scripts.kaggle_util import DatasetSnapshot
 from scripts.pull_kaggle import _merge_tree, has_kaggle_credentials, main, pull
 
 
@@ -14,7 +15,7 @@ def test_has_kaggle_credentials(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("KAGGLE_API_TOKEN", raising=False)
     monkeypatch.delenv("KAGGLE_USERNAME", raising=False)
     monkeypatch.delenv("KAGGLE_KEY", raising=False)
-    with patch("scripts.pull_kaggle.Path.home") as home:
+    with patch("scripts.kaggle_util.Path.home") as home:
         home.return_value = Path("/nonexistent-home")
         assert has_kaggle_credentials() is False
     monkeypatch.setenv("KAGGLE_API_TOKEN", "tok")
@@ -41,7 +42,7 @@ def test_pull_optional_no_credentials(tmp_path: Path, monkeypatch: pytest.Monkey
     monkeypatch.delenv("KAGGLE_API_TOKEN", raising=False)
     monkeypatch.delenv("KAGGLE_USERNAME", raising=False)
     monkeypatch.delenv("KAGGLE_KEY", raising=False)
-    with patch("scripts.pull_kaggle.Path.home") as home:
+    with patch("scripts.kaggle_util.Path.home") as home:
         home.return_value = tmp_path / "nohome"
         assert pull(data_dir=tmp_path / "data", optional=True) == 0
 
@@ -50,7 +51,7 @@ def test_pull_requires_credentials(tmp_path: Path, monkeypatch: pytest.MonkeyPat
     monkeypatch.delenv("KAGGLE_API_TOKEN", raising=False)
     monkeypatch.delenv("KAGGLE_USERNAME", raising=False)
     monkeypatch.delenv("KAGGLE_KEY", raising=False)
-    with patch("scripts.pull_kaggle.Path.home") as home:
+    with patch("scripts.kaggle_util.Path.home") as home:
         home.return_value = tmp_path / "nohome"
         with pytest.raises(RuntimeError, match="Missing Kaggle credentials"):
             pull(data_dir=tmp_path / "data", optional=False)
@@ -63,25 +64,51 @@ def test_pull_merges_download(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -
     data = tmp_path / "data"
     monkeypatch.setenv("KAGGLE_API_TOKEN", "tok")
 
+    snap = DatasetSnapshot(
+        handle="benjaminpo/finance-dataset",
+        current_version=3,
+        status="READY",
+        total_bytes=100,
+        pending_versions=(),
+        failed_versions=(),
+        max_version=3,
+    )
     mock_hub = MagicMock()
     mock_hub.dataset_download.return_value = str(cache)
-    with patch.dict("sys.modules", {"kagglehub": mock_hub}):
+    with (
+        patch.dict("sys.modules", {"kagglehub": mock_hub}),
+        patch("scripts.pull_kaggle.wait_until_ready", return_value=snap),
+    ):
         n = pull(data_dir=data, force=True)
     assert n == 1
     assert (data / "stocks_us" / "1d" / "AAPL.csv").is_file()
+    assert (data / ".kaggle-pull-state.json").is_file()
     mock_hub.dataset_download.assert_called_once()
 
 
-def test_pull_optional_on_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_pull_optional_only_on_missing(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("KAGGLE_API_TOKEN", "tok")
-    mock_hub = MagicMock()
-    mock_hub.dataset_download.side_effect = RuntimeError("boom")
-    with patch.dict("sys.modules", {"kagglehub": mock_hub}):
+    with patch(
+        "scripts.pull_kaggle.wait_until_ready",
+        side_effect=RuntimeError("404 Not Found: dataset missing"),
+    ):
         assert pull(data_dir=tmp_path / "data", optional=True) == 0
+
+
+def test_pull_optional_does_not_swallow_auth_errors(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("KAGGLE_API_TOKEN", "tok")
+    with patch(
+        "scripts.pull_kaggle.wait_until_ready",
+        side_effect=RuntimeError("403 Client Error: permission denied"),
+    ):
+        with pytest.raises(RuntimeError, match="403"):
+            pull(data_dir=tmp_path / "data", optional=True)
 
 
 def test_main_optional(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("KAGGLE_API_TOKEN", raising=False)
-    with patch("scripts.pull_kaggle.Path.home") as home:
+    with patch("scripts.kaggle_util.Path.home") as home:
         home.return_value = tmp_path / "nohome"
         assert main(["--data-dir", str(tmp_path / "data"), "--optional"]) == 0

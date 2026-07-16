@@ -17,8 +17,8 @@ concurrency:
 jobs:
   fetch-daily:
     runs-on: ubuntu-latest
-    # Full listing universe × 1d + 1wk.
-    timeout-minutes: 360
+    # Full listing universe × 1d + 1wk (+ Kaggle Ready wait after publish).
+    timeout-minutes: 480
 
     steps:
       - name: Checkout repository

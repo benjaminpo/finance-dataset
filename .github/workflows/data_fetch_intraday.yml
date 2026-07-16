@@ -17,8 +17,8 @@ concurrency:
 jobs:
   fetch-intraday:
     runs-on: ubuntu-latest
-    # S&P 500 + liquid crypto/FX/futures × intraday intervals.
-    timeout-minutes: 180
+    # S&P 500 + liquid crypto/FX/futures × intraday (+ Kaggle Ready wait).
+    timeout-minutes: 360
 
     steps:
       - name: Checkout repository
