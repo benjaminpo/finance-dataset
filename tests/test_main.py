@@ -27,6 +27,13 @@ def test_parse_args_custom() -> None:
             "4",
             "--skip-existing",
             "--skip-listings-refresh",
+            "--asset-classes",
+            "crypto",
+            "stocks_us",
+            "--shard-index",
+            "1",
+            "--shard-count",
+            "3",
             "-v",
         ]
     )
@@ -34,6 +41,9 @@ def test_parse_args_custom() -> None:
     assert args.workers == 4
     assert args.skip_existing is True
     assert args.skip_listings_refresh is True
+    assert args.asset_classes == ["crypto", "stocks_us"]
+    assert args.shard_index == 1
+    assert args.shard_count == 3
     assert args.verbose is True
 
 
@@ -103,6 +113,53 @@ def test_main_runs_pipeline(tmp_path: Path) -> None:
     assert code == 0
     assert data_dir.is_dir()
     mock_pipe.assert_called_once()
+    kwargs = mock_pipe.call_args.kwargs
+    assert kwargs["asset_classes"] is None
+    assert kwargs["shard_index"] == 0
+    assert kwargs["shard_count"] == 1
+
+
+def test_main_passes_shard_filters(tmp_path: Path) -> None:
+    config = tmp_path / "tickers.yaml"
+    config.write_text("crypto:\n  - BTC-USD\n", encoding="utf-8")
+    with (
+        patch(
+            "src.main.refresh_listings",
+            return_value={"checked": 0, "updated": 0, "failed": 0},
+        ),
+        patch(
+            "src.main.run_pipeline",
+            return_value={
+                "success": 1,
+                "failed": 0,
+                "skipped": 0,
+                "total": 1,
+                "attempted": 1,
+                "failure_rate": 0.0,
+                "failures": [],
+            },
+        ) as mock_pipe,
+    ):
+        code = main(
+            [
+                "--config",
+                str(config),
+                "--data-dir",
+                str(tmp_path / "data"),
+                "--skip-listings-refresh",
+                "--asset-classes",
+                "crypto",
+                "--shard-index",
+                "2",
+                "--shard-count",
+                "5",
+            ]
+        )
+    assert code == 0
+    kwargs = mock_pipe.call_args.kwargs
+    assert kwargs["asset_classes"] == ["crypto"]
+    assert kwargs["shard_index"] == 2
+    assert kwargs["shard_count"] == 5
 
 
 def test_main_writes_summary_path(tmp_path: Path) -> None:

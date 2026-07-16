@@ -237,6 +237,59 @@ def load_tickers(config_path: Path) -> dict[str, list[str]]:
     return tickers
 
 
+def select_tickers(
+    tickers_by_class: dict[str, list[str]],
+    *,
+    asset_classes: Optional[list[str]] = None,
+    shard_index: int = 0,
+    shard_count: int = 1,
+) -> dict[str, list[str]]:
+    """
+    Filter *tickers_by_class* to selected asset classes and/or a stable shard.
+
+    Sharding is by sorted symbol index within each kept class:
+    ``index % shard_count == shard_index``. Empty classes are dropped.
+    """
+    if shard_count < 1:
+        raise ValueError(f"shard_count must be >= 1, got {shard_count}")
+    if shard_index < 0 or shard_index >= shard_count:
+        raise ValueError(
+            f"shard_index must be in [0, {shard_count}), got {shard_index}"
+        )
+
+    if asset_classes is None:
+        selected = dict(tickers_by_class)
+    else:
+        wanted = {str(name) for name in asset_classes}
+        unknown = sorted(wanted - set(tickers_by_class))
+        if unknown:
+            raise ValueError(
+                "Unknown asset class(es): "
+                + ", ".join(unknown)
+                + ". Known: "
+                + ", ".join(sorted(tickers_by_class))
+            )
+        selected = {
+            name: list(symbols)
+            for name, symbols in tickers_by_class.items()
+            if name in wanted
+        }
+
+    if shard_count == 1:
+        return {name: symbols for name, symbols in selected.items() if symbols}
+
+    out: dict[str, list[str]] = {}
+    for name, symbols in selected.items():
+        # Stable order so shard membership does not drift across runs.
+        ordered = sorted(set(symbols))
+        shard = [
+            sym for i, sym in enumerate(ordered) if i % shard_count == shard_index
+        ]
+        if shard:
+            out[name] = shard
+    return out
+
+
 def _normalize_frame(df: pd.DataFrame) -> pd.DataFrame:
     """Standardize a yfinance DataFrame: UTC index named Datetime, sorted OHLCV cols."""
     if df is None or df.empty:
@@ -719,6 +772,9 @@ def run_pipeline(
     sleep_seconds: float = REQUEST_DELAY_SECONDS,
     workers: int = DEFAULT_WORKERS,
     skip_existing: bool = False,
+    asset_classes: Optional[list[str]] = None,
+    shard_index: int = 0,
+    shard_count: int = 1,
 ) -> dict:
     """
     Run the full fetch pipeline for every ticker in the config.
@@ -731,12 +787,20 @@ def run_pipeline(
     ``skip_existing`` resumes a long first backfill by skipping tickers that
     already have a cumulative CSV (or today's intraday snapshot).
 
+    ``asset_classes`` / ``shard_index`` / ``shard_count`` limit work to a slice
+    (used by CI to split large intraday runs across jobs).
+
     Identical Yahoo requests (same ticker/interval/window) are cached in-process,
     so a symbol listed under more than one asset class only hits Yahoo once.
     """
     clear_fetch_cache()
     intervals = intervals or list(DEFAULT_INTERVALS)
-    tickers_by_class = load_tickers(config_path)
+    tickers_by_class = select_tickers(
+        load_tickers(config_path),
+        asset_classes=asset_classes,
+        shard_index=shard_index,
+        shard_count=shard_count,
+    )
 
     jobs: list[tuple[str, str, str]] = [
         (asset_class, ticker, interval)
@@ -752,12 +816,15 @@ def run_pipeline(
 
     logger.info(
         "Starting pipeline: %d ticker(s) × %s interval(s) = %d job(s), "
-        "workers=%d, skip_existing=%s",
+        "workers=%d, skip_existing=%s, asset_classes=%s, shard=%d/%d",
         n_tickers,
         intervals,
         total,
         workers,
         skip_existing,
+        asset_classes or "all",
+        shard_index,
+        shard_count,
     )
 
     if workers == 1:

@@ -22,6 +22,7 @@ from src.fetcher import (
     run_pipeline,
     save_daily,
     save_intraday_snapshots,
+    select_tickers,
     update_ticker_1d,
     update_ticker_1m,
 )
@@ -156,6 +157,34 @@ def test_load_tickers_coerces_yaml_integers(tmp_path: Path) -> None:
     )
     tickers = load_tickers(config)
     assert tickers["stocks_hk"] == ["0700.HK"]
+
+
+def test_select_tickers_filters_classes_and_shards() -> None:
+    tickers = {
+        "stocks_us": ["C", "A", "B", "D"],
+        "crypto": ["BTC-USD", "ETH-USD"],
+        "stocks_kr": ["005930.KS"],
+    }
+    assert select_tickers(tickers, asset_classes=["crypto"]) == {
+        "crypto": ["BTC-USD", "ETH-USD"]
+    }
+    # Sorted within class: A,B,C,D → shards 0/2 = A,C ; 1/2 = B,D
+    assert select_tickers(
+        tickers, asset_classes=["stocks_us"], shard_index=0, shard_count=2
+    ) == {"stocks_us": ["A", "C"]}
+    assert select_tickers(
+        tickers, asset_classes=["stocks_us"], shard_index=1, shard_count=2
+    ) == {"stocks_us": ["B", "D"]}
+
+
+def test_select_tickers_rejects_bad_shard_or_class() -> None:
+    tickers = {"crypto": ["BTC-USD"]}
+    with pytest.raises(ValueError, match="Unknown asset class"):
+        select_tickers(tickers, asset_classes=["nope"])
+    with pytest.raises(ValueError, match="shard_count"):
+        select_tickers(tickers, shard_count=0)
+    with pytest.raises(ValueError, match="shard_index"):
+        select_tickers(tickers, shard_index=2, shard_count=2)
 
 
 # ---------------------------------------------------------------------------

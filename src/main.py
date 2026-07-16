@@ -88,6 +88,25 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         ".md). Under GitHub Actions, Markdown is appended to the job summary.",
     )
     parser.add_argument(
+        "--asset-classes",
+        nargs="+",
+        default=None,
+        help="Only fetch these asset classes (default: all in the config)",
+    )
+    parser.add_argument(
+        "--shard-index",
+        type=int,
+        default=0,
+        help="Zero-based shard index when splitting a class across CI jobs "
+        "(default: 0)",
+    )
+    parser.add_argument(
+        "--shard-count",
+        type=int,
+        default=1,
+        help="Number of shards for --shard-index (default: 1 = no split)",
+    )
+    parser.add_argument(
         "-v",
         "--verbose",
         action="store_true",
@@ -131,6 +150,9 @@ def main(argv: list[str] | None = None) -> int:
         sleep_seconds=args.sleep,
         workers=args.workers,
         skip_existing=args.skip_existing,
+        asset_classes=args.asset_classes,
+        shard_index=args.shard_index,
+        shard_count=args.shard_count,
     )
 
     rate_pct = 100.0 * float(summary.get("failure_rate", 0.0))

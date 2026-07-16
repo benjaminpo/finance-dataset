@@ -1,6 +1,6 @@
 # Finance Dataset Pipeline
 
-Automated pipeline that pulls historical and intraday market data from [Yahoo Finance](https://finance.yahoo.com/) via [`yfinance`](https://github.com/ranaroussi/yfinance) and writes partitioned CSV files under `data/`. GitHub Actions run on a **split schedule** (daily bars for the full universe; intraday for a smaller liquid set), **publish OHLCV to [Kaggle](https://www.kaggle.com/datasets/benjaminpo/finance-dataset)**, and commit listing CSV updates (not the bulk price files) back to this repository.
+Automated pipeline that pulls historical and intraday market data from [Yahoo Finance](https://finance.yahoo.com/) via [`yfinance`](https://github.com/ranaroussi/yfinance) and writes partitioned CSV files under `data/`. GitHub Actions run on a **split schedule** (daily bars in one job; intraday across region/symbol shards), **publish OHLCV to [Kaggle](https://www.kaggle.com/datasets/benjaminpo/finance-dataset)**, and commit listing CSV updates (not the bulk price files) back to this repository.
 
 ## Asset classes
 
@@ -74,7 +74,7 @@ CSV index column is `Datetime` (UTC, ISO-8601). Columns: Open, High, Low, Close,
 │   └── tests.yml
 ├── config/
 │   ├── tickers.yaml            # full universe (daily/weekly)
-│   ├── tickers_intraday.yaml   # S&P 500 + liquid (intraday)
+│   ├── tickers_intraday.yaml   # full listings + liquid (intraday CI)
 │   └── kaggle/
 │       └── dataset-metadata.json
 ├── notebooks/
@@ -126,9 +126,10 @@ python src/main.py
 # Match CI daily job (full universe, 1d + 1wk)
 python src/main.py --intervals 1d 1wk
 
-# Match CI intraday job (S&P 500 + liquid)
+# Match CI intraday job (full listings; optional shard filters)
 python src/main.py --config config/tickers_intraday.yaml \
-  --intervals 1m 2m 5m 15m 30m 60m 90m 1h
+  --intervals 1m 2m 5m 15m 30m 60m 90m 1h \
+  --asset-classes stocks_us --shard-index 0 --shard-count 6
 
 # Faster first backfill: daily only, then resume if interrupted
 python src/main.py --intervals 1d --skip-existing
@@ -145,10 +146,13 @@ python src/main.py --config config/tickers.yaml --data-dir data --workers 12 --s
 | `--workers`       | `8`                     | Parallel Yahoo fetch threads                     |
 | `--sleep`         | `0.25`                  | Seconds to pause after each request              |
 | `--skip-existing` | off                     | Skip tickers that already have data (resume)     |
+| `--asset-classes` | all in config           | Restrict fetch to named asset classes            |
+| `--shard-index`   | `0`                     | Zero-based slice when splitting a class in CI    |
+| `--shard-count`   | `1`                     | Number of shards (`1` = no split)                |
 | `--summary-path`  | off                     | Write JSON (+ sibling `.md`) fetch failure report |
 | `-v`              | off                     | Debug logging                                    |
 
-CI splits the work so Actions stays practical: **daily** refreshes `1d` + `1wk` for the full listing universe (~12k symbols); **intraday** refreshes `1m`…`1h` only for S&P 500 + liquid crypto/indices/futures/FX ([`config/tickers_intraday.yaml`](config/tickers_intraday.yaml)). Prefer `--intervals 1d` for the first local backfill, then publish. Use `--skip-existing` to resume after an interrupt.
+CI splits the work so Actions stays practical: **daily** refreshes `1d` + `1wk` for the full listing universe (~12k symbols); **intraday** refreshes `1m`…`1h` for the same universe across sequential matrix shards (US×6, KR×3, JP×4, EU, liquid) so each runner stays under disk limits ([`config/tickers_intraday.yaml`](config/tickers_intraday.yaml)). Prefer `--intervals 1d` for the first local backfill, then publish. Use `--skip-existing` to resume after an interrupt.
 
 Progress is printed per job, e.g. `Fetching AAPL [1d]... Success — 2 new/updated row(s)`.
 
@@ -161,7 +165,7 @@ Progress is printed per job, e.g. `Fetching AAPL [1d]... Success — 2 new/updat
 
 Both also support `workflow_dispatch`. They share concurrency group `finance-dataset-kaggle` so pull/publish cannot race.
 
-Steps (each workflow): checkout → install → [`pull_kaggle.py --optional`](scripts/pull_kaggle.py) (wait until the latest Kaggle version is **Ready**, then merge it into `data/`) → `python src/main.py … --summary-path artifacts/fetch-summary.json` → upload **fetch summary** artifact (JSON + Markdown; also written to the job summary) → [`publish_kaggle.py`](scripts/publish_kaggle.py) (upload, then wait until the new version is Ready) → [`batch_commit.py`](scripts/batch_commit.py) for listing CSV updates.
+Steps (each workflow): free disk → checkout → install → [`pull_kaggle.py --optional`](scripts/pull_kaggle.py) (wait until the latest Kaggle version is **Ready**, then merge it into `data/`, drop the kagglehub cache copy) → `python src/main.py … --summary-path artifacts/fetch-summary.json` (intraday also passes `--asset-classes` / `--shard-*`) → upload **fetch summary** artifact (JSON + Markdown; also written to the job summary) → [`publish_kaggle.py`](scripts/publish_kaggle.py) (upload, then wait until the new version is Ready) → [`batch_commit.py`](scripts/batch_commit.py) for listing CSV updates.
 
 `--optional` only soft-fails when the dataset does not exist yet (first publish). Auth / permission errors fail the job. Publish records counts per interval at pull time and refuses any reduction, even if another interval adds enough files to hide the loss in the total. CI also requires all configured daily and intraday intervals before either workflow can publish.
 
