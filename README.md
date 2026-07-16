@@ -152,7 +152,7 @@ python src/main.py --config config/tickers.yaml --data-dir data --workers 12 --s
 | `--summary-path`  | off                     | Write JSON (+ sibling `.md`) fetch failure report |
 | `-v`              | off                     | Debug logging                                    |
 
-CI splits the work so Actions stays practical: **daily** refreshes `1d` + `1wk` for the full listing universe (~12k symbols); **intraday** refreshes `1m`…`1h` for the same universe across sequential matrix shards (US×6, KR×3, JP×4, EU, liquid) so each runner stays under disk limits ([`config/tickers_intraday.yaml`](config/tickers_intraday.yaml)). Prefer `--intervals 1d` for the first local backfill, then publish. Use `--skip-existing` to resume after an interrupt.
+CI splits the work so Actions stays practical: **daily** refreshes `1d` + `1wk` for the full listing universe (~12k symbols); **intraday** refreshes `1m`…`1h` for the same universe in one job that runs symbol shards sequentially ([`config/intraday_shards.yaml`](config/intraday_shards.yaml)) so Kaggle is pulled and published **once** per run instead of once per shard. Prefer `--intervals 1d` for the first local backfill, then publish. Use `--skip-existing` to resume after an interrupt.
 
 Progress is printed per job, e.g. `Fetching AAPL [1d]... Success — 2 new/updated row(s)`.
 
@@ -165,7 +165,7 @@ Progress is printed per job, e.g. `Fetching AAPL [1d]... Success — 2 new/updat
 
 Both also support `workflow_dispatch`. They share concurrency group `finance-dataset-kaggle` so pull/publish cannot race.
 
-Steps (each workflow): free disk → checkout → install → [`pull_kaggle.py --optional`](scripts/pull_kaggle.py) (wait until the latest Kaggle version is **Ready**, then merge it into `data/`, drop the kagglehub cache copy) → `python src/main.py … --summary-path artifacts/fetch-summary.json` (intraday also passes `--asset-classes` / `--shard-*`) → upload **fetch summary** artifact (JSON + Markdown; also written to the job summary) → [`publish_kaggle.py`](scripts/publish_kaggle.py) (upload, then wait until the new version is Ready) → [`batch_commit.py`](scripts/batch_commit.py) for listing CSV updates.
+Steps (each workflow): free disk → checkout → install → [`pull_kaggle.py --optional`](scripts/pull_kaggle.py) (wait until the latest Kaggle version is **Ready**, then merge it into `data/`, drop the kagglehub cache copy) → fetch (`src/main.py` for daily; [`run_intraday_shards.py`](scripts/run_intraday_shards.py) for all intraday shards in one job) → upload **fetch summary** artifact (JSON + Markdown; also written to the job summary) → [`publish_kaggle.py`](scripts/publish_kaggle.py) (upload, then wait until the new version is Ready) → [`batch_commit.py`](scripts/batch_commit.py) for listing CSV updates.
 
 `--optional` only soft-fails when the dataset does not exist yet (first publish). Auth / permission errors fail the job. Publish records counts per interval at pull time and refuses any reduction, even if another interval adds enough files to hide the loss in the total. CI also requires all configured daily and intraday intervals before either workflow can publish.
 
@@ -186,7 +186,7 @@ After the first push, open the kernel on Kaggle, click **Save Version**, and opt
 
 Dataset: [benjaminpo/finance-dataset](https://www.kaggle.com/datasets/benjaminpo/finance-dataset)
 
-Each workflow **waits for the latest Ready Kaggle version**, pulls it, updates its slice, re-uploads the full tree, then **waits until that new version is Ready** before exiting (so the next job cannot pull a stale prior version and wipe the other slice).
+Each workflow **waits for the latest Ready Kaggle version**, pulls it, updates its slice, re-uploads the full tree, then **waits until that new version is Ready** before exiting (so the next job cannot pull a stale prior version and wipe the other slice). Upload is fast (~1–2 min for a zip archive); most publish time is Kaggle server-side indexing of hundreds of thousands of CSV files (~90–100 min at full intraday scale).
 
 ```bash
 export KAGGLE_API_TOKEN=...          # from https://www.kaggle.com/settings/api

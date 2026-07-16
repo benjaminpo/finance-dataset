@@ -1,0 +1,63 @@
+# CI shard plan for intraday fetches (1m…1h). Run sequentially in one job so
+# Kaggle is pulled once and published once per workflow (not per shard).
+shards:
+  - id: us-0
+    asset_classes: [stocks_us]
+    shard_index: 0
+    shard_count: 6
+  - id: us-1
+    asset_classes: [stocks_us]
+    shard_index: 1
+    shard_count: 6
+  - id: us-2
+    asset_classes: [stocks_us]
+    shard_index: 2
+    shard_count: 6
+  - id: us-3
+    asset_classes: [stocks_us]
+    shard_index: 3
+    shard_count: 6
+  - id: us-4
+    asset_classes: [stocks_us]
+    shard_index: 4
+    shard_count: 6
+  - id: us-5
+    asset_classes: [stocks_us]
+    shard_index: 5
+    shard_count: 6
+  - id: kr-0
+    asset_classes: [stocks_kr]
+    shard_index: 0
+    shard_count: 3
+  - id: kr-1
+    asset_classes: [stocks_kr]
+    shard_index: 1
+    shard_count: 3
+  - id: kr-2
+    asset_classes: [stocks_kr]
+    shard_index: 2
+    shard_count: 3
+  - id: jp-0
+    asset_classes: [stocks_jp]
+    shard_index: 0
+    shard_count: 4
+  - id: jp-1
+    asset_classes: [stocks_jp]
+    shard_index: 1
+    shard_count: 4
+  - id: jp-2
+    asset_classes: [stocks_jp]
+    shard_index: 2
+    shard_count: 4
+  - id: jp-3
+    asset_classes: [stocks_jp]
+    shard_index: 3
+    shard_count: 4
+  - id: eu
+    asset_classes: [stocks_eu]
+    shard_index: 0
+    shard_count: 1
+  - id: liquid
+    asset_classes: [stocks_hk, crypto, indices, futures, fx]
+    shard_index: 0
+    shard_count: 1

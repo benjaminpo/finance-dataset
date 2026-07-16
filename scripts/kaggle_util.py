@@ -149,6 +149,15 @@ def is_missing_dataset_error(exc: BaseException) -> bool:
     return any(m in text for m in markers)
 
 
+def _ready_poll_interval(elapsed_sec: float, base_poll_sec: float) -> float:
+    """Poll faster early, then settle on *base_poll_sec* for long Kaggle jobs."""
+    if elapsed_sec < 300:
+        return min(base_poll_sec, 15.0)
+    if elapsed_sec < 1800:
+        return min(base_poll_sec, 30.0)
+    return base_poll_sec
+
+
 def wait_until_ready(
     handle: str,
     *,
@@ -163,7 +172,8 @@ def wait_until_ready(
     Pulling before that finishes returns the previous Ready version, which
     makes a partial fetch look complete and wipes the in-flight version.
     """
-    deadline = time.monotonic() + timeout_sec
+    started = time.monotonic()
+    deadline = started + timeout_sec
     last: DatasetSnapshot | None = None
     while True:
         last = get_dataset_snapshot(handle)
@@ -177,9 +187,10 @@ def wait_until_ready(
                 f"status={last.status}"
             )
         if last.is_ready and version_ok:
+            elapsed = time.monotonic() - started
             print(
                 f"Kaggle dataset ready: {handle} v{last.current_version} "
-                f"({last.total_bytes} bytes)",
+                f"({last.total_bytes} bytes, waited {elapsed:.0f}s)",
                 flush=True,
             )
             return last
@@ -192,14 +203,16 @@ def wait_until_ready(
                 f"pending={list(last.pending_versions)}"
             )
 
+        elapsed = time.monotonic() - started
         detail = (
             f"current=v{last.current_version} max=v{last.max_version} "
-            f"status={last.status} pending={list(last.pending_versions)}"
+            f"status={last.status} pending={list(last.pending_versions)} "
+            f"elapsed={elapsed:.0f}s"
         )
         if min_version is not None:
             detail += f" waiting_for>=v{min_version}"
         print(f"Waiting for Kaggle processing ({detail})...", flush=True)
-        time.sleep(poll_sec)
+        time.sleep(_ready_poll_interval(elapsed, poll_sec))
 
 
 def write_pull_state(data_dir: Path, handle: str, version: int, file_count: int) -> Path:

@@ -7,6 +7,7 @@ import argparse
 import json
 import os
 import sys
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -170,7 +171,11 @@ def publish(
         import kagglehub
         from kagglehub.exceptions import BackendError
 
-        print(f"Uploading {n_files} file(s) to https://www.kaggle.com/datasets/{handle} ...")
+        print(
+            f"Uploading {n_files} file(s) to https://www.kaggle.com/datasets/{handle} ...",
+            flush=True,
+        )
+        upload_started = time.monotonic()
         try:
             kagglehub.dataset_upload(
                 handle,
@@ -191,16 +196,23 @@ def publish(
                     "file-based dataset."
                 ) from exc
             raise
-        print(f"Published {handle}: {notes}", flush=True)
+        upload_sec = time.monotonic() - upload_started
+        print(
+            f"Published {handle}: {notes} (upload took {upload_sec:.0f}s)",
+            flush=True,
+        )
 
         if wait_ready:
             target = before_version + 1 if before_version > 0 else None
+            wait_started = time.monotonic()
             wait_until_ready(
                 handle,
                 min_version=target,
                 timeout_sec=ready_timeout_sec,
                 poll_sec=ready_poll_sec,
             )
+            wait_sec = time.monotonic() - wait_started
+            print(f"Kaggle processing finished in {wait_sec:.0f}s", flush=True)
 
         clear_pull_state(data_path)
         return notes
