@@ -21,6 +21,12 @@ jobs:
     timeout-minutes: 360
 
     steps:
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+            /usr/local/share/boost "$AGENT_TOOLSDIRECTORY" || true
+          df -h /
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -40,7 +46,7 @@ jobs:
         run: python scripts/pull_kaggle.py --optional
 
       - name: Fetch intraday bars (S&P 500 + liquid universe)
-        # Skip full listing rebuild (KRX/TSE/Europe); only S&P CSV is used.
+        # Intraday config is S&P 500 + liquid only; full listings stay on daily.
         run: >
           python src/main.py
           --config config/tickers_intraday.yaml

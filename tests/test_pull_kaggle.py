@@ -83,6 +83,7 @@ def test_pull_merges_download(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -
     assert n == 1
     assert (data / "stocks_us" / "1d" / "AAPL.csv").is_file()
     assert (data / ".kaggle-pull-state.json").is_file()
+    assert not cache.exists()  # kagglehub cache removed after merge
     mock_hub.dataset_download.assert_called_once()
 
 

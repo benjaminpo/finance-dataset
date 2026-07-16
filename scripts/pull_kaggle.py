@@ -119,6 +119,13 @@ def pull(
         else:
             n = _merge_tree(cache_path, dest)
             print(f"Pulled {n} file(s) into {dest} (v{version})", flush=True)
+            # Drop the kagglehub cache copy so CI does not keep the dataset twice
+            # (runners often have only ~14GB free).
+            try:
+                shutil.rmtree(cache_path)
+                print(f"Removed kagglehub cache at {cache_path}", flush=True)
+            except OSError as exc:
+                print(f"WARNING: could not remove kagglehub cache ({exc})", flush=True)
 
         write_pull_state(dest, handle, version, n)
         return n
