@@ -163,7 +163,7 @@ Both also support `workflow_dispatch`. They share concurrency group `finance-dat
 
 Steps (each workflow): checkout → install → [`pull_kaggle.py --optional`](scripts/pull_kaggle.py) (wait until the latest Kaggle version is **Ready**, then merge it into `data/`) → `python src/main.py … --summary-path artifacts/fetch-summary.json` → upload **fetch summary** artifact (JSON + Markdown; also written to the job summary) → [`publish_kaggle.py`](scripts/publish_kaggle.py) (upload, then wait until the new version is Ready) → [`batch_commit.py`](scripts/batch_commit.py) for listing CSV updates.
 
-`--optional` only soft-fails when the dataset does not exist yet (first publish). Auth / permission errors fail the job. Publish also refuses to upload fewer files than this job pulled, so a partial tree cannot wipe the other interval slice.
+`--optional` only soft-fails when the dataset does not exist yet (first publish). Auth / permission errors fail the job. Publish records counts per interval at pull time and refuses any reduction, even if another interval adds enough files to hide the loss in the total. CI also requires all configured daily and intraday intervals before either workflow can publish.
 
 The summary includes success/fail/skip counts, **failure rate** (failed ÷ attempted), breakdowns by interval and asset class, and per-ticker failure messages so Yahoo blanks / rate-limit gaps are visible without digging through the full log. Exit behavior is unchanged: the job only fails the fetch step when *every* ticker fails.
 
@@ -203,6 +203,7 @@ python scripts/publish_kaggle.py --dry-run
 | `--dry-run` / `--optional` | off                             | Plan-only publish / soft-fail pull if dataset missing |
 | `--no-wait-ready`          | off                             | Skip Ready polling (not recommended in CI)       |
 | `--allow-shrink`           | off                             | Allow publish with fewer files than pulled       |
+| `--require-intervals`      | off                             | Require files for each listed interval before publish |
 
 Auth: set `KAGGLE_API_TOKEN`, or legacy `KAGGLE_USERNAME` + `KAGGLE_KEY`, or `~/.kaggle/kaggle.json`.
 

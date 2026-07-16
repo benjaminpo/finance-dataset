@@ -41,6 +41,22 @@ def count_data_files(data_dir: Path) -> int:
     )
 
 
+def count_data_files_by_interval(data_dir: Path) -> dict[str, int]:
+    """Count files in the expected ``asset_class/interval/file`` layout."""
+    counts: dict[str, int] = {}
+    if not data_dir.is_dir():
+        return counts
+    for path in data_dir.rglob("*"):
+        if not path.is_file() or path.name in SKIP_COUNT_NAMES:
+            continue
+        parts = path.relative_to(data_dir).parts
+        if len(parts) < 3:
+            continue
+        interval = parts[1]
+        counts[interval] = counts.get(interval, 0) + 1
+    return dict(sorted(counts.items()))
+
+
 def _status_name(value: object) -> str:
     if value is None:
         return ""
@@ -196,6 +212,7 @@ def write_pull_state(data_dir: Path, handle: str, version: int, file_count: int)
                 "handle": handle,
                 "version": version,
                 "file_count": file_count,
+                "interval_counts": count_data_files_by_interval(data_dir),
             },
             indent=2,
         )

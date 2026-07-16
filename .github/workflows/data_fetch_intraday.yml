@@ -66,6 +66,7 @@ jobs:
         run: >
           python scripts/publish_kaggle.py
           --version-notes "Intraday refresh (1m–1h, S&P 500 + liquid)"
+          --require-intervals 1d 1wk 1m 2m 5m 15m 30m 60m 90m 1h
 
       - name: Commit listing updates
         env:

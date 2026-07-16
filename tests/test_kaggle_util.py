@@ -10,6 +10,7 @@ import pytest
 from scripts.kaggle_util import (
     DatasetSnapshot,
     count_data_files,
+    count_data_files_by_interval,
     is_missing_dataset_error,
     read_pull_state,
     split_handle,
@@ -32,6 +33,7 @@ def test_count_skips_state_files(tmp_path: Path) -> None:
     (data / "dataset-metadata.json").write_text("{}", encoding="utf-8")
     write_pull_state(data, "owner/slug", 2, 1)
     assert count_data_files(data) == 1
+    assert count_data_files_by_interval(data) == {"1d": 1}
 
 
 def test_pull_state_roundtrip(tmp_path: Path) -> None:
@@ -42,6 +44,7 @@ def test_pull_state_roundtrip(tmp_path: Path) -> None:
         "handle": "owner/slug",
         "version": 3,
         "file_count": 42,
+        "interval_counts": {},
     }
 
 

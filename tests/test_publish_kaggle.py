@@ -145,6 +145,44 @@ def test_publish_refuses_shrink(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
         publish(data_dir=data, metadata=meta, dry_run=True)
 
 
+def test_publish_refuses_missing_required_interval(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    data = tmp_path / "data"
+    (data / "stocks_us" / "1d").mkdir(parents=True)
+    (data / "stocks_us" / "1d" / "AAPL.csv").write_text("x", encoding="utf-8")
+    meta = _write_metadata(tmp_path / "meta.json")
+    monkeypatch.setenv("KAGGLE_API_TOKEN", "tok")
+
+    with pytest.raises(RuntimeError, match="required interval.*1m"):
+        publish(
+            data_dir=data,
+            metadata=meta,
+            dry_run=True,
+            required_intervals=("1d", "1m"),
+        )
+
+
+def test_publish_refuses_interval_shrink_even_if_total_grows(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    data = tmp_path / "data"
+    (data / "stocks_us" / "1m").mkdir(parents=True)
+    (data / "stocks_us" / "1m" / "AAPL.csv").write_text("x", encoding="utf-8")
+    from scripts.kaggle_util import write_pull_state
+
+    write_pull_state(data, "benjaminpo/finance-dataset", 2, 1)
+    (data / "stocks_us" / "1m" / "AAPL.csv").unlink()
+    (data / "stocks_us" / "1d").mkdir(parents=True)
+    for ticker in ("AAPL", "MSFT"):
+        (data / "stocks_us" / "1d" / f"{ticker}.csv").write_text("x", encoding="utf-8")
+    meta = _write_metadata(tmp_path / "meta.json")
+    monkeypatch.setenv("KAGGLE_API_TOKEN", "tok")
+
+    with pytest.raises(RuntimeError, match="Reduced interval counts: 1m 1->0"):
+        publish(data_dir=data, metadata=meta, dry_run=True)
+
+
 def test_publish_incompatible_dataset_type(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

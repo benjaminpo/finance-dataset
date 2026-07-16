@@ -19,6 +19,7 @@ from scripts.kaggle_util import (
     PULL_STATE_NAME,
     clear_pull_state,
     count_data_files,
+    count_data_files_by_interval,
     get_dataset_snapshot,
     has_kaggle_credentials,
     is_missing_dataset_error,
@@ -59,19 +60,48 @@ def write_upload_metadata(data_dir: Path, metadata_path: Path, handle: str) -> P
     return dest
 
 
-def _guard_no_shrink(data_dir: Path, n_files: int, *, allow_shrink: bool) -> None:
-    """Refuse to publish a smaller tree than the one pulled this job."""
+def _guard_no_shrink(
+    data_dir: Path,
+    n_files: int,
+    *,
+    allow_shrink: bool,
+    required_intervals: tuple[str, ...] = (),
+) -> None:
+    """Refuse to publish a tree missing required or previously pulled intervals."""
+    current_intervals = count_data_files_by_interval(data_dir)
+    missing = [interval for interval in required_intervals if current_intervals.get(interval, 0) == 0]
+    if missing:
+        raise RuntimeError(
+            "Refusing to publish: required interval data is missing: "
+            f"{', '.join(missing)}. Rebuild that slice before publishing."
+        )
+
     state = read_pull_state(data_dir)
     if not state:
         return
     pulled = int(state.get("file_count") or 0)
-    if pulled <= 0 or n_files >= pulled:
+    pulled_intervals = {
+        str(interval): int(count)
+        for interval, count in (state.get("interval_counts") or {}).items()
+    }
+    reduced_intervals = {
+        interval: (count, current_intervals.get(interval, 0))
+        for interval, count in pulled_intervals.items()
+        if current_intervals.get(interval, 0) < count
+    }
+    if (pulled <= 0 or n_files >= pulled) and not reduced_intervals:
         return
     msg = (
         f"Refusing to publish {n_files} file(s): this job pulled {pulled} file(s) "
         f"from {state.get('handle')} v{state.get('version')}. Publishing fewer "
-        "files would wipe the other interval slice on Kaggle."
+        "files would wipe data on Kaggle."
     )
+    if reduced_intervals:
+        details = ", ".join(
+            f"{interval} {before}->{after}"
+            for interval, (before, after) in sorted(reduced_intervals.items())
+        )
+        msg += f" Reduced interval counts: {details}."
     if allow_shrink:
         print(f"WARNING: {msg} Continuing because --allow-shrink was set.", flush=True)
         return
@@ -89,6 +119,7 @@ def publish(
     ready_timeout_sec: float = DEFAULT_READY_TIMEOUT_SEC,
     ready_poll_sec: float = DEFAULT_READY_POLL_SEC,
     allow_shrink: bool = False,
+    required_intervals: tuple[str, ...] = (),
 ) -> str:
     """
     Upload *data_dir* as a new version of the Kaggle dataset *handle*.
@@ -108,7 +139,12 @@ def publish(
     n_files = count_data_files(data_path)
     if n_files == 0:
         raise FileNotFoundError(f"No data files to publish under {data_path}")
-    _guard_no_shrink(data_path, n_files, allow_shrink=allow_shrink)
+    _guard_no_shrink(
+        data_path,
+        n_files,
+        allow_shrink=allow_shrink,
+        required_intervals=required_intervals,
+    )
 
     date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     notes = version_notes or f"Daily OHLCV refresh {date} ({n_files} file(s))"
@@ -223,6 +259,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Allow publishing fewer files than were pulled (dangerous)",
     )
+    parser.add_argument(
+        "--require-intervals",
+        nargs="+",
+        default=[],
+        help="Refuse to publish unless each listed interval has files",
+    )
     return parser.parse_args(argv)
 
 
@@ -239,6 +281,7 @@ def main(argv: list[str] | None = None) -> int:
             ready_timeout_sec=args.ready_timeout_sec,
             ready_poll_sec=args.ready_poll_sec,
             allow_shrink=args.allow_shrink,
+            required_intervals=tuple(args.require_intervals),
         )
     except (FileNotFoundError, RuntimeError, OSError, TimeoutError, ValueError) as exc:
         print(exc, file=sys.stderr)
