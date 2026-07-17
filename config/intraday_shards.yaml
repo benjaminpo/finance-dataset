@@ -58,6 +58,6 @@ shards:
     shard_index: 0
     shard_count: 1
   - id: liquid
-    asset_classes: [stocks_hk, crypto, indices, futures, fx]
+    asset_classes: [stocks_hk, crypto, indices, futures, currencies]
     shard_index: 0
     shard_count: 1
