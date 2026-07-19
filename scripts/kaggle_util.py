@@ -81,11 +81,18 @@ class DatasetSnapshot:
 
     @property
     def is_ready(self) -> bool:
-        return (
-            self.status in READY_STATUS_NAMES
-            and not self.pending_versions
-            and self.current_version == self.max_version
-            and self.current_version > 0
+        if (
+            self.status not in READY_STATUS_NAMES
+            or self.pending_versions
+            or self.current_version <= 0
+        ):
+            return False
+        if self.current_version == self.max_version:
+            return True
+        # Failed versions ahead of current are not in-flight processing.
+        return all(
+            v in self.failed_versions
+            for v in range(self.current_version + 1, self.max_version + 1)
         )
 
 
@@ -178,8 +185,12 @@ def wait_until_ready(
     while True:
         last = get_dataset_snapshot(handle)
         version_ok = min_version is None or last.current_version >= min_version
-        if last.failed_versions and (
-            min_version is None or any(v >= min_version for v in last.failed_versions)
+        # Only abort when the version we are waiting for failed (publish flow).
+        # A stale failed version ahead of current must not block pulling READY data.
+        if (
+            min_version is not None
+            and last.failed_versions
+            and any(v >= min_version for v in last.failed_versions)
         ):
             raise RuntimeError(
                 f"Kaggle dataset {handle} has failed version(s) "

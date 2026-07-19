@@ -98,6 +98,22 @@ def test_wait_until_ready_failed_version() -> None:
             wait_until_ready("o/s", min_version=2, timeout_sec=1, poll_sec=0.01)
 
 
+def test_wait_until_ready_ignores_stale_failed_version() -> None:
+    """Pull should use current READY even if a newer upload failed."""
+    snap = DatasetSnapshot(
+        handle="o/s",
+        current_version=7,
+        status="READY",
+        total_bytes=10,
+        pending_versions=(),
+        failed_versions=(8,),
+        max_version=8,
+    )
+    assert snap.is_ready is True
+    with patch("scripts.kaggle_util.get_dataset_snapshot", return_value=snap):
+        assert wait_until_ready("o/s", timeout_sec=1, poll_sec=0.01).current_version == 7
+
+
 def test_dataset_snapshot_not_ready_when_pending() -> None:
     snap = DatasetSnapshot(
         handle="o/s",
