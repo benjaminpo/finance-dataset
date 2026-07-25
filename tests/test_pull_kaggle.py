@@ -108,6 +108,75 @@ def test_pull_optional_does_not_swallow_auth_errors(
             pull(data_dir=tmp_path / "data", optional=True)
 
 
+def test_pull_optional_does_not_swallow_download_404(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Once Ready, a version archive 404 must fail — not continue with empty data/."""
+    monkeypatch.setenv("KAGGLE_API_TOKEN", "tok")
+    snap = DatasetSnapshot(
+        handle="benjaminpo/finance-dataset",
+        current_version=9,
+        status="READY",
+        total_bytes=100,
+        pending_versions=(),
+        failed_versions=(),
+        max_version=9,
+    )
+    mock_hub = MagicMock()
+    mock_hub.dataset_download.side_effect = RuntimeError(
+        "404 Client Error. Resource not found at URL: "
+        "https://kaggle.com/datasets/benjaminpo/finance-dataset/versions/9"
+    )
+    with (
+        patch.dict("sys.modules", {"kagglehub": mock_hub}),
+        patch("scripts.pull_kaggle.wait_until_ready", return_value=snap),
+        patch("scripts.pull_kaggle.time.sleep"),
+    ):
+        with pytest.raises(RuntimeError, match="versions/9"):
+            pull(
+                data_dir=tmp_path / "data",
+                optional=True,
+                download_retries=3,
+                download_retry_sec=0,
+            )
+    assert mock_hub.dataset_download.call_count == 3
+
+
+def test_download_retries_then_succeeds(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("KAGGLE_API_TOKEN", "tok")
+    cache = tmp_path / "cache"
+    (cache / "crypto" / "1m").mkdir(parents=True)
+    (cache / "crypto" / "1m" / "BTC-USD.csv").write_text("x", encoding="utf-8")
+    snap = DatasetSnapshot(
+        handle="benjaminpo/finance-dataset",
+        current_version=9,
+        status="READY",
+        total_bytes=100,
+        pending_versions=(),
+        failed_versions=(),
+        max_version=9,
+    )
+    mock_hub = MagicMock()
+    mock_hub.dataset_download.side_effect = [
+        RuntimeError("404 Client Error: versions/9 not ready"),
+        str(cache),
+    ]
+    with (
+        patch.dict("sys.modules", {"kagglehub": mock_hub}),
+        patch("scripts.pull_kaggle.wait_until_ready", return_value=snap),
+        patch("scripts.pull_kaggle.time.sleep"),
+    ):
+        n = pull(
+            data_dir=tmp_path / "data",
+            optional=True,
+            download_retries=3,
+            download_retry_sec=0,
+        )
+    assert n == 1
+    assert mock_hub.dataset_download.call_count == 2
+    assert (tmp_path / "data" / "crypto" / "1m" / "BTC-USD.csv").is_file()
+
+
 def test_main_optional(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("KAGGLE_API_TOKEN", raising=False)
     with patch("scripts.kaggle_util.Path.home") as home:

@@ -7,6 +7,7 @@ import argparse
 import os
 import shutil
 import sys
+import time
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parents[1]
@@ -28,6 +29,9 @@ DEFAULT_HANDLE = "benjaminpo/finance-dataset"
 DEFAULT_DATA_DIR = "data"
 DEFAULT_READY_TIMEOUT_SEC = 14400
 DEFAULT_READY_POLL_SEC = 60
+# Kaggle can mark a version READY before the downloadable archive is served.
+DEFAULT_DOWNLOAD_RETRIES = 8
+DEFAULT_DOWNLOAD_RETRY_SEC = 30.0
 
 
 def _merge_tree(src: Path, dest: Path) -> int:
@@ -44,6 +48,38 @@ def _merge_tree(src: Path, dest: Path) -> int:
     return copied
 
 
+def _download_dataset(
+    handle: str,
+    *,
+    force: bool,
+    version: int,
+    retries: int = DEFAULT_DOWNLOAD_RETRIES,
+    retry_sec: float = DEFAULT_DOWNLOAD_RETRY_SEC,
+) -> Path:
+    """Download *handle*, retrying when READY metadata races the archive."""
+    import kagglehub
+
+    attempts = max(1, retries)
+    last_exc: BaseException | None = None
+    for attempt in range(1, attempts + 1):
+        try:
+            return Path(kagglehub.dataset_download(handle, force_download=force))
+        except Exception as exc:  # noqa: BLE001 — kagglehub raises various HTTP errors
+            last_exc = exc
+            # Only retry "not found" — auth/quota/etc. should fail immediately.
+            if not is_missing_dataset_error(exc) or attempt >= attempts:
+                raise
+            print(
+                f"WARNING: download of {handle} v{version} not available yet "
+                f"(attempt {attempt}/{attempts}): {exc}. "
+                f"Retrying in {retry_sec:.0f}s...",
+                flush=True,
+            )
+            time.sleep(retry_sec)
+    assert last_exc is not None
+    raise last_exc
+
+
 def pull(
     handle: str = DEFAULT_HANDLE,
     data_dir: str | Path = DEFAULT_DATA_DIR,
@@ -53,6 +89,8 @@ def pull(
     wait_ready: bool = True,
     ready_timeout_sec: float = DEFAULT_READY_TIMEOUT_SEC,
     ready_poll_sec: float = DEFAULT_READY_POLL_SEC,
+    download_retries: int = DEFAULT_DOWNLOAD_RETRIES,
+    download_retry_sec: float = DEFAULT_DOWNLOAD_RETRY_SEC,
 ) -> int:
     """
     Download *handle* into *data_dir*.
@@ -61,6 +99,10 @@ def pull(
     dataset (first publish) warns and returns 0. Auth and other errors still
     raise — soft-failing those previously allowed CI to publish a partial tree
     and wipe the other slice.
+
+    Once the dataset is confirmed to exist (Ready snapshot), download failures
+    always raise — including 404s on a specific version URL. Soft-failing those
+    left CI with only the refreshed slice and no intradaily history.
     """
     dest = Path(data_dir)
     dest.mkdir(parents=True, exist_ok=True)
@@ -77,58 +119,14 @@ def pull(
         raise RuntimeError(msg)
 
     try:
-        import kagglehub
-
         if wait_ready:
-            try:
-                snap = wait_until_ready(
-                    handle,
-                    timeout_sec=ready_timeout_sec,
-                    poll_sec=ready_poll_sec,
-                )
-            except Exception as exc:  # noqa: BLE001
-                if optional and is_missing_dataset_error(exc):
-                    print(
-                        f"WARNING: Kaggle dataset {handle} not found yet ({exc}). "
-                        "Continuing with local data/.",
-                        flush=True,
-                    )
-                    return 0
-                raise
-            version = snap.current_version
+            snap = wait_until_ready(
+                handle,
+                timeout_sec=ready_timeout_sec,
+                poll_sec=ready_poll_sec,
+            )
         else:
             snap = get_dataset_snapshot(handle)
-            version = snap.current_version
-
-        print(
-            f"Downloading https://www.kaggle.com/datasets/{handle} "
-            f"(v{version}) ...",
-            flush=True,
-        )
-        cache_path = Path(
-            kagglehub.dataset_download(
-                handle,
-                force_download=force,
-            )
-        )
-        # Prefer copying from the cache path so we merge into an existing data/
-        # tree instead of requiring an empty output_dir.
-        if cache_path.resolve() == dest.resolve():
-            n = count_data_files(dest)
-            print(f"Dataset already at {dest} ({n} file(s), v{version})", flush=True)
-        else:
-            n = _merge_tree(cache_path, dest)
-            print(f"Pulled {n} file(s) into {dest} (v{version})", flush=True)
-            # Drop the kagglehub cache copy so CI does not keep the dataset twice
-            # (runners often have only ~14GB free).
-            try:
-                shutil.rmtree(cache_path)
-                print(f"Removed kagglehub cache at {cache_path}", flush=True)
-            except OSError as exc:
-                print(f"WARNING: could not remove kagglehub cache ({exc})", flush=True)
-
-        write_pull_state(dest, handle, version, n)
-        return n
     except Exception as exc:  # noqa: BLE001 — optional soft-fail for first CI run
         if optional and is_missing_dataset_error(exc):
             print(
@@ -137,10 +135,39 @@ def pull(
                 flush=True,
             )
             return 0
-        if optional and not has_kaggle_credentials():
-            print(f"WARNING: Kaggle pull failed ({exc}). Continuing with local data/.", flush=True)
-            return 0
         raise
+
+    version = snap.current_version
+    print(
+        f"Downloading https://www.kaggle.com/datasets/{handle} "
+        f"(v{version}) ...",
+        flush=True,
+    )
+    cache_path = _download_dataset(
+        handle,
+        force=force,
+        version=version,
+        retries=download_retries,
+        retry_sec=download_retry_sec,
+    )
+    # Prefer copying from the cache path so we merge into an existing data/
+    # tree instead of requiring an empty output_dir.
+    if cache_path.resolve() == dest.resolve():
+        n = count_data_files(dest)
+        print(f"Dataset already at {dest} ({n} file(s), v{version})", flush=True)
+    else:
+        n = _merge_tree(cache_path, dest)
+        print(f"Pulled {n} file(s) into {dest} (v{version})", flush=True)
+        # Drop the kagglehub cache copy so CI does not keep the dataset twice
+        # (runners often have only ~14GB free).
+        try:
+            shutil.rmtree(cache_path)
+            print(f"Removed kagglehub cache at {cache_path}", flush=True)
+        except OSError as exc:
+            print(f"WARNING: could not remove kagglehub cache ({exc})", flush=True)
+
+    write_pull_state(dest, handle, version, n)
+    return n
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
