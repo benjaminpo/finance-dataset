@@ -71,22 +71,27 @@ CSV index column is `Datetime` (UTC, ISO-8601). Columns: Open, High, Low, Close,
 ├── .github/workflows/
 │   ├── data_fetch_daily.yml
 │   ├── data_fetch_intraday.yml
+│   ├── split_kaggle_datasets.yml   # one-time combined → dual-dataset migration
 │   └── tests.yml
 ├── config/
 │   ├── tickers.yaml            # full universe (daily/weekly)
-│   ├── tickers_intraday.yaml   # full listings + liquid (intraday CI)
+│   ├── tickers_intraday.yaml   # full listings (intraday CI)
+│   ├── intraday_shards.yaml    # sequential shard plan for intradaily CI
 │   └── kaggle/
 │       ├── dataset-metadata.json           # daily/weekly Kaggle dataset
 │       └── dataset-metadata-intraday.json  # intradaily Kaggle dataset
 ├── notebooks/
-│   └── kaggle-returns-demo/  # Kaggle kernel stub (returns plot)
+│   └── kaggle-returns-demo/    # public Kaggle quickstart (daily + intraday)
+│       ├── finance-dataset-usage-demo.ipynb
+│       └── kernel-metadata.json
 ├── data/                 # local OHLCV (gitignored; published to Kaggle)
 ├── scripts/
-│   ├── batch_commit.py   # commit listing CSV updates
-│   ├── kaggle_util.py    # shared Ready polling / pull-state / slice helpers
-│   ├── pull_kaggle.py    # download latest Ready Kaggle version into data/
-│   ├── publish_kaggle.py # upload data/ as a Kaggle dataset version
-│   └── split_kaggle_datasets.py  # one-time daily/intraday split migration
+│   ├── batch_commit.py          # commit listing CSV updates
+│   ├── kaggle_util.py           # Ready polling / pull-state / slice helpers
+│   ├── pull_kaggle.py           # download latest Ready Kaggle version into data/
+│   ├── publish_kaggle.py        # upload data/ as a Kaggle dataset version
+│   ├── run_intraday_shards.py   # run all intradaily shards in one job
+│   └── split_kaggle_datasets.py # one-time daily/intraday split migration
 ├── src/
 │   ├── __init__.py
 │   ├── fetcher.py      # download + CSV merge logic
@@ -140,19 +145,21 @@ python src/main.py --intervals 1d --skip-existing
 python src/main.py --config config/tickers.yaml --data-dir data --workers 12 --sleep 0.25 -v
 ```
 
-| Flag              | Default                 | Description                                      |
-|-------------------|-------------------------|--------------------------------------------------|
-| `--config`        | `config/tickers.yaml`   | Ticker lists                                     |
-| `--data-dir`      | `data`                  | CSV root                                         |
-| `--intervals`     | all 13 Yahoo intervals  | Any of `1m`/`2m`/`5m`/`15m`/`30m`/`60m`/`90m`/`1h`/`1d`/`5d`/`1wk`/`1mo`/`3mo` |
-| `--workers`       | `8`                     | Parallel Yahoo fetch threads                     |
-| `--sleep`         | `0.25`                  | Seconds to pause after each request              |
-| `--skip-existing` | off                     | Skip tickers that already have data (resume)     |
-| `--asset-classes` | all in config           | Restrict fetch to named asset classes            |
-| `--shard-index`   | `0`                     | Zero-based slice when splitting a class in CI    |
-| `--shard-count`   | `1`                     | Number of shards (`1` = no split)                |
-| `--summary-path`  | off                     | Write JSON (+ sibling `.md`) fetch failure report |
-| `-v`              | off                     | Debug logging                                    |
+| Flag                        | Default                 | Description                                      |
+|-----------------------------|-------------------------|--------------------------------------------------|
+| `--config`                  | `config/tickers.yaml`   | Ticker lists                                     |
+| `--data-dir`                | `data`                  | CSV root                                         |
+| `--intervals`               | all 13 Yahoo intervals  | Any of `1m`/`2m`/`5m`/`15m`/`30m`/`60m`/`90m`/`1h`/`1d`/`5d`/`1wk`/`1mo`/`3mo` |
+| `--workers`                 | `8`                     | Parallel Yahoo fetch threads                     |
+| `--sleep`                   | `0.25`                  | Seconds to pause after each request              |
+| `--skip-existing`           | off                     | Skip tickers that already have data (resume)     |
+| `--skip-listings-refresh`   | off                     | Skip remote/KRX/TSE/Europe listing updates       |
+| `--listings-only`           | off                     | Refresh listings without fetching market data    |
+| `--asset-classes`           | all in config           | Restrict fetch to named asset classes            |
+| `--shard-index`             | `0`                     | Zero-based slice when splitting a class in CI    |
+| `--shard-count`             | `1`                     | Number of shards (`1` = no split)                |
+| `--summary-path`            | off                     | Write JSON (+ sibling `.md`) fetch failure report |
+| `-v`                        | off                     | Debug logging                                    |
 
 CI splits the work so Actions stays practical: **daily** refreshes `1d` + `1wk` for the full listing universe (~12k symbols) into [finance-dataset](https://www.kaggle.com/datasets/benjaminpo/finance-dataset); **intraday** refreshes `1m`…`1h` into [finance-dataset-intraday](https://www.kaggle.com/datasets/benjaminpo/finance-dataset-intraday) in one job that runs symbol shards sequentially ([`config/intraday_shards.yaml`](config/intraday_shards.yaml)) so each Kaggle dataset is pulled and published **once** per run. Prefer `--intervals 1d` for the first local backfill, then publish. Use `--skip-existing` to resume after an interrupt.
 
@@ -163,9 +170,10 @@ Progress is printed per job, e.g. `Fetching AAPL [1d]... Success — 2 new/updat
 | Workflow | File | Schedule | Config | Intervals |
 |----------|------|----------|--------|-----------|
 | **Fetch Daily Bars** | [`data_fetch_daily.yml`](.github/workflows/data_fetch_daily.yml) | `0 23 * * *` (23:00 UTC daily) | `tickers.yaml` | `1d` `1wk` |
-| **Fetch Intraday Bars** | [`data_fetch_intraday.yml`](.github/workflows/data_fetch_intraday.yml) | `15 15,18,21 * * 1-5` (weekdays) | `tickers_intraday.yaml` | `1m`…`1h` |
+| **Fetch Intraday Bars** | [`data_fetch_intraday.yml`](.github/workflows/data_fetch_intraday.yml) | `15 15,18,21 * * 1-5` (weekdays) | `tickers_intraday.yaml` + [`intraday_shards.yaml`](config/intraday_shards.yaml) | `1m`…`1h` |
+| **Split Kaggle Datasets** | [`split_kaggle_datasets.yml`](.github/workflows/split_kaggle_datasets.yml) | manual (`workflow_dispatch`) | — | one-time migration |
 
-Both also support `workflow_dispatch`. They use **separate** concurrency groups (`finance-dataset-kaggle-daily` / `finance-dataset-kaggle-intraday`) and **separate Kaggle datasets**, so daily and intradaily Ready queues do not block each other.
+Fetch workflows also support `workflow_dispatch`. They use **separate** concurrency groups (`finance-dataset-kaggle-daily` / `finance-dataset-kaggle-intraday`) and **separate Kaggle datasets**, so daily and intradaily Ready queues do not block each other.
 
 Steps (each workflow): free disk → checkout → install → [`pull_kaggle.py --slice … --optional`](scripts/pull_kaggle.py) (wait until that slice’s latest Kaggle version is **Ready**, then merge it into `data/`, drop the kagglehub cache copy) → fetch (`src/main.py` for daily; [`run_intraday_shards.py`](scripts/run_intraday_shards.py) for all intradaily shards in one job) → upload **fetch summary** artifact (JSON + Markdown; also written to the job summary) → [`publish_kaggle.py --slice …`](scripts/publish_kaggle.py) (upload only that slice’s intervals, then wait until the new version is Ready) → [`batch_commit.py`](scripts/batch_commit.py) for listing CSV updates.
 
@@ -175,14 +183,19 @@ The summary includes success/fail/skip counts, **failure rate** (failed ÷ attem
 
 ### Kaggle demo notebook
 
-[`notebooks/kaggle-returns-demo/`](notebooks/kaggle-returns-demo/) is a public Kaggle kernel that attaches the **daily** and **intraday** datasets, explores the folder layout, plots cumulative daily returns, and loads dated intradaily snapshots.
+[`notebooks/kaggle-returns-demo/finance-dataset-usage-demo.ipynb`](notebooks/kaggle-returns-demo/finance-dataset-usage-demo.ipynb) is a public Kaggle kernel that attaches both datasets and shows how to:
+
+1. Locate the **daily** and **intraday** roots on Kaggle (including nested `/kaggle/input/datasets/…` mounts) or a local `data/` checkout
+2. Explore asset classes / intervals
+3. Load cumulative daily bars and plot **growth of $1** for a multi-asset basket
+4. Load dated intradaily snapshots and plot a single session
 
 ```bash
 # Requires Kaggle CLI auth (same token as publish)
 kaggle kernels push -p notebooks/kaggle-returns-demo
 ```
 
-Kernel: [Quickstart: Using the Global Markets OHLCV Dataset](https://www.kaggle.com/code/benjaminpo/quickstart-using-the-global-markets-ohlcv-dataset). After push, open it on Kaggle, click **Save Version**, and optionally pin it on the [dataset page](https://www.kaggle.com/datasets/benjaminpo/finance-dataset) so it shows under **Code**.
+Kernel: [Quickstart: Using the Global Markets OHLCV Dataset](https://www.kaggle.com/code/benjaminpo/quickstart-using-the-global-markets-ohlcv-dataset). After push, open it on Kaggle, click **Save Version**, and optionally pin it on the [daily](https://www.kaggle.com/datasets/benjaminpo/finance-dataset) and [intraday](https://www.kaggle.com/datasets/benjaminpo/finance-dataset-intraday) dataset pages so it shows under **Code**.
 
 ### Kaggle publish
 
@@ -235,8 +248,12 @@ python scripts/split_kaggle_datasets.py
 | `--version-notes`          | dated file-count summary        | Notes shown on the new Kaggle version            |
 | `--dry-run` / `--optional` | off                             | Plan-only publish / soft-fail pull if dataset missing |
 | `--no-wait-ready`          | off                             | Skip Ready polling (not recommended in CI)       |
+| `--ready-timeout-sec`      | `14400`                         | Max seconds to wait for Ready                    |
+| `--ready-poll-sec`         | `60`                            | Base poll interval (backoff increases over time) |
 | `--allow-shrink`           | off                             | Allow publish with fewer files than pulled       |
 | `--require-intervals`      | slice defaults                  | Require files for each listed interval before publish |
+
+Ready polling waits for the **target** version only: stale failed versions ahead of a READY current do not abort pulls, and publish targets `max_version + 1` so prior failures are skipped.
 
 Auth: set `KAGGLE_API_TOKEN`, or legacy `KAGGLE_USERNAME` + `KAGGLE_KEY`, or `~/.kaggle/kaggle.json`.
 
