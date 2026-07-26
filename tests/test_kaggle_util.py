@@ -14,6 +14,7 @@ from scripts.kaggle_util import (
     get_slice,
     interval_ignore_patterns,
     is_missing_dataset_error,
+    is_transient_dataset_access_error,
     read_pull_state,
     split_handle,
     wait_until_ready,
@@ -78,6 +79,37 @@ def test_is_missing_dataset_error() -> None:
     assert is_missing_dataset_error(RuntimeError("404 Not Found"))
     assert is_missing_dataset_error(RuntimeError("Dataset does not exist"))
     assert not is_missing_dataset_error(RuntimeError("403 permission"))
+
+
+def test_is_transient_dataset_access_error() -> None:
+    assert is_transient_dataset_access_error(
+        RuntimeError(
+            "403 Client Error. You don't have permission to access resource "
+            "at URL: .../GetDataset"
+        )
+    )
+    assert not is_transient_dataset_access_error(RuntimeError("401 unauthorized"))
+    assert not is_transient_dataset_access_error(RuntimeError("404 Not Found"))
+
+
+def test_wait_until_ready_retries_transient_403() -> None:
+    snap = DatasetSnapshot(
+        handle="o/s",
+        current_version=1,
+        status="READY",
+        total_bytes=10,
+        pending_versions=(),
+        failed_versions=(),
+        max_version=1,
+    )
+    with patch(
+        "scripts.kaggle_util.get_dataset_snapshot",
+        side_effect=[
+            RuntimeError("403 Client Error. You don't have permission"),
+            snap,
+        ],
+    ):
+        assert wait_until_ready("o/s", timeout_sec=2, poll_sec=0.01).current_version == 1
 
 
 def test_wait_until_ready_success() -> None:

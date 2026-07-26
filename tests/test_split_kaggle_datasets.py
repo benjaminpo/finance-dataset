@@ -40,6 +40,30 @@ def test_split_publishes_both_slices(tmp_path: Path) -> None:
     assert "1d" in calls[2][2]
 
 
+def test_split_only_daily_skips_intraday_upload(tmp_path: Path) -> None:
+    data = tmp_path / "data"
+    calls: list[str] = []
+
+    def fake_pull(**kwargs):
+        (data / "crypto" / "1d").mkdir(parents=True)
+        (data / "crypto" / "1d" / "BTC.csv").write_text("d", encoding="utf-8")
+        return 1
+
+    def fake_publish(**kwargs):
+        calls.append(kwargs["handle"])
+        return "notes"
+
+    with (
+        patch("scripts.split_kaggle_datasets.pull", side_effect=fake_pull),
+        patch("scripts.split_kaggle_datasets.publish", side_effect=fake_publish),
+        patch("scripts.split_kaggle_datasets.wait_until_ready") as wait,
+    ):
+        split(data_dir=data, dry_run=False, only="daily")
+
+    assert calls == ["benjaminpo/finance-dataset"]
+    wait.assert_called_once()
+
+
 def test_split_requires_pulled_files(tmp_path: Path) -> None:
     with patch("scripts.split_kaggle_datasets.pull", return_value=0):
         with pytest.raises(RuntimeError, match="No files pulled"):

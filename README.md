@@ -215,6 +215,8 @@ python scripts/publish_kaggle.py --slice daily --dry-run
 1. Merge/push this branch.
 2. GitHub → **Actions** → **Split Kaggle Datasets** → **Run workflow** (optional dry-run first).
 3. After it succeeds, run the normal daily/intradaily fetch workflows.
+   If intradaily already uploaded but the job failed on Ready wait, re-run with
+   **only = daily** (skips re-uploading intradaily, waits for it, then publishes daily).
 
 Or locally:
 

@@ -240,6 +240,27 @@ def is_missing_dataset_error(exc: BaseException) -> bool:
     return any(m in text for m in markers)
 
 
+def is_transient_dataset_access_error(exc: BaseException) -> bool:
+    """
+    True for brief 403/permission errors right after creating a private dataset.
+
+    kagglehub can create + upload a new dataset, then GetDataset returns 403
+    until Kaggle finishes registering it. Treat that as "not ready yet".
+    """
+    text = str(exc).lower()
+    if "403" not in text and "permission" not in text and "forbidden" not in text:
+        return False
+    # Permanent auth failures should still abort — missing token / wrong user.
+    permanent = (
+        "invalid credentials",
+        "unauthorized",
+        "401",
+        "api token",
+        "authentication failed",
+    )
+    return not any(p in text for p in permanent)
+
+
 def _ready_poll_interval(elapsed_sec: float, base_poll_sec: float) -> float:
     """Poll faster early, then settle on *base_poll_sec* for long Kaggle jobs."""
     if elapsed_sec < 300:
@@ -267,7 +288,25 @@ def wait_until_ready(
     deadline = started + timeout_sec
     last: DatasetSnapshot | None = None
     while True:
-        last = get_dataset_snapshot(handle)
+        try:
+            last = get_dataset_snapshot(handle)
+        except Exception as exc:  # noqa: BLE001 — retry transient 403 after create
+            if not is_transient_dataset_access_error(exc):
+                raise
+            if time.monotonic() >= deadline:
+                raise TimeoutError(
+                    f"Timed out after {timeout_sec:.0f}s waiting for {handle} to be Ready "
+                    f"(min_version={min_version}). Last error: {exc}"
+                ) from exc
+            elapsed = time.monotonic() - started
+            print(
+                f"Waiting for Kaggle dataset access ({handle}: {exc}; "
+                f"elapsed={elapsed:.0f}s)...",
+                flush=True,
+            )
+            time.sleep(_ready_poll_interval(elapsed, poll_sec))
+            continue
+
         version_ok = min_version is None or last.current_version >= min_version
         # Only abort when the version we are waiting for failed (publish flow).
         # A stale failed version ahead of current must not block pulling READY data.

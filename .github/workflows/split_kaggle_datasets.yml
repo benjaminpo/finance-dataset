@@ -15,6 +15,14 @@ on:
         description: "Combined source dataset handle"
         type: string
         default: benjaminpo/finance-dataset
+      only:
+        description: "both = full split; daily = resume after intradaily already uploaded"
+        type: choice
+        options:
+          - both
+          - daily
+          - intraday
+        default: both
 
 permissions:
   contents: read
@@ -53,7 +61,10 @@ jobs:
           KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
         run: |
           set -euo pipefail
-          ARGS=(--source-handle "${{ inputs.source_handle }}")
+          ARGS=(
+            --source-handle "${{ inputs.source_handle }}"
+            --only "${{ inputs.only }}"
+          )
           if [ "${{ inputs.dry_run }}" = "true" ]; then
             ARGS+=(--dry-run)
           fi
