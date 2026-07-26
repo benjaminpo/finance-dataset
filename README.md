@@ -187,7 +187,7 @@ The summary includes success/fail/skip counts, **failure rate** (failed ÷ attem
 
 1. Locate the **daily** and **intraday** roots on Kaggle (including nested `/kaggle/input/datasets/…` mounts) or a local `data/` checkout
 2. Explore asset classes / intervals
-3. Load cumulative daily bars and plot **growth of $1** for a multi-asset basket
+3. Load cumulative daily bars, plot **normalized prices**, and run a **simple next-day price forecast**
 4. Load dated intradaily snapshots and plot a single session
 
 ```bash
