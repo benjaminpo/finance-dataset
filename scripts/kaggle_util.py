@@ -308,13 +308,10 @@ def wait_until_ready(
             continue
 
         version_ok = min_version is None or last.current_version >= min_version
-        # Only abort when the version we are waiting for failed (publish flow).
-        # A stale failed version ahead of current must not block pulling READY data.
-        if (
-            min_version is not None
-            and last.failed_versions
-            and any(v >= min_version for v in last.failed_versions)
-        ):
+        # Only abort when the specific version we are waiting for failed (publish).
+        # Stale failures (e.g. v12/v13 while waiting for a new v14) must not abort,
+        # and must not block pulling the current READY version either.
+        if min_version is not None and min_version in last.failed_versions:
             raise RuntimeError(
                 f"Kaggle dataset {handle} has failed version(s) "
                 f"{list(last.failed_versions)}; current={last.current_version} "

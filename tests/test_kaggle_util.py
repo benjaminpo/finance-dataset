@@ -172,6 +172,36 @@ def test_wait_until_ready_ignores_stale_failed_version() -> None:
         assert wait_until_ready("o/s", timeout_sec=1, poll_sec=0.01).current_version == 7
 
 
+def test_wait_until_ready_ignores_stale_failures_while_waiting_for_newer() -> None:
+    """Publish must not abort on older failed versions while a newer one is pending."""
+    pending = DatasetSnapshot(
+        handle="o/s",
+        current_version=11,
+        status="READY",
+        total_bytes=10,
+        pending_versions=(14,),
+        failed_versions=(8, 10, 12, 13),
+        max_version=14,
+    )
+    ready = DatasetSnapshot(
+        handle="o/s",
+        current_version=14,
+        status="READY",
+        total_bytes=10,
+        pending_versions=(),
+        failed_versions=(8, 10, 12, 13),
+        max_version=14,
+    )
+    with patch(
+        "scripts.kaggle_util.get_dataset_snapshot",
+        side_effect=[pending, ready],
+    ):
+        assert (
+            wait_until_ready("o/s", min_version=14, timeout_sec=2, poll_sec=0.01).current_version
+            == 14
+        )
+
+
 def test_dataset_snapshot_not_ready_when_pending() -> None:
     snap = DatasetSnapshot(
         handle="o/s",

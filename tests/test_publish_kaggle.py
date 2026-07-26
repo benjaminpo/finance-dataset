@@ -236,6 +236,46 @@ def test_publish_refuses_interval_shrink_even_if_total_grows(
         publish(data_dir=data, metadata=meta, dry_run=True)
 
 
+def test_publish_wait_ready_targets_max_version_plus_one(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Next version is max+1 so prior failed versions ahead of current are skipped."""
+    from scripts.kaggle_util import DatasetSnapshot
+
+    data = tmp_path / "data"
+    (data / "rates" / "1d").mkdir(parents=True)
+    (data / "rates" / "1d" / "TNX.csv").write_text("x", encoding="utf-8")
+    meta = _write_metadata(tmp_path / "meta.json")
+    monkeypatch.setenv("KAGGLE_API_TOKEN", "tok")
+
+    before = DatasetSnapshot(
+        handle="benjaminpo/finance-dataset",
+        current_version=11,
+        status="READY",
+        total_bytes=10,
+        pending_versions=(),
+        failed_versions=(8, 10, 12, 13),
+        max_version=13,
+    )
+    mock_hub = MagicMock()
+    mock_exc = MagicMock()
+    mock_exc.BackendError = type("BackendError", (Exception,), {})
+    with (
+        patch.dict("sys.modules", {"kagglehub": mock_hub, "kagglehub.exceptions": mock_exc}),
+        patch("scripts.publish_kaggle.get_dataset_snapshot", return_value=before),
+        patch("scripts.publish_kaggle.wait_until_ready") as wait,
+    ):
+        publish(
+            handle="benjaminpo/finance-dataset",
+            data_dir=data,
+            metadata=meta,
+            version_notes="refresh",
+            wait_ready=True,
+        )
+    wait.assert_called_once()
+    assert wait.call_args.kwargs["min_version"] == 14
+
+
 def test_publish_incompatible_dataset_type(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

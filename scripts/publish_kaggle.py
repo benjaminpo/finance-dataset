@@ -181,10 +181,12 @@ def publish(
     if include_intervals is not None:
         ignore_patterns.extend(interval_ignore_patterns(include_intervals))
 
-    before_version = 0
+    # Use max_version (not current) so the next upload number skips prior failures
+    # ahead of the READY current (e.g. current=11, failed=12/13 → next is 14).
+    before_max_version = 0
     if not dry_run:
         try:
-            before_version = get_dataset_snapshot(handle).current_version
+            before_max_version = get_dataset_snapshot(handle).max_version
         except Exception as exc:  # noqa: BLE001 — first create has no dataset yet
             if not is_missing_dataset_error(exc):
                 print(f"WARNING: could not read current Kaggle version ({exc})", flush=True)
@@ -236,7 +238,7 @@ def publish(
         )
 
         if wait_ready:
-            target = before_version + 1 if before_version > 0 else None
+            target = before_max_version + 1 if before_max_version > 0 else None
             wait_started = time.monotonic()
             wait_until_ready(
                 handle,
