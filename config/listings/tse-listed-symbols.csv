@@ -1770,7 +1770,6 @@ Symbol,Name,Industry
 501A.T,Precious Partners Co Ltd,고용 서비스
 5020.T,ENEOS Holdings Inc,"오일, 가스 정제 및 마케팅"
 5021.T,Cosmo Energy Holdings Co Ltd,"오일, 가스 정제 및 마케팅"
-5022.T,REVO International Inc,"오일, 가스 정제 및 마케팅"
 5025.T,Mercury Inc(Shinjuku),부동산 서비스
 5026.T,Tripleize Co Ltd,IT 서비스 및 컨설팅
 5027.T,AnyMind Group Inc,광고 및 마케팅
@@ -2072,7 +2071,6 @@ Symbol,Name,Industry
 5900.T,Daiken Co Ltd,건설 자재 및 비품
 5901.T,Toyo Seikan Group Holdings Ltd,용기(종이 제외) 및 포장재
 5902.T,Hokkan Holdings Ltd,용기(종이 제외) 및 포장재
-5903.T,Shinpo Co Ltd,산업용 기계 및 장비
 5905.T,Nihon Seikan KK,용기(종이 제외) 및 포장재
 5906.T,MK Seiko Co Ltd,산업용 기계 및 장비
 5909.T,Corona Corp,"가전제품, 도구 및 가정 용품"
@@ -2092,6 +2090,7 @@ Symbol,Name,Industry
 5936.T,Toyo Shutter Co Ltd,건설 자재 및 비품
 5938.T,LIXIL Corp,건설 자재 및 비품
 5939.T,Otani Kogyo Co Ltd,중전기장비
+593A.T,Tier IV Inc,IT 서비스 및 컨설팅
 5940.T,Fujisash Co Ltd,건설 자재 및 비품
 5941.T,Nakanishi MFG Co Ltd,산업용 기계 및 장비
 5942.T,Nippon Filcon Co Ltd,산업용 기계 및 장비
@@ -2143,10 +2142,12 @@ Symbol,Name,Industry
 6013.T,Takuma Co Ltd,환경 서비스 및 장비
 6016.T,Japan Engine Corp,조선
 6018.T,Hanshin Diesel Works Ltd,조선
+601A.T,Lucks Construction Co Ltd,건설 및 엔지니어링
 6022.T,Akasaka Diesels Ltd,조선
 6023.T,Daihatsu Infinearth MFG Co Ltd,조선
 6027.T,Bengo4.com Inc,온라인 서비스
 6029.T,Artra Group Corp,의료 시설 및 서비스
+602A.T,Rex Advisors Co Ltd,고용 서비스
 6030.T,Adventure Inc,여가 및 오락시설
 6031.T,Zeta Inc,IT 서비스 및 컨설팅
 6033.T,Extreme Co Ltd,IT 서비스 및 컨설팅
@@ -2860,7 +2861,6 @@ Symbol,Name,Industry
 7309.T,Shimano Inc,오락용 제품
 7313.T,TS Tech Co Ltd,"자동차, 트럭 및 오토바이 부품"
 7314.T,Odawara Auto-Machine Mfg Co Ltd,비즈니스 지원 용품
-7317.T,Matsuya R&D Co Ltd,산업용 기계 및 장비
 7318.T,SERENDIP HOLDINGS Co Ltd,"자동차, 트럭 및 오토바이 부품"
 7320.T,Solvvy Inc,개인 서비스
 7322.T,San Ju San Financial Group Inc,은행
