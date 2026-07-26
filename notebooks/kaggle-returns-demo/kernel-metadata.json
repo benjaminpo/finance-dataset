@@ -1,13 +1,17 @@
 {
-  "id": "benjaminpo/finance-dataset-returns-demo",
-  "title": "Quickstart: Cumulative Returns (Global OHLCV)",
-  "code_file": "finance-dataset-returns-demo.ipynb",
+  "id": "benjaminpo/quickstart-using-the-global-markets-ohlcv-dataset",
+  "title": "Quickstart: Using the Global Markets OHLCV Dataset",
+  "code_file": "finance-dataset-usage-demo.ipynb",
   "language": "python",
   "kernel_type": "notebook",
   "is_private": "false",
   "enable_gpu": "false",
   "enable_internet": "false",
-  "dataset_sources": ["benjaminpo/finance-dataset"],
+  "keywords": ["finance"],
+  "dataset_sources": [
+    "benjaminpo/finance-dataset",
+    "benjaminpo/finance-dataset-intraday"
+  ],
   "competition_sources": [],
   "kernel_sources": [],
   "model_sources": []

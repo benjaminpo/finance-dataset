@@ -175,14 +175,14 @@ The summary includes success/fail/skip counts, **failure rate** (failed ÷ attem
 
 ### Kaggle demo notebook
 
-[`notebooks/kaggle-returns-demo/`](notebooks/kaggle-returns-demo/) is a public Kaggle kernel stub that attaches this dataset, loads a few liquid daily tickers, and plots cumulative returns + correlations.
+[`notebooks/kaggle-returns-demo/`](notebooks/kaggle-returns-demo/) is a public Kaggle kernel that attaches the **daily** and **intraday** datasets, explores the folder layout, plots cumulative daily returns, and loads dated intradaily snapshots.
 
 ```bash
 # Requires Kaggle CLI auth (same token as publish)
 kaggle kernels push -p notebooks/kaggle-returns-demo
 ```
 
-After the first push, open the kernel on Kaggle, click **Save Version**, and optionally pin it on the [dataset page](https://www.kaggle.com/datasets/benjaminpo/finance-dataset) so it shows under **Code**.
+Kernel: [Quickstart: Using the Global Markets OHLCV Dataset](https://www.kaggle.com/code/benjaminpo/quickstart-using-the-global-markets-ohlcv-dataset). After push, open it on Kaggle, click **Save Version**, and optionally pin it on the [dataset page](https://www.kaggle.com/datasets/benjaminpo/finance-dataset) so it shows under **Code**.
 
 ### Kaggle publish
 
