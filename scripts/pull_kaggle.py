@@ -15,17 +15,19 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 from scripts.kaggle_util import (
+    DAILY_HANDLE,
     SKIP_COUNT_NAMES,
     clear_pull_state,
     count_data_files,
     get_dataset_snapshot,
+    get_slice,
     has_kaggle_credentials,
     is_missing_dataset_error,
     wait_until_ready,
     write_pull_state,
 )
 
-DEFAULT_HANDLE = "benjaminpo/finance-dataset"
+DEFAULT_HANDLE = DAILY_HANDLE
 DEFAULT_DATA_DIR = "data"
 DEFAULT_READY_TIMEOUT_SEC = 14400
 DEFAULT_READY_POLL_SEC = 60
@@ -91,6 +93,7 @@ def pull(
     ready_poll_sec: float = DEFAULT_READY_POLL_SEC,
     download_retries: int = DEFAULT_DOWNLOAD_RETRIES,
     download_retry_sec: float = DEFAULT_DOWNLOAD_RETRY_SEC,
+    intervals: tuple[str, ...] | None = None,
 ) -> int:
     """
     Download *handle* into *data_dir*.
@@ -103,6 +106,9 @@ def pull(
     Once the dataset is confirmed to exist (Ready snapshot), download failures
     always raise — including 404s on a specific version URL. Soft-failing those
     left CI with only the refreshed slice and no intradaily history.
+
+    When *intervals* is set, pull-state file counts are restricted to those
+    interval directories (used by --slice daily|intraday).
     """
     dest = Path(data_dir)
     dest.mkdir(parents=True, exist_ok=True)
@@ -153,11 +159,17 @@ def pull(
     # Prefer copying from the cache path so we merge into an existing data/
     # tree instead of requiring an empty output_dir.
     if cache_path.resolve() == dest.resolve():
-        n = count_data_files(dest)
+        n = count_data_files(dest, intervals=intervals)
         print(f"Dataset already at {dest} ({n} file(s), v{version})", flush=True)
     else:
-        n = _merge_tree(cache_path, dest)
-        print(f"Pulled {n} file(s) into {dest} (v{version})", flush=True)
+        n_merged = _merge_tree(cache_path, dest)
+        n = count_data_files(dest, intervals=intervals)
+        print(
+            f"Pulled {n_merged} file(s) into {dest} (v{version}"
+            + (f", {n} in slice" if intervals is not None else "")
+            + ")",
+            flush=True,
+        )
         # Drop the kagglehub cache copy so CI does not keep the dataset twice
         # (runners often have only ~14GB free).
         try:
@@ -166,7 +178,7 @@ def pull(
         except OSError as exc:
             print(f"WARNING: could not remove kagglehub cache ({exc})", flush=True)
 
-    write_pull_state(dest, handle, version, n)
+    write_pull_state(dest, handle, version, n, intervals=intervals)
     return n
 
 
@@ -175,9 +187,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         description="Download the latest Ready Kaggle OHLCV dataset into data/.",
     )
     parser.add_argument(
+        "--slice",
+        choices=sorted(["daily", "intraday"]),
+        default=None,
+        help="Pull daily or intradaily dataset (sets handle + interval counts)",
+    )
+    parser.add_argument(
         "--handle",
-        default=os.environ.get("KAGGLE_DATASET_HANDLE", DEFAULT_HANDLE),
-        help=f"Kaggle dataset handle (default: {DEFAULT_HANDLE})",
+        default=None,
+        help=f"Kaggle dataset handle (default: env or {DEFAULT_HANDLE})",
     )
     parser.add_argument(
         "--data-dir",
@@ -217,14 +235,23 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     try:
+        slice_cfg = get_slice(args.slice) if args.slice else None
+        handle = (
+            args.handle
+            or (slice_cfg.handle if slice_cfg else None)
+            or os.environ.get("KAGGLE_DATASET_HANDLE")
+            or DEFAULT_HANDLE
+        )
+        intervals = slice_cfg.intervals if slice_cfg else None
         pull(
-            handle=args.handle,
+            handle=handle,
             data_dir=args.data_dir,
             force=not args.no_force,
             optional=args.optional,
             wait_ready=not args.no_wait_ready,
             ready_timeout_sec=args.ready_timeout_sec,
             ready_poll_sec=args.ready_poll_sec,
+            intervals=intervals,
         )
     except (RuntimeError, OSError, TimeoutError, ValueError) as exc:
         print(exc, file=sys.stderr)

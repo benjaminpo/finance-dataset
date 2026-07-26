@@ -1,0 +1,21 @@
+{
+  "title": "Global Markets OHLCV — Intraday",
+  "subtitle": "Dated 1m–1h OHLCV snapshot CSVs from Yahoo Finance",
+  "description": "## Overview\n\n**Intraday OHLCV** snapshots (`1m` … `1h`) for the finance-dataset universe, pulled from [Yahoo Finance](https://finance.yahoo.com/) via [`yfinance`](https://github.com/ranaroussi/yfinance).\n\n**Daily / weekly** bars live in the sibling dataset: [benjaminpo/finance-dataset](https://www.kaggle.com/datasets/benjaminpo/finance-dataset).\n\nUpdated several times on weekdays by [GitHub Actions](https://github.com/benjaminpo/finance-dataset).\n\nSource repository: [benjaminpo/finance-dataset](https://github.com/benjaminpo/finance-dataset)\n\n## Asset classes\n\nSame prefixes as the daily dataset (`stocks_us/`, `crypto/`, `currencies/`, …).\n\n## Layout & intervals\n\n```\ndata/\n├── stocks_us/\n│   ├── 1m/AAPL_2026-07-10.csv\n│   └── 5m/AAPL_2026-07-10.csv\n└── …\n```\n\n- **Intraday snapshots** (`1m` … `1h`): Yahoo only retains a short rolling window, so each run writes dated files (`TICKER_YYYY-MM-DD.csv`). Older snapshots stay on disk so history accumulates.\n\n## Schema\n\n- Index: `Datetime` (UTC, ISO-8601)\n- Columns: `Open`, `High`, `Low`, `Close`, `Adj Close`, `Volume` (plus `Dividends` / `Stock Splits` when present)\n\n## License & attribution\n\nDistributed under **CC0-1.0**. Underlying quotes come from Yahoo Finance; use of this dataset should comply with Yahoo’s terms of use.",
+  "id": "benjaminpo/finance-dataset-intraday",
+  "licenses": [
+    {
+      "name": "CC0-1.0"
+    }
+  ],
+  "keywords": [
+    "finance",
+    "stocks",
+    "crypto",
+    "time series",
+    "ohlcv",
+    "intraday"
+  ],
+  "expectedUpdateFrequency": "hourly",
+  "userSpecifiedSources": "Yahoo Finance via [yfinance](https://github.com/ranaroussi/yfinance). Pipeline and listing sources: [benjaminpo/finance-dataset](https://github.com/benjaminpo/finance-dataset)."
+}

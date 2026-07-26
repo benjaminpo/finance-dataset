@@ -14,6 +14,73 @@ SKIP_COUNT_NAMES = {".gitkeep", METADATA_NAME, PULL_STATE_NAME, ".DS_Store"}
 READY_STATUS_NAMES = {"READY"}
 FAILED_STATUS_NAMES = {"FAILED", "DELETED"}
 
+# Two Kaggle datasets: daily/weekly cumulative vs intradaily snapshots.
+# Keeps Ready indexing smaller and lets the workflows run in parallel.
+DAILY_HANDLE = "benjaminpo/finance-dataset"
+INTRADAY_HANDLE = "benjaminpo/finance-dataset-intraday"
+DAILY_METADATA = "config/kaggle/dataset-metadata.json"
+INTRADAY_METADATA = "config/kaggle/dataset-metadata-intraday.json"
+
+# All cumulative intervals belong on the daily dataset (CI publishes 1d+1wk).
+DAILY_INTERVALS: tuple[str, ...] = ("1d", "5d", "1wk", "1mo", "3mo")
+DAILY_REQUIRE_INTERVALS: tuple[str, ...] = ("1d", "1wk")
+INTRADAY_INTERVALS: tuple[str, ...] = (
+    "1m",
+    "2m",
+    "5m",
+    "15m",
+    "30m",
+    "60m",
+    "90m",
+    "1h",
+)
+INTRADAY_REQUIRE_INTERVALS: tuple[str, ...] = INTRADAY_INTERVALS
+KNOWN_INTERVALS: tuple[str, ...] = DAILY_INTERVALS + INTRADAY_INTERVALS
+
+
+@dataclass(frozen=True)
+class DatasetSlice:
+    """Named Kaggle publish/pull target (daily vs intradaily)."""
+
+    name: str
+    handle: str
+    metadata: str
+    intervals: tuple[str, ...]
+    require_intervals: tuple[str, ...]
+
+
+SLICES: dict[str, DatasetSlice] = {
+    "daily": DatasetSlice(
+        name="daily",
+        handle=DAILY_HANDLE,
+        metadata=DAILY_METADATA,
+        intervals=DAILY_INTERVALS,
+        require_intervals=DAILY_REQUIRE_INTERVALS,
+    ),
+    "intraday": DatasetSlice(
+        name="intraday",
+        handle=INTRADAY_HANDLE,
+        metadata=INTRADAY_METADATA,
+        intervals=INTRADAY_INTERVALS,
+        require_intervals=INTRADAY_REQUIRE_INTERVALS,
+    ),
+}
+
+
+def get_slice(name: str) -> DatasetSlice:
+    key = name.strip().lower()
+    try:
+        return SLICES[key]
+    except KeyError as exc:
+        known = ", ".join(sorted(SLICES))
+        raise ValueError(f"Unknown Kaggle slice {name!r}; expected one of: {known}") from exc
+
+
+def interval_ignore_patterns(include_intervals: tuple[str, ...] | list[str]) -> list[str]:
+    """kagglehub ignore_patterns that drop interval dirs outside *include_intervals*."""
+    include = set(include_intervals)
+    return [f"**/{interval}/**" for interval in KNOWN_INTERVALS if interval not in include]
+
 
 def has_kaggle_credentials() -> bool:
     if os.environ.get("KAGGLE_API_TOKEN"):
@@ -31,21 +98,36 @@ def split_handle(handle: str) -> tuple[str, str]:
     return parts[0], parts[1]
 
 
-def count_data_files(data_dir: Path) -> int:
+def count_data_files(
+    data_dir: Path,
+    *,
+    intervals: tuple[str, ...] | list[str] | None = None,
+) -> int:
     if not data_dir.is_dir():
         return 0
-    return sum(
-        1
-        for p in data_dir.rglob("*")
-        if p.is_file() and p.name not in SKIP_COUNT_NAMES
-    )
+    allowed = set(intervals) if intervals is not None else None
+    total = 0
+    for path in data_dir.rglob("*"):
+        if not path.is_file() or path.name in SKIP_COUNT_NAMES:
+            continue
+        if allowed is not None:
+            parts = path.relative_to(data_dir).parts
+            if len(parts) < 3 or parts[1] not in allowed:
+                continue
+        total += 1
+    return total
 
 
-def count_data_files_by_interval(data_dir: Path) -> dict[str, int]:
+def count_data_files_by_interval(
+    data_dir: Path,
+    *,
+    intervals: tuple[str, ...] | list[str] | None = None,
+) -> dict[str, int]:
     """Count files in the expected ``asset_class/interval/file`` layout."""
     counts: dict[str, int] = {}
     if not data_dir.is_dir():
         return counts
+    allowed = set(intervals) if intervals is not None else None
     for path in data_dir.rglob("*"):
         if not path.is_file() or path.name in SKIP_COUNT_NAMES:
             continue
@@ -53,6 +135,8 @@ def count_data_files_by_interval(data_dir: Path) -> dict[str, int]:
         if len(parts) < 3:
             continue
         interval = parts[1]
+        if allowed is not None and interval not in allowed:
+            continue
         counts[interval] = counts.get(interval, 0) + 1
     return dict(sorted(counts.items()))
 
@@ -226,7 +310,14 @@ def wait_until_ready(
         time.sleep(_ready_poll_interval(elapsed, poll_sec))
 
 
-def write_pull_state(data_dir: Path, handle: str, version: int, file_count: int) -> Path:
+def write_pull_state(
+    data_dir: Path,
+    handle: str,
+    version: int,
+    file_count: int,
+    *,
+    intervals: tuple[str, ...] | list[str] | None = None,
+) -> Path:
     import json
 
     path = Path(data_dir) / PULL_STATE_NAME
@@ -236,7 +327,10 @@ def write_pull_state(data_dir: Path, handle: str, version: int, file_count: int)
                 "handle": handle,
                 "version": version,
                 "file_count": file_count,
-                "interval_counts": count_data_files_by_interval(data_dir),
+                "interval_counts": count_data_files_by_interval(
+                    data_dir, intervals=intervals
+                ),
+                "intervals": list(intervals) if intervals is not None else None,
             },
             indent=2,
         )

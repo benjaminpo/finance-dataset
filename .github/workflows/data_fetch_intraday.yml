@@ -9,9 +9,9 @@ on:
 permissions:
   contents: write
 
-# Serialize Kaggle pull/publish with the daily workflow.
+# Independent of the daily dataset (separate Kaggle handle / Ready queue).
 concurrency:
-  group: finance-dataset-kaggle
+  group: finance-dataset-kaggle-intraday
   cancel-in-progress: false
 
 jobs:
@@ -39,13 +39,12 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Pull latest Kaggle dataset
+      - name: Pull latest intradaily Kaggle dataset
         env:
           KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
-          KAGGLE_DATASET_HANDLE: benjaminpo/finance-dataset
-        run: python scripts/pull_kaggle.py --optional
+        run: python scripts/pull_kaggle.py --slice intraday --optional
 
-      - name: Fetch all intraday shards
+      - name: Fetch all intradaily shards
         run: >
           python scripts/run_intraday_shards.py
           --summary-path artifacts/fetch-summary.json
@@ -60,14 +59,13 @@ jobs:
             artifacts/fetch-summary.md
           if-no-files-found: warn
 
-      - name: Publish OHLCV to Kaggle
+      - name: Publish intradaily OHLCV to Kaggle
         env:
           KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
-          KAGGLE_DATASET_HANDLE: benjaminpo/finance-dataset
         run: >
           python scripts/publish_kaggle.py
+          --slice intraday
           --version-notes "Intraday refresh (1m–1h, full universe)"
-          --require-intervals 1d 1wk 1m 2m 5m 15m 30m 60m 90m 1h
 
       - name: Commit listing updates
         env:

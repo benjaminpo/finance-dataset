@@ -1,6 +1,6 @@
 # Finance Dataset Pipeline
 
-Automated pipeline that pulls historical and intraday market data from [Yahoo Finance](https://finance.yahoo.com/) via [`yfinance`](https://github.com/ranaroussi/yfinance) and writes partitioned CSV files under `data/`. GitHub Actions run on a **split schedule** (daily bars in one job; intraday across region/symbol shards), **publish OHLCV to [Kaggle](https://www.kaggle.com/datasets/benjaminpo/finance-dataset)**, and commit listing CSV updates (not the bulk price files) back to this repository.
+Automated pipeline that pulls historical and intradaily market data from [Yahoo Finance](https://finance.yahoo.com/) via [`yfinance`](https://github.com/ranaroussi/yfinance) and writes partitioned CSV files under `data/`. GitHub Actions run on a **split schedule** (daily bars in one job; intradaily across region/symbol shards), publish to **two Kaggle datasets** ([daily](https://www.kaggle.com/datasets/benjaminpo/finance-dataset) / [intraday](https://www.kaggle.com/datasets/benjaminpo/finance-dataset-intraday)), and commit listing CSV updates (not the bulk price files) back to this repository.
 
 ## Asset classes
 
@@ -76,15 +76,17 @@ CSV index column is `Datetime` (UTC, ISO-8601). Columns: Open, High, Low, Close,
 │   ├── tickers.yaml            # full universe (daily/weekly)
 │   ├── tickers_intraday.yaml   # full listings + liquid (intraday CI)
 │   └── kaggle/
-│       └── dataset-metadata.json
+│       ├── dataset-metadata.json           # daily/weekly Kaggle dataset
+│       └── dataset-metadata-intraday.json  # intradaily Kaggle dataset
 ├── notebooks/
 │   └── kaggle-returns-demo/  # Kaggle kernel stub (returns plot)
 ├── data/                 # local OHLCV (gitignored; published to Kaggle)
 ├── scripts/
 │   ├── batch_commit.py   # commit listing CSV updates
-│   ├── kaggle_util.py    # shared Ready polling / pull-state guards
+│   ├── kaggle_util.py    # shared Ready polling / pull-state / slice helpers
 │   ├── pull_kaggle.py    # download latest Ready Kaggle version into data/
-│   └── publish_kaggle.py # upload data/ as a Kaggle dataset version
+│   ├── publish_kaggle.py # upload data/ as a Kaggle dataset version
+│   └── split_kaggle_datasets.py  # one-time daily/intraday split migration
 ├── src/
 │   ├── __init__.py
 │   ├── fetcher.py      # download + CSV merge logic
@@ -152,7 +154,7 @@ python src/main.py --config config/tickers.yaml --data-dir data --workers 12 --s
 | `--summary-path`  | off                     | Write JSON (+ sibling `.md`) fetch failure report |
 | `-v`              | off                     | Debug logging                                    |
 
-CI splits the work so Actions stays practical: **daily** refreshes `1d` + `1wk` for the full listing universe (~12k symbols); **intraday** refreshes `1m`…`1h` for the same universe in one job that runs symbol shards sequentially ([`config/intraday_shards.yaml`](config/intraday_shards.yaml)) so Kaggle is pulled and published **once** per run instead of once per shard. Prefer `--intervals 1d` for the first local backfill, then publish. Use `--skip-existing` to resume after an interrupt.
+CI splits the work so Actions stays practical: **daily** refreshes `1d` + `1wk` for the full listing universe (~12k symbols) into [finance-dataset](https://www.kaggle.com/datasets/benjaminpo/finance-dataset); **intraday** refreshes `1m`…`1h` into [finance-dataset-intraday](https://www.kaggle.com/datasets/benjaminpo/finance-dataset-intraday) in one job that runs symbol shards sequentially ([`config/intraday_shards.yaml`](config/intraday_shards.yaml)) so each Kaggle dataset is pulled and published **once** per run. Prefer `--intervals 1d` for the first local backfill, then publish. Use `--skip-existing` to resume after an interrupt.
 
 Progress is printed per job, e.g. `Fetching AAPL [1d]... Success — 2 new/updated row(s)`.
 
@@ -163,11 +165,11 @@ Progress is printed per job, e.g. `Fetching AAPL [1d]... Success — 2 new/updat
 | **Fetch Daily Bars** | [`data_fetch_daily.yml`](.github/workflows/data_fetch_daily.yml) | `0 23 * * *` (23:00 UTC daily) | `tickers.yaml` | `1d` `1wk` |
 | **Fetch Intraday Bars** | [`data_fetch_intraday.yml`](.github/workflows/data_fetch_intraday.yml) | `15 15,18,21 * * 1-5` (weekdays) | `tickers_intraday.yaml` | `1m`…`1h` |
 
-Both also support `workflow_dispatch`. They share concurrency group `finance-dataset-kaggle` so pull/publish cannot race.
+Both also support `workflow_dispatch`. They use **separate** concurrency groups (`finance-dataset-kaggle-daily` / `finance-dataset-kaggle-intraday`) and **separate Kaggle datasets**, so daily and intradaily Ready queues do not block each other.
 
-Steps (each workflow): free disk → checkout → install → [`pull_kaggle.py --optional`](scripts/pull_kaggle.py) (wait until the latest Kaggle version is **Ready**, then merge it into `data/`, drop the kagglehub cache copy) → fetch (`src/main.py` for daily; [`run_intraday_shards.py`](scripts/run_intraday_shards.py) for all intraday shards in one job) → upload **fetch summary** artifact (JSON + Markdown; also written to the job summary) → [`publish_kaggle.py`](scripts/publish_kaggle.py) (upload, then wait until the new version is Ready) → [`batch_commit.py`](scripts/batch_commit.py) for listing CSV updates.
+Steps (each workflow): free disk → checkout → install → [`pull_kaggle.py --slice … --optional`](scripts/pull_kaggle.py) (wait until that slice’s latest Kaggle version is **Ready**, then merge it into `data/`, drop the kagglehub cache copy) → fetch (`src/main.py` for daily; [`run_intraday_shards.py`](scripts/run_intraday_shards.py) for all intradaily shards in one job) → upload **fetch summary** artifact (JSON + Markdown; also written to the job summary) → [`publish_kaggle.py --slice …`](scripts/publish_kaggle.py) (upload only that slice’s intervals, then wait until the new version is Ready) → [`batch_commit.py`](scripts/batch_commit.py) for listing CSV updates.
 
-`--optional` only soft-fails when the dataset does not exist yet (first publish). Auth / permission errors fail the job. Publish records counts per interval at pull time and refuses any reduction, even if another interval adds enough files to hide the loss in the total. CI also requires all configured daily and intraday intervals before either workflow can publish.
+`--optional` only soft-fails when the dataset does not exist yet (first publish). Auth / permission errors fail the job. Publish records counts per interval at pull time and refuses any reduction within that slice. Each workflow requires only its own intervals (`1d`/`1wk` or `1m`…`1h`).
 
 The summary includes success/fail/skip counts, **failure rate** (failed ÷ attempted), breakdowns by interval and asset class, and per-ticker failure messages so Yahoo blanks / rate-limit gaps are visible without digging through the full log. Exit behavior is unchanged: the job only fails the fetch step when *every* ticker fails.
 
@@ -184,30 +186,55 @@ After the first push, open the kernel on Kaggle, click **Save Version**, and opt
 
 ### Kaggle publish
 
-Dataset: [benjaminpo/finance-dataset](https://www.kaggle.com/datasets/benjaminpo/finance-dataset)
+| Slice | Dataset | Intervals |
+|-------|---------|-----------|
+| **daily** | [benjaminpo/finance-dataset](https://www.kaggle.com/datasets/benjaminpo/finance-dataset) | `1d` `1wk` (+ other cumulative) |
+| **intraday** | [benjaminpo/finance-dataset-intraday](https://www.kaggle.com/datasets/benjaminpo/finance-dataset-intraday) | `1m`…`1h` |
 
-Each workflow **waits for the latest Ready Kaggle version**, pulls it, updates its slice, re-uploads the full tree, then **waits until that new version is Ready** before exiting (so the next job cannot pull a stale prior version and wipe the other slice). Upload is fast (~1–2 min for a zip archive); most publish time is Kaggle server-side indexing of hundreds of thousands of CSV files (~90–100 min at full intraday scale).
+Splitting keeps each Ready queue smaller: daily publishes only cumulative CSVs; intradaily publishes only dated snapshot CSVs. Upload is still ~1–2 min; most remaining wait is Kaggle indexing of that slice’s files.
 
 ```bash
 export KAGGLE_API_TOKEN=...          # from https://www.kaggle.com/settings/api
-python scripts/pull_kaggle.py --optional
+
+# Daily
+python scripts/pull_kaggle.py --slice daily --optional
 python src/main.py --intervals 1d 1wk
-python scripts/publish_kaggle.py
+python scripts/publish_kaggle.py --slice daily
+
+# Intraday
+python scripts/pull_kaggle.py --slice intraday --optional
+python scripts/run_intraday_shards.py
+python scripts/publish_kaggle.py --slice intraday
 
 # Or validate without uploading:
-python scripts/publish_kaggle.py --dry-run
+python scripts/publish_kaggle.py --slice daily --dry-run
+```
+
+**One-time migration** from the old combined dataset (preserves historical intradaily snapshots). Prefer CI if local disk is tight:
+
+1. Merge/push this branch.
+2. GitHub → **Actions** → **Split Kaggle Datasets** → **Run workflow** (optional dry-run first).
+3. After it succeeds, run the normal daily/intradaily fetch workflows.
+
+Or locally:
+
+```bash
+python scripts/split_kaggle_datasets.py
+# or: python scripts/split_kaggle_datasets.py --dry-run
 ```
 
 | Flag / env                 | Default                         | Description                                      |
 |----------------------------|---------------------------------|--------------------------------------------------|
-| `--handle` / `KAGGLE_DATASET_HANDLE` | `benjaminpo/finance-dataset` | Kaggle dataset slug                          |
+| `--slice`                  | off                             | `daily` or `intraday` (sets handle/metadata/intervals) |
+| `--handle` / `KAGGLE_DATASET_HANDLE` | slice default or `benjaminpo/finance-dataset` | Kaggle dataset slug |
 | `--data-dir`               | `data`                          | Local OHLCV root                                 |
-| `--metadata`               | `config/kaggle/dataset-metadata.json` | Dataset title/id/license metadata      |
+| `--metadata`               | slice default under `config/kaggle/` | Dataset title/id/license metadata      |
+| `--include-intervals`      | slice intervals                 | Only count/upload these interval dirs            |
 | `--version-notes`          | dated file-count summary        | Notes shown on the new Kaggle version            |
 | `--dry-run` / `--optional` | off                             | Plan-only publish / soft-fail pull if dataset missing |
 | `--no-wait-ready`          | off                             | Skip Ready polling (not recommended in CI)       |
 | `--allow-shrink`           | off                             | Allow publish with fewer files than pulled       |
-| `--require-intervals`      | off                             | Require files for each listed interval before publish |
+| `--require-intervals`      | slice defaults                  | Require files for each listed interval before publish |
 
 Auth: set `KAGGLE_API_TOKEN`, or legacy `KAGGLE_USERNAME` + `KAGGLE_KEY`, or `~/.kaggle/kaggle.json`.
 
@@ -216,8 +243,8 @@ Auth: set `KAGGLE_API_TOKEN`, or legacy `KAGGLE_USERNAME` + `KAGGLE_KEY`, or `~/
 1. Push this repo to GitHub and enable Actions.
 2. Add repository secret `KAGGLE_API_TOKEN` (Settings → Secrets and variables → Actions) from [Kaggle API settings](https://www.kaggle.com/settings/api) → **Generate New Token**.
 3. Ensure the default branch allows the `GITHUB_TOKEN` to write contents (Settings → Actions → General → Workflow permissions → **Read and write**) so listing commits can push.
-4. The Kaggle target must be a **normal file dataset** (CSV tree under `data/`), not a “Create from GitHub” / repo-synced dataset. A GitHub-synced slug returns `Incompatible Dataset Type` on upload — delete it (or use a new `--handle`) before the first publish. After create, set the public title/description on the Kaggle UI if needed (`kagglehub` creates private datasets titled with the slug).
-5. Run **Fetch Daily Bars** first (or locally: `--intervals 1d 1wk`, then `publish_kaggle.py`). Then enable/run **Fetch Intraday Bars**.
+4. The Kaggle targets must be **normal file datasets** (CSV trees), not “Create from GitHub” / repo-synced datasets. A GitHub-synced slug returns `Incompatible Dataset Type` on upload — delete it (or use a new `--handle`) before the first publish. After create, set the public title/description on the Kaggle UI if needed (`kagglehub` creates private datasets titled with the slug).
+5. If you still have the **combined** `benjaminpo/finance-dataset`, run the **Split Kaggle Datasets** workflow once (or [`scripts/split_kaggle_datasets.py`](scripts/split_kaggle_datasets.py) locally) before relying on the split CI fetch jobs. Otherwise run **Fetch Daily Bars** / **Fetch Intraday Bars** and let `--optional` create empty-history datasets on first publish.
 
 ## Robustness
 

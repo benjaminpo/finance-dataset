@@ -16,24 +16,27 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 from scripts.kaggle_util import (
+    DAILY_HANDLE,
     METADATA_NAME,
     PULL_STATE_NAME,
     clear_pull_state,
     count_data_files,
     count_data_files_by_interval,
     get_dataset_snapshot,
+    get_slice,
     has_kaggle_credentials,
+    interval_ignore_patterns,
     is_missing_dataset_error,
     read_pull_state,
     wait_until_ready,
 )
 
-DEFAULT_HANDLE = "benjaminpo/finance-dataset"
+DEFAULT_HANDLE = DAILY_HANDLE
 DEFAULT_DATA_DIR = "data"
 DEFAULT_METADATA = "config/kaggle/dataset-metadata.json"
 DEFAULT_READY_TIMEOUT_SEC = 14400
 DEFAULT_READY_POLL_SEC = 60
-IGNORE_PATTERNS = [".DS_Store", ".gitkeep", "**/__pycache__/", "*.pyc", PULL_STATE_NAME]
+BASE_IGNORE_PATTERNS = [".DS_Store", ".gitkeep", "**/__pycache__/", "*.pyc", PULL_STATE_NAME]
 
 
 def load_metadata(path: Path, handle: str) -> dict:
@@ -47,11 +50,17 @@ def load_metadata(path: Path, handle: str) -> dict:
     return meta
 
 
-def write_upload_metadata(data_dir: Path, metadata_path: Path, handle: str) -> Path:
+def write_upload_metadata(
+    data_dir: Path,
+    metadata_path: Path,
+    handle: str,
+    *,
+    intervals: tuple[str, ...] | None = None,
+) -> Path:
     """Write dataset-metadata.json into *data_dir* for the Kaggle upload API."""
     if not data_dir.is_dir():
         raise FileNotFoundError(f"Data directory not found: {data_dir}")
-    n_files = count_data_files(data_dir)
+    n_files = count_data_files(data_dir, intervals=intervals)
     if n_files == 0:
         raise FileNotFoundError(f"No data files to publish under {data_dir}")
 
@@ -67,9 +76,10 @@ def _guard_no_shrink(
     *,
     allow_shrink: bool,
     required_intervals: tuple[str, ...] = (),
+    include_intervals: tuple[str, ...] | None = None,
 ) -> None:
     """Refuse to publish a tree missing required or previously pulled intervals."""
-    current_intervals = count_data_files_by_interval(data_dir)
+    current_intervals = count_data_files_by_interval(data_dir, intervals=include_intervals)
     missing = [interval for interval in required_intervals if current_intervals.get(interval, 0) == 0]
     if missing:
         raise RuntimeError(
@@ -85,6 +95,16 @@ def _guard_no_shrink(
         str(interval): int(count)
         for interval, count in (state.get("interval_counts") or {}).items()
     }
+    if include_intervals is not None:
+        allowed = set(include_intervals)
+        pulled_intervals = {
+            interval: count
+            for interval, count in pulled_intervals.items()
+            if interval in allowed
+        }
+        # Compare only against pulled files that belong to this slice
+        # (older combined pulls may include the other slice).
+        pulled = sum(pulled_intervals.values())
     reduced_intervals = {
         interval: (count, current_intervals.get(interval, 0))
         for interval, count in pulled_intervals.items()
@@ -121,9 +141,13 @@ def publish(
     ready_poll_sec: float = DEFAULT_READY_POLL_SEC,
     allow_shrink: bool = False,
     required_intervals: tuple[str, ...] = (),
+    include_intervals: tuple[str, ...] | None = None,
 ) -> str:
     """
     Upload *data_dir* as a new version of the Kaggle dataset *handle*.
+
+    When *include_intervals* is set, only those interval directories are counted
+    and uploaded (other known intervals are ignored via kagglehub patterns).
 
     Returns the version notes used for the upload.
     """
@@ -137,7 +161,7 @@ def publish(
             "(or KAGGLE_USERNAME + KAGGLE_KEY), or place credentials in ~/.kaggle/."
         )
 
-    n_files = count_data_files(data_path)
+    n_files = count_data_files(data_path, intervals=include_intervals)
     if n_files == 0:
         raise FileNotFoundError(f"No data files to publish under {data_path}")
     _guard_no_shrink(
@@ -145,12 +169,17 @@ def publish(
         n_files,
         allow_shrink=allow_shrink,
         required_intervals=required_intervals,
+        include_intervals=include_intervals,
     )
 
     date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    notes = version_notes or f"Daily OHLCV refresh {date} ({n_files} file(s))"
+    notes = version_notes or f"OHLCV refresh {date} ({n_files} file(s))"
     if f"{n_files} file" not in notes:
         notes = f"{notes} ({n_files} file(s))"
+
+    ignore_patterns = list(BASE_IGNORE_PATTERNS)
+    if include_intervals is not None:
+        ignore_patterns.extend(interval_ignore_patterns(include_intervals))
 
     before_version = 0
     if not dry_run:
@@ -160,11 +189,15 @@ def publish(
             if not is_missing_dataset_error(exc):
                 print(f"WARNING: could not read current Kaggle version ({exc})", flush=True)
 
-    meta_dest = write_upload_metadata(data_path, meta_path, handle)
+    meta_dest = write_upload_metadata(
+        data_path, meta_path, handle, intervals=include_intervals
+    )
     try:
         if dry_run:
             print(f"[dry-run] Would upload {n_files} file(s) to {handle}")
             print(f"[dry-run] Upload root: {data_path.resolve()}")
+            if include_intervals is not None:
+                print(f"[dry-run] Intervals: {', '.join(include_intervals)}")
             print(f"[dry-run] Version notes: {notes}")
             return notes
 
@@ -181,7 +214,7 @@ def publish(
                 handle,
                 str(data_path),
                 version_notes=notes,
-                ignore_patterns=IGNORE_PATTERNS,
+                ignore_patterns=ignore_patterns,
             )
         except BackendError as exc:
             message = str(exc)
@@ -225,9 +258,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         description="Publish data/ OHLCV CSVs to a Kaggle dataset version.",
     )
     parser.add_argument(
+        "--slice",
+        choices=sorted(["daily", "intraday"]),
+        default=None,
+        help="Publish daily or intradaily dataset (sets handle/metadata/intervals)",
+    )
+    parser.add_argument(
         "--handle",
-        default=os.environ.get("KAGGLE_DATASET_HANDLE", DEFAULT_HANDLE),
-        help=f"Kaggle dataset handle (default: {DEFAULT_HANDLE})",
+        default=None,
+        help=f"Kaggle dataset handle (default: env or {DEFAULT_HANDLE})",
     )
     parser.add_argument(
         "--data-dir",
@@ -236,7 +275,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--metadata",
-        default=DEFAULT_METADATA,
+        default=None,
         help=f"Path to dataset-metadata.json (default: {DEFAULT_METADATA})",
     )
     parser.add_argument(
@@ -274,26 +313,67 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--require-intervals",
         nargs="+",
-        default=[],
+        default=None,
         help="Refuse to publish unless each listed interval has files",
     )
+    parser.add_argument(
+        "--include-intervals",
+        nargs="+",
+        default=None,
+        help="Only count/upload these intervals (default: all, or slice intervals)",
+    )
     return parser.parse_args(argv)
+
+
+def _resolve_publish_args(args: argparse.Namespace) -> dict:
+    slice_cfg = get_slice(args.slice) if args.slice else None
+    handle = (
+        args.handle
+        or (slice_cfg.handle if slice_cfg else None)
+        or os.environ.get("KAGGLE_DATASET_HANDLE")
+        or DEFAULT_HANDLE
+    )
+    metadata = (
+        args.metadata
+        or (slice_cfg.metadata if slice_cfg else None)
+        or DEFAULT_METADATA
+    )
+    if args.include_intervals is not None:
+        include = tuple(args.include_intervals)
+    elif slice_cfg is not None:
+        include = slice_cfg.intervals
+    else:
+        include = None
+    if args.require_intervals is not None:
+        require = tuple(args.require_intervals)
+    elif slice_cfg is not None:
+        require = slice_cfg.require_intervals
+    else:
+        require = ()
+    return {
+        "handle": handle,
+        "metadata": metadata,
+        "include_intervals": include,
+        "required_intervals": require,
+    }
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     try:
+        resolved = _resolve_publish_args(args)
         publish(
-            handle=args.handle,
+            handle=resolved["handle"],
             data_dir=args.data_dir,
-            metadata=args.metadata,
+            metadata=resolved["metadata"],
             version_notes=args.version_notes,
             dry_run=args.dry_run,
             wait_ready=not args.no_wait_ready,
             ready_timeout_sec=args.ready_timeout_sec,
             ready_poll_sec=args.ready_poll_sec,
             allow_shrink=args.allow_shrink,
-            required_intervals=tuple(args.require_intervals),
+            required_intervals=resolved["required_intervals"],
+            include_intervals=resolved["include_intervals"],
         )
     except (FileNotFoundError, RuntimeError, OSError, TimeoutError, ValueError) as exc:
         print(exc, file=sys.stderr)

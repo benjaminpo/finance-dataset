@@ -11,6 +11,8 @@ from scripts.kaggle_util import (
     DatasetSnapshot,
     count_data_files,
     count_data_files_by_interval,
+    get_slice,
+    interval_ignore_patterns,
     is_missing_dataset_error,
     read_pull_state,
     split_handle,
@@ -36,6 +38,29 @@ def test_count_skips_state_files(tmp_path: Path) -> None:
     assert count_data_files_by_interval(data) == {"1d": 1}
 
 
+def test_count_filters_intervals(tmp_path: Path) -> None:
+    data = tmp_path / "data"
+    (data / "crypto" / "1d").mkdir(parents=True)
+    (data / "crypto" / "1m").mkdir(parents=True)
+    (data / "crypto" / "1d" / "BTC.csv").write_text("x", encoding="utf-8")
+    (data / "crypto" / "1m" / "BTC.csv").write_text("x", encoding="utf-8")
+    assert count_data_files(data, intervals=("1d",)) == 1
+    assert count_data_files_by_interval(data, intervals=("1m",)) == {"1m": 1}
+
+
+def test_get_slice_and_ignore_patterns() -> None:
+    daily = get_slice("daily")
+    assert daily.handle == "benjaminpo/finance-dataset"
+    assert "1d" in daily.intervals
+    assert "1m" not in daily.intervals
+    intradaily = get_slice("intraday")
+    assert intradaily.handle.endswith("-intraday")
+    assert "**/1d/**" in interval_ignore_patterns(intradaily.intervals)
+    assert "**/1m/**" not in interval_ignore_patterns(intradaily.intervals)
+    with pytest.raises(ValueError, match="Unknown Kaggle slice"):
+        get_slice("weekly")
+
+
 def test_pull_state_roundtrip(tmp_path: Path) -> None:
     data = tmp_path / "data"
     data.mkdir()
@@ -45,6 +70,7 @@ def test_pull_state_roundtrip(tmp_path: Path) -> None:
         "version": 3,
         "file_count": 42,
         "interval_counts": {},
+        "intervals": None,
     }
 
 

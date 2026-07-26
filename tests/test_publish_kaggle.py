@@ -132,6 +132,59 @@ def test_publish_uploads(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Non
     assert not (data / "dataset-metadata.json").exists()
 
 
+def test_publish_slice_filters_intervals(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    data = tmp_path / "data"
+    (data / "crypto" / "1d").mkdir(parents=True)
+    (data / "crypto" / "1m").mkdir(parents=True)
+    (data / "crypto" / "1d" / "BTC.csv").write_text("d", encoding="utf-8")
+    (data / "crypto" / "1m" / "BTC.csv").write_text("m", encoding="utf-8")
+    meta = _write_metadata(tmp_path / "meta.json")
+    monkeypatch.setenv("KAGGLE_API_TOKEN", "tok")
+
+    mock_hub = MagicMock()
+    mock_exc = MagicMock()
+    mock_exc.BackendError = type("BackendError", (Exception,), {})
+    with patch.dict("sys.modules", {"kagglehub": mock_hub, "kagglehub.exceptions": mock_exc}):
+        notes = publish(
+            handle="benjaminpo/finance-dataset",
+            data_dir=data,
+            metadata=meta,
+            version_notes="daily only",
+            wait_ready=False,
+            include_intervals=("1d", "1wk"),
+        )
+    assert "1 file" in notes
+    _, kwargs = mock_hub.dataset_upload.call_args
+    assert "**/1m/**" in kwargs["ignore_patterns"]
+    assert "**/1d/**" not in kwargs["ignore_patterns"]
+
+
+def test_publish_include_intervals_ignores_other_slice_shrink(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Combined pull-state must not block publishing only the daily slice."""
+    data = tmp_path / "data"
+    (data / "crypto" / "1d").mkdir(parents=True)
+    (data / "crypto" / "1m").mkdir(parents=True)
+    (data / "crypto" / "1d" / "BTC.csv").write_text("d", encoding="utf-8")
+    (data / "crypto" / "1m" / "BTC.csv").write_text("m", encoding="utf-8")
+    from scripts.kaggle_util import write_pull_state
+
+    write_pull_state(data, "benjaminpo/finance-dataset", 2, 2)
+    meta = _write_metadata(tmp_path / "meta.json")
+    monkeypatch.setenv("KAGGLE_API_TOKEN", "tok")
+
+    notes = publish(
+        data_dir=data,
+        metadata=meta,
+        dry_run=True,
+        include_intervals=("1d", "1wk"),
+    )
+    assert "1 file" in notes
+
+
 def test_publish_refuses_shrink(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     data = tmp_path / "data"
     (data / "rates" / "1d").mkdir(parents=True)
@@ -244,5 +297,18 @@ def test_main_error(tmp_path: Path) -> None:
 
 def test_parse_args_defaults() -> None:
     args = parse_args([])
-    assert args.handle == "benjaminpo/finance-dataset"
+    assert args.handle is None
+    assert args.slice is None
     assert args.data_dir == "data"
+
+
+def test_parse_args_slice() -> None:
+    args = parse_args(["--slice", "intraday"])
+    assert args.slice == "intraday"
+    from scripts.publish_kaggle import _resolve_publish_args
+
+    resolved = _resolve_publish_args(args)
+    assert resolved["handle"] == "benjaminpo/finance-dataset-intraday"
+    assert "1m" in resolved["include_intervals"]
+    assert "1d" not in resolved["include_intervals"]
+    assert resolved["required_intervals"][0] == "1m"

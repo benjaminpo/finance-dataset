@@ -1,0 +1,61 @@
+name: Split Kaggle Datasets
+
+# One-time migration: combined finance-dataset → daily + intradaily handles.
+# Run once via Actions → Split Kaggle Datasets → Run workflow, then disable
+# or delete this workflow after it succeeds.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Plan only (no uploads)"
+        type: boolean
+        default: false
+      source_handle:
+        description: "Combined source dataset handle"
+        type: string
+        default: benjaminpo/finance-dataset
+
+permissions:
+  contents: read
+
+concurrency:
+  group: finance-dataset-kaggle-split
+  cancel-in-progress: false
+
+jobs:
+  split:
+    runs-on: ubuntu-latest
+    # Pull ~8GB combined + publish intradaily Ready + publish daily Ready.
+    timeout-minutes: 600
+
+    steps:
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+            /usr/local/share/boost "$AGENT_TOOLSDIRECTORY" || true
+          df -h /
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Split combined dataset into daily + intradaily
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          ARGS=(--source-handle "${{ inputs.source_handle }}")
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            ARGS+=(--dry-run)
+          fi
+          python scripts/split_kaggle_datasets.py "${ARGS[@]}"
+          df -h /
