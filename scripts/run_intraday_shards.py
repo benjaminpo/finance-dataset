@@ -15,13 +15,40 @@ _ROOT = Path(__file__).resolve().parents[1]
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-from src.fetcher import run_pipeline  # noqa: E402
+from src.fetcher import consolidate_intraday_layout, run_pipeline  # noqa: E402
 from src.listings import refresh_listings  # noqa: E402
 from src.summary import write_fetch_summary  # noqa: E402
+from scripts.kaggle_util import (  # noqa: E402
+    clear_pull_state,
+    count_data_files,
+    read_pull_state,
+    write_pull_state,
+)
 
 DEFAULT_SHARDS = _ROOT / "config" / "intraday_shards.yaml"
 DEFAULT_CONFIG = _ROOT / "config" / "tickers_intraday.yaml"
 DEFAULT_INTERVALS = ("1m", "2m", "5m", "15m", "30m", "60m", "90m", "1h")
+
+
+def _sync_pull_state_file_counts(
+    data_dir: Path, *, intervals: tuple[str, ...] | list[str] | None
+) -> None:
+    """Rewrite pull-state counts after consolidation (dated → per-ticker)."""
+    state = read_pull_state(data_dir)
+    if not state:
+        return
+    handle = str(state.get("handle") or "")
+    version = int(state.get("version") or 0)
+    if not handle or version <= 0:
+        clear_pull_state(data_dir)
+        return
+    write_pull_state(
+        data_dir,
+        handle,
+        version,
+        count_data_files(data_dir, intervals=intervals),
+        intervals=intervals,
+    )
 
 
 def load_shards(path: Path) -> list[dict[str, Any]]:
@@ -90,6 +117,19 @@ def run_shards(
     data_root = data_dir or (_ROOT / "data")
     data_root.mkdir(parents=True, exist_ok=True)
     shards = load_shards(shards_path)
+
+    # Collapse any pulled legacy dated snapshots before fetching so disk use
+    # and later Kaggle Ready indexing stay bounded.
+    stats = consolidate_intraday_layout(data_root, intervals=intervals)
+    if any(stats.values()):
+        print(
+            "Consolidated intradaily layout: "
+            f"dated_removed={stats['dated_files_removed']} "
+            f"tickers_merged={stats['tickers_consolidated']} "
+            f"pruned={stats['tickers_pruned']}",
+            flush=True,
+        )
+    _sync_pull_state_file_counts(data_root, intervals=intervals)
 
     listing_summary = refresh_listings(config_path)
     print(

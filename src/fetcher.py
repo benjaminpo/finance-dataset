@@ -7,7 +7,6 @@ import re
 import threading
 import time
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, TypedDict
 
@@ -71,9 +70,10 @@ INTRADAY_INTERVALS: tuple[str, ...] = (
     "1h",
 )
 
-# Intraday intervals: Yahoo keeps a rolling window only. We store dated day
-# snapshot CSVs so history accumulates across runs.
+# Intraday intervals: Yahoo keeps a rolling window only.
 # 1m ≈ 7 days; other intraday ≤ 60 days.
+# Stored as one consolidated CSV per ticker (same layout as daily), pruned to
+# the Yahoo retention window on each write so Kaggle file counts stay bounded.
 SNAPSHOT_PERIODS: dict[str, str] = {
     "1m": "7d",
     "2m": "60d",
@@ -83,6 +83,24 @@ SNAPSHOT_PERIODS: dict[str, str] = {
     "60m": "60d",
     "90m": "60d",
     "1h": "60d",
+}
+
+# Legacy dated snapshot filenames: TICKER_YYYY-MM-DD.csv
+_DATED_SNAPSHOT_RE = re.compile(
+    r"^(?P<stem>.+)_(?P<day>\d{4}-\d{2}-\d{2})\.csv$"
+)
+
+
+def _period_to_days(period: str) -> int:
+    """Parse yfinance-style period strings like ``7d`` / ``60d`` to day counts."""
+    text = period.strip().lower()
+    if text.endswith("d") and text[:-1].isdigit():
+        return int(text[:-1])
+    raise ValueError(f"Unsupported period string for retention: {period!r}")
+
+
+SNAPSHOT_RETENTION_DAYS: dict[str, int] = {
+    interval: _period_to_days(period) for interval, period in SNAPSHOT_PERIODS.items()
 }
 
 # Day-or-longer bars: one cumulative CSV per ticker with incremental merges.
@@ -448,11 +466,18 @@ def _csv_path_1d(data_dir: Path, asset_class: str, ticker: str) -> Path:
     return _csv_path_cumulative(data_dir, asset_class, "1d", ticker)
 
 
+def _csv_path_intraday(
+    data_dir: Path, asset_class: str, interval: str, ticker: str
+) -> Path:
+    """Path for a consolidated intraday CSV, e.g. data/crypto/5m/BTC-USD.csv."""
+    return _csv_path_cumulative(data_dir, asset_class, interval, ticker)
+
+
 def _csv_path_snapshot(
     data_dir: Path, asset_class: str, interval: str, ticker: str, day: str
 ) -> Path:
     """
-    Path for a dated intraday snapshot.
+    Legacy dated intraday snapshot path (pre-consolidation layout).
 
     Example: data/crypto/5m/BTC-USD_2026-07-10.csv
     """
@@ -461,9 +486,88 @@ def _csv_path_snapshot(
     )
 
 
-def _csv_path_1m(data_dir: Path, asset_class: str, ticker: str, day: str) -> Path:
-    """Path for a dated 1-minute snapshot."""
-    return _csv_path_snapshot(data_dir, asset_class, "1m", ticker, day)
+def _csv_path_1m(data_dir: Path, asset_class: str, ticker: str) -> Path:
+    """Path for a consolidated 1-minute CSV."""
+    return _csv_path_intraday(data_dir, asset_class, "1m", ticker)
+
+
+def _parse_dated_snapshot_name(name: str) -> tuple[str, str] | None:
+    """Return ``(ticker_stem, YYYY-MM-DD)`` for legacy dated filenames, else None."""
+    match = _DATED_SNAPSHOT_RE.match(name)
+    if match is None:
+        return None
+    return match.group("stem"), match.group("day")
+
+
+def _read_ohlcv_csv(path: Path) -> pd.DataFrame:
+    """Load an OHLCV CSV; return empty on missing/corrupt files."""
+    if not path.is_file():
+        return pd.DataFrame()
+    try:
+        df = pd.read_csv(path, index_col="Datetime", parse_dates=True)
+        if df.empty:
+            return pd.DataFrame()
+        df.index = pd.to_datetime(df.index, utc=True)
+        df.index.name = "Datetime"
+        return df
+    except Exception as exc:  # noqa: BLE001 — corrupt CSV should not abort the run
+        logger.warning("Could not read %s (%s); ignoring.", path, exc)
+        return pd.DataFrame()
+
+
+def _retention_cutoff(
+    interval: str, *, now: pd.Timestamp | None = None
+) -> pd.Timestamp:
+    days = SNAPSHOT_RETENTION_DAYS[interval]
+    anchor = now if now is not None else pd.Timestamp.now(tz="UTC")
+    if anchor.tzinfo is None:
+        anchor = anchor.tz_localize("UTC")
+    else:
+        anchor = anchor.tz_convert("UTC")
+    return anchor - pd.Timedelta(days=days)
+
+
+def _prune_intraday_frame(
+    df: pd.DataFrame, interval: str, *, now: pd.Timestamp | None = None
+) -> pd.DataFrame:
+    """Drop bars older than the Yahoo retention window for *interval*."""
+    if df.empty:
+        return df
+    cutoff = _retention_cutoff(interval, now=now)
+    pruned = df[df.index >= cutoff]
+    return pruned.sort_index()
+
+
+def _iter_legacy_dated_paths(
+    data_dir: Path, asset_class: str, interval: str, ticker: str
+) -> list[Path]:
+    """List legacy dated snapshot CSVs for one ticker (if any)."""
+    folder = data_dir / asset_class / interval
+    if not folder.is_dir():
+        return []
+    stem = _safe_ticker_filename(ticker)
+    prefix = f"{stem}_"
+    paths: list[Path] = []
+    for path in folder.iterdir():
+        if not path.is_file():
+            continue
+        parsed = _parse_dated_snapshot_name(path.name)
+        if parsed is None:
+            continue
+        file_stem, _day = parsed
+        if file_stem == stem and path.name.startswith(prefix):
+            paths.append(path)
+    return sorted(paths)
+
+
+def _merge_ohlcv_frames(frames: list[pd.DataFrame]) -> pd.DataFrame:
+    nonempty = [frame for frame in frames if not frame.empty]
+    if not nonempty:
+        return pd.DataFrame()
+    combined = pd.concat(nonempty)
+    combined.index = pd.to_datetime(combined.index, utc=True)
+    combined.index.name = "Datetime"
+    return combined[~combined.index.duplicated(keep="last")].sort_index()
 
 
 def _last_timestamp(csv_path: Path) -> Optional[pd.Timestamp]:
@@ -520,35 +624,160 @@ def save_daily(df: pd.DataFrame, csv_path: Path) -> int:
     return max(new_rows, 0)
 
 
+def save_intraday(
+    df: pd.DataFrame,
+    data_dir: Path,
+    asset_class: str,
+    ticker: str,
+    interval: str = "1m",
+    *,
+    now: pd.Timestamp | None = None,
+) -> int:
+    """
+    Merge *df* into a consolidated per-ticker intraday CSV and prune retention.
+
+    Also absorbs and deletes any legacy dated day files
+    (``TICKER_YYYY-MM-DD.csv``) for the same ticker/interval.
+    Returns the number of rows kept after pruning.
+    """
+    if interval not in SNAPSHOT_RETENTION_DAYS:
+        raise ValueError(f"Unsupported intraday interval '{interval}'")
+
+    csv_path = _csv_path_intraday(data_dir, asset_class, interval, ticker)
+    legacy_paths = _iter_legacy_dated_paths(data_dir, asset_class, interval, ticker)
+
+    frames: list[pd.DataFrame] = []
+    if not df.empty:
+        frames.append(df)
+    frames.append(_read_ohlcv_csv(csv_path))
+    for legacy in legacy_paths:
+        frames.append(_read_ohlcv_csv(legacy))
+
+    combined = _prune_intraday_frame(
+        _merge_ohlcv_frames(frames), interval, now=now
+    )
+    csv_path.parent.mkdir(parents=True, exist_ok=True)
+    if combined.empty:
+        csv_path.unlink(missing_ok=True)
+        for legacy in legacy_paths:
+            legacy.unlink(missing_ok=True)
+        return 0
+
+    _write_ohlcv_csv(combined, csv_path)
+    for legacy in legacy_paths:
+        legacy.unlink(missing_ok=True)
+    return len(combined)
+
+
 def save_intraday_snapshots(
     df: pd.DataFrame,
     data_dir: Path,
     asset_class: str,
     ticker: str,
     interval: str = "1m",
+    *,
+    now: pd.Timestamp | None = None,
 ) -> int:
+    """Backward-compatible alias for :func:`save_intraday`."""
+    return save_intraday(
+        df, data_dir, asset_class, ticker, interval=interval, now=now
+    )
+
+
+def consolidate_intraday_layout(
+    data_dir: Path,
+    *,
+    intervals: tuple[str, ...] | list[str] | None = None,
+    now: pd.Timestamp | None = None,
+) -> dict[str, int]:
     """
-    Split intraday bars by calendar day and write dated snapshot CSVs.
+    Migrate legacy dated snapshot CSVs into consolidated per-ticker files.
 
-    Re-running the pipeline overwrites recent day files with the latest
-    Yahoo window, so corrections land without unbounded single-file growth.
-    Returns the total number of rows written across all day files.
+    For each intraday interval directory under *data_dir*:
+    - merge ``TICKER_YYYY-MM-DD.csv`` files into ``TICKER.csv``
+    - prune bars outside the Yahoo retention window
+    - delete the dated files
+
+    Also re-prunes existing consolidated files that have no dated siblings.
+    Safe to run repeatedly. Returns counts useful for CI logging.
     """
-    if df.empty:
-        return 0
+    root = Path(data_dir)
+    allowed = (
+        set(intervals)
+        if intervals is not None
+        else set(SNAPSHOT_RETENTION_DAYS)
+    )
+    allowed &= set(SNAPSHOT_RETENTION_DAYS)
 
-    rows_written = 0
-    # Group by UTC calendar date.
-    for day, day_df in df.groupby(df.index.strftime("%Y-%m-%d")):
-        path = _csv_path_snapshot(data_dir, asset_class, interval, ticker, day)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        day_df = day_df.sort_index()
-        day_df = day_df[~day_df.index.duplicated(keep="last")]
-        _write_ohlcv_csv(day_df, path)
-        rows_written += len(day_df)
+    dated_files_removed = 0
+    tickers_consolidated = 0
+    tickers_pruned = 0
 
-    return rows_written
+    if not root.is_dir():
+        return {
+            "dated_files_removed": 0,
+            "tickers_consolidated": 0,
+            "tickers_pruned": 0,
+        }
 
+    for asset_dir in sorted(p for p in root.iterdir() if p.is_dir()):
+        for interval_dir in sorted(p for p in asset_dir.iterdir() if p.is_dir()):
+            interval = interval_dir.name
+            if interval not in allowed:
+                continue
+
+            dated_by_stem: dict[str, list[Path]] = {}
+            consolidated_paths: list[Path] = []
+            for path in interval_dir.iterdir():
+                if not path.is_file() or path.suffix.lower() != ".csv":
+                    continue
+                parsed = _parse_dated_snapshot_name(path.name)
+                if parsed is not None:
+                    stem, _day = parsed
+                    dated_by_stem.setdefault(stem, []).append(path)
+                else:
+                    consolidated_paths.append(path)
+
+            for stem, legacy_paths in dated_by_stem.items():
+                csv_path = interval_dir / f"{stem}.csv"
+                frames = [_read_ohlcv_csv(csv_path)]
+                frames.extend(_read_ohlcv_csv(p) for p in legacy_paths)
+                combined = _prune_intraday_frame(
+                    _merge_ohlcv_frames(frames), interval, now=now
+                )
+                if combined.empty:
+                    csv_path.unlink(missing_ok=True)
+                else:
+                    _write_ohlcv_csv(combined, csv_path)
+                for legacy in legacy_paths:
+                    legacy.unlink(missing_ok=True)
+                dated_files_removed += len(legacy_paths)
+                tickers_consolidated += 1
+
+            # Re-prune consolidated-only files (no dated siblings this pass).
+            for csv_path in consolidated_paths:
+                if _parse_dated_snapshot_name(csv_path.name) is not None:
+                    continue
+                if csv_path.stem in dated_by_stem:
+                    # Already rewritten above.
+                    continue
+                existing = _read_ohlcv_csv(csv_path)
+                if existing.empty:
+                    continue
+                pruned = _prune_intraday_frame(existing, interval, now=now)
+                if len(pruned) == len(existing):
+                    continue
+                if pruned.empty:
+                    csv_path.unlink(missing_ok=True)
+                else:
+                    _write_ohlcv_csv(pruned, csv_path)
+                tickers_pruned += 1
+
+    return {
+        "dated_files_removed": dated_files_removed,
+        "tickers_consolidated": tickers_consolidated,
+        "tickers_pruned": tickers_pruned,
+    }
 
 def update_ticker_cumulative(
     ticker: str,
@@ -607,24 +836,22 @@ def update_ticker_snapshot(
     *,
     skip_existing: bool = False,
 ) -> tuple[bool, str]:
-    """Fetch the rolling intraday window and write dated snapshots."""
+    """Fetch the rolling intraday window and merge into a consolidated CSV."""
     period = SNAPSHOT_PERIODS.get(interval)
     if period is None:
         return False, f"Unsupported snapshot interval '{interval}'"
 
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    if skip_existing:
-        today_path = _csv_path_snapshot(data_dir, asset_class, interval, ticker, today)
-        if today_path.exists():
-            return True, f"skipped (exists) → {today_path.relative_to(data_dir.parent)}"
+    csv_path = _csv_path_intraday(data_dir, asset_class, interval, ticker)
+    if skip_existing and csv_path.exists():
+        return True, f"skipped (exists) → {csv_path.relative_to(data_dir.parent)}"
 
     try:
         df = fetch_history(ticker, interval, period=period)
         if df.empty:
             return False, f"No {interval} data (illiquid, halted, or unsupported)"
 
-        n = save_intraday_snapshots(df, data_dir, asset_class, ticker, interval=interval)
-        return True, f"{n} row(s) across day snapshots (through {today})"
+        n = save_intraday(df, data_dir, asset_class, ticker, interval=interval)
+        return True, f"{n} row(s) retained → {csv_path.relative_to(data_dir.parent)}"
     except Exception as exc:  # noqa: BLE001
         return False, str(exc)
 
@@ -636,7 +863,7 @@ def update_ticker_1m(
     *,
     skip_existing: bool = False,
 ) -> tuple[bool, str]:
-    """Fetch the rolling 7-day 1-minute window and write dated snapshots."""
+    """Fetch the rolling 7-day 1-minute window into a consolidated CSV."""
     return update_ticker_snapshot(
         ticker, asset_class, "1m", data_dir, skip_existing=skip_existing
     )
@@ -785,7 +1012,7 @@ def run_pipeline(
 
     ``workers`` > 1 fetches tickers concurrently (much faster for large universes).
     ``skip_existing`` resumes a long first backfill by skipping tickers that
-    already have a cumulative CSV (or today's intraday snapshot).
+    already have a cumulative CSV (or consolidated intraday CSV).
 
     ``asset_classes`` / ``shard_index`` / ``shard_count`` limit work to a slice
     (used by CI to split large intraday runs across jobs).

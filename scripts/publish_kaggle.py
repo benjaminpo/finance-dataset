@@ -17,6 +17,7 @@ if str(_ROOT) not in sys.path:
 
 from scripts.kaggle_util import (
     DAILY_HANDLE,
+    INTRADAY_INTERVALS,
     METADATA_NAME,
     PULL_STATE_NAME,
     clear_pull_state,
@@ -29,7 +30,9 @@ from scripts.kaggle_util import (
     is_missing_dataset_error,
     read_pull_state,
     wait_until_ready,
+    write_pull_state,
 )
+from src.fetcher import consolidate_intraday_layout
 
 DEFAULT_HANDLE = DAILY_HANDLE
 DEFAULT_DATA_DIR = "data"
@@ -68,6 +71,41 @@ def write_upload_metadata(
     meta = load_metadata(metadata_path, handle)
     dest.write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
     return dest
+
+
+def _intraday_intervals_to_consolidate(
+    include_intervals: tuple[str, ...] | None,
+) -> tuple[str, ...] | None:
+    """Return intradaily intervals to consolidate when publishing that slice."""
+    if include_intervals is None:
+        # Full-tree / unspecified publishes leave layout alone; CI always passes
+        # --slice intraday (explicit include_intervals).
+        return None
+    selected = tuple(i for i in include_intervals if i in INTRADAY_INTERVALS)
+    return selected or None
+
+
+def _refresh_pull_state_after_consolidate(
+    data_dir: Path,
+    *,
+    intervals: tuple[str, ...] | None,
+) -> None:
+    """Rewrite pull-state counts after a dated→consolidated migration."""
+    state = read_pull_state(data_dir)
+    if not state:
+        return
+    handle = str(state.get("handle") or "")
+    version = int(state.get("version") or 0)
+    if not handle or version <= 0:
+        clear_pull_state(data_dir)
+        return
+    write_pull_state(
+        data_dir,
+        handle,
+        version,
+        count_data_files(data_dir, intervals=intervals),
+        intervals=intervals,
+    )
 
 
 def _guard_no_shrink(
@@ -159,6 +197,29 @@ def publish(
         raise RuntimeError(
             "Missing Kaggle credentials. Set KAGGLE_API_TOKEN "
             "(or KAGGLE_USERNAME + KAGGLE_KEY), or place credentials in ~/.kaggle/."
+        )
+
+    # Intraday: collapse legacy dated day CSVs into one file per ticker and prune
+    # retention before counting/uploading (keeps Kaggle Ready indexing tractable).
+    consolidate_intervals = _intraday_intervals_to_consolidate(include_intervals)
+    if consolidate_intervals:
+        stats = consolidate_intraday_layout(
+            data_path, intervals=consolidate_intervals
+        )
+        removed = int(stats.get("dated_files_removed", 0))
+        consolidated = int(stats.get("tickers_consolidated", 0))
+        pruned = int(stats.get("tickers_pruned", 0))
+        if removed or consolidated or pruned:
+            print(
+                "Consolidated intradaily layout: "
+                f"dated_removed={removed} tickers_merged={consolidated} "
+                f"pruned={pruned}",
+                flush=True,
+            )
+        # Sync pull-state counts even when shards already consolidated (removed=0),
+        # otherwise the shrink guard still sees the pre-migration file count.
+        _refresh_pull_state_after_consolidate(
+            data_path, intervals=include_intervals
         )
 
     n_files = count_data_files(data_path, intervals=include_intervals)

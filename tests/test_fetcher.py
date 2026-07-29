@@ -15,12 +15,14 @@ from src.fetcher import (
     _normalize_frame,
     _to_yahoo_symbol,
     clear_fetch_cache,
+    consolidate_intraday_layout,
     fetch_daily_history,
     fetch_history,
     load_symbols_from_csv,
     load_tickers,
     run_pipeline,
     save_daily,
+    save_intraday,
     save_intraday_snapshots,
     select_tickers,
     update_ticker_1d,
@@ -253,7 +255,7 @@ def test_save_daily_creates_and_merges(tmp_path: Path) -> None:
     assert float(loaded.iloc[-2]["Close"]) == 99.0
 
 
-def test_save_intraday_snapshots_by_day(tmp_path: Path) -> None:
+def test_save_intraday_consolidated(tmp_path: Path) -> None:
     idx = pd.to_datetime(
         [
             "2024-06-01 14:30:00+00:00",
@@ -273,17 +275,118 @@ def test_save_intraday_snapshots_by_day(tmp_path: Path) -> None:
         index=idx,
     ).rename_axis("Datetime")
 
-    n = save_intraday_snapshots(df, tmp_path, "crypto", "BTC-USD")
+    now = pd.Timestamp("2024-06-02 20:00:00+00:00")
+    n = save_intraday(df, tmp_path, "crypto", "BTC-USD", now=now)
     assert n == 3
-    day1 = tmp_path / "crypto" / "1m" / "BTC-USD_2024-06-01.csv"
-    day2 = tmp_path / "crypto" / "1m" / "BTC-USD_2024-06-02.csv"
-    assert day1.exists() and day2.exists()
-    assert len(pd.read_csv(day1)) == 2
-    assert len(pd.read_csv(day2)) == 1
+    path = tmp_path / "crypto" / "1m" / "BTC-USD.csv"
+    assert path.exists()
+    loaded = pd.read_csv(path, index_col="Datetime", parse_dates=True)
+    assert len(loaded) == 3
+    assert not (tmp_path / "crypto" / "1m" / "BTC-USD_2024-06-01.csv").exists()
+
+
+def test_save_intraday_prunes_retention(tmp_path: Path) -> None:
+    now = pd.Timestamp("2024-06-20 12:00:00+00:00")
+    idx = pd.to_datetime(
+        [
+            "2024-06-01 14:30:00+00:00",  # outside 7d window for 1m
+            "2024-06-18 14:30:00+00:00",
+            "2024-06-19 14:30:00+00:00",
+        ]
+    )
+    df = pd.DataFrame(
+        {
+            "Open": [1.0, 2.0, 3.0],
+            "High": [1.2, 2.2, 3.2],
+            "Low": [0.9, 1.9, 2.9],
+            "Close": [1.1, 2.1, 3.1],
+            "Adj Close": [1.1, 2.1, 3.1],
+            "Volume": [10, 20, 30],
+        },
+        index=idx,
+    ).rename_axis("Datetime")
+
+    n = save_intraday(df, tmp_path, "crypto", "BTC-USD", interval="1m", now=now)
+    assert n == 2
+    loaded = pd.read_csv(
+        tmp_path / "crypto" / "1m" / "BTC-USD.csv",
+        index_col="Datetime",
+        parse_dates=True,
+    )
+    assert len(loaded) == 2
+    assert loaded.index.min() >= pd.Timestamp("2024-06-13 12:00:00+00:00")
+
+
+def test_save_intraday_absorbs_legacy_dated_files(tmp_path: Path) -> None:
+    folder = tmp_path / "crypto" / "5m"
+    folder.mkdir(parents=True)
+    legacy = folder / "BTC-USD_2024-06-01.csv"
+    idx = pd.to_datetime(["2024-06-01 14:30:00+00:00"])
+    legacy_df = pd.DataFrame(
+        {
+            "Open": [1.0],
+            "High": [1.2],
+            "Low": [0.9],
+            "Close": [1.1],
+            "Adj Close": [1.1],
+            "Volume": [10],
+        },
+        index=idx,
+    ).rename_axis("Datetime")
+    legacy_df.to_csv(legacy, date_format="%Y-%m-%dT%H:%M:%S%z")
+
+    fresh = pd.DataFrame(
+        {
+            "Open": [2.0],
+            "High": [2.2],
+            "Low": [1.9],
+            "Close": [2.1],
+            "Adj Close": [2.1],
+            "Volume": [20],
+        },
+        index=pd.to_datetime(["2024-06-02 14:30:00+00:00"]),
+    ).rename_axis("Datetime")
+    now = pd.Timestamp("2024-06-02 20:00:00+00:00")
+    n = save_intraday(
+        fresh, tmp_path, "crypto", "BTC-USD", interval="5m", now=now
+    )
+    assert n == 2
+    assert not legacy.exists()
+    assert (folder / "BTC-USD.csv").exists()
+
+
+def test_consolidate_intraday_layout(tmp_path: Path) -> None:
+    folder = tmp_path / "stocks_us" / "5m"
+    folder.mkdir(parents=True)
+    for day, close in [("2024-06-01", 1.0), ("2024-06-02", 2.0)]:
+        path = folder / f"AAPL_{day}.csv"
+        df = pd.DataFrame(
+            {
+                "Open": [close],
+                "High": [close],
+                "Low": [close],
+                "Close": [close],
+                "Adj Close": [close],
+                "Volume": [1],
+            },
+            index=pd.to_datetime([f"{day} 14:30:00+00:00"]),
+        ).rename_axis("Datetime")
+        df.to_csv(path, date_format="%Y-%m-%dT%H:%M:%S%z")
+
+    now = pd.Timestamp("2024-06-02 20:00:00+00:00")
+    stats = consolidate_intraday_layout(tmp_path, intervals=("5m",), now=now)
+    assert stats["dated_files_removed"] == 2
+    assert stats["tickers_consolidated"] == 1
+    consolidated = folder / "AAPL.csv"
+    assert consolidated.exists()
+    assert not (folder / "AAPL_2024-06-01.csv").exists()
+    loaded = pd.read_csv(consolidated, index_col="Datetime", parse_dates=True)
+    assert len(loaded) == 2
 
 
 def test_save_intraday_empty_returns_zero(tmp_path: Path) -> None:
     assert save_intraday_snapshots(pd.DataFrame(), tmp_path, "crypto", "BTC-USD") == 0
+    assert save_intraday(pd.DataFrame(), tmp_path, "crypto", "BTC-USD") == 0
 
 
 # ---------------------------------------------------------------------------
@@ -396,7 +499,8 @@ def test_update_ticker_1d_empty_and_error(tmp_path: Path) -> None:
 
 
 def test_update_ticker_1m_writes_snapshots(tmp_path: Path) -> None:
-    idx = pd.to_datetime(["2024-06-01 14:30:00+00:00", "2024-06-01 14:31:00+00:00"])
+    now = pd.Timestamp.now(tz="UTC").floor("min")
+    idx = pd.to_datetime([now - pd.Timedelta(minutes=1), now])
     df = pd.DataFrame(
         {
             "Open": [1.0, 1.1],
@@ -412,12 +516,11 @@ def test_update_ticker_1m_writes_snapshots(tmp_path: Path) -> None:
         ok, msg = update_ticker_1m("BTC-USD", "crypto", tmp_path)
         assert ok
         assert "row(s)" in msg
-        assert (tmp_path / "crypto" / "1m" / "BTC-USD_2024-06-01.csv").exists()
+        assert (tmp_path / "crypto" / "1m" / "BTC-USD.csv").exists()
 
 
 def test_update_ticker_1m_skip_existing(tmp_path: Path) -> None:
-    today = pd.Timestamp.now(tz="UTC").strftime("%Y-%m-%d")
-    path = tmp_path / "crypto" / "1m" / f"BTC-USD_{today}.csv"
+    path = tmp_path / "crypto" / "1m" / "BTC-USD.csv"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("Datetime,Open\n", encoding="utf-8")
     with patch("src.fetcher.fetch_history") as mock_fh:
@@ -524,8 +627,12 @@ def test_last_timestamp_corrupt_csv(tmp_path: Path) -> None:
 def test_csv_path_sanitization() -> None:
     p = fetcher._csv_path_1d(Path("data"), "indices", "^GSPC")
     assert p.name == "GSPC.csv"
-    p2 = fetcher._csv_path_1m(Path("data"), "futures", "CL=F", "2024-01-01")
-    assert p2.name == "CL_F_2024-01-01.csv"
+    p2 = fetcher._csv_path_1m(Path("data"), "futures", "CL=F")
+    assert p2.name == "CL_F.csv"
+    legacy = fetcher._csv_path_snapshot(
+        Path("data"), "futures", "1m", "CL=F", "2024-01-01"
+    )
+    assert legacy.name == "CL_F_2024-01-01.csv"
 
 
 def test_update_ticker_1d_incremental_start(tmp_path: Path) -> None:
@@ -706,7 +813,8 @@ def test_run_one_job_unsupported_interval(tmp_path: Path) -> None:
 
 
 def test_update_ticker_snapshot_5m(tmp_path: Path) -> None:
-    idx = pd.to_datetime(["2024-06-01 14:30:00+00:00", "2024-06-01 14:35:00+00:00"])
+    now = pd.Timestamp.now(tz="UTC").floor("min")
+    idx = pd.to_datetime([now - pd.Timedelta(minutes=5), now])
     df = pd.DataFrame(
         {
             "Open": [1.0, 1.1],
@@ -725,7 +833,7 @@ def test_update_ticker_snapshot_5m(tmp_path: Path) -> None:
         assert ok
         assert "row(s)" in msg
         mock_fh.assert_called_once_with("BTC-USD", "5m", period="60d")
-        assert (tmp_path / "crypto" / "5m" / "BTC-USD_2024-06-01.csv").exists()
+        assert (tmp_path / "crypto" / "5m" / "BTC-USD.csv").exists()
 
 
 def test_update_ticker_cumulative_1wk(tmp_path: Path) -> None:

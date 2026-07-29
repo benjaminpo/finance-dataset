@@ -105,6 +105,64 @@ def test_publish_dry_run(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Non
     assert not (data / "dataset-metadata.json").exists()
 
 
+def test_publish_consolidates_dated_intraday_before_upload(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import pandas as pd
+
+    from scripts.kaggle_util import write_pull_state
+
+    data = tmp_path / "data"
+    folder = data / "crypto" / "5m"
+    folder.mkdir(parents=True)
+    now = pd.Timestamp.now(tz="UTC").floor("min")
+    for offset, close in [(1, 1.0), (0, 2.0)]:
+        day = (now - pd.Timedelta(days=offset)).strftime("%Y-%m-%d")
+        path = folder / f"BTC-USD_{day}.csv"
+        df = pd.DataFrame(
+            {
+                "Open": [close],
+                "High": [close],
+                "Low": [close],
+                "Close": [close],
+                "Adj Close": [close],
+                "Volume": [1],
+            },
+            index=pd.to_datetime(
+                [now - pd.Timedelta(days=offset)], utc=True
+            ),
+        ).rename_axis("Datetime")
+        df.to_csv(path, date_format="%Y-%m-%dT%H:%M:%S%z")
+
+    # Pretend the pull saw the pre-migration file count.
+    write_pull_state(data, "benjaminpo/finance-dataset-intraday", 3, 2, intervals=("5m",))
+
+    meta = _write_metadata(
+        tmp_path / "meta.json", handle="benjaminpo/finance-dataset-intraday"
+    )
+    monkeypatch.setenv("KAGGLE_API_TOKEN", "tok")
+    mock_hub = MagicMock()
+    mock_exc = MagicMock()
+    mock_exc.BackendError = type("BackendError", (Exception,), {})
+    with patch.dict(
+        "sys.modules", {"kagglehub": mock_hub, "kagglehub.exceptions": mock_exc}
+    ):
+        notes = publish(
+            handle="benjaminpo/finance-dataset-intraday",
+            data_dir=data,
+            metadata=meta,
+            version_notes="intraday refresh",
+            wait_ready=False,
+            include_intervals=("5m",),
+            required_intervals=("5m",),
+        )
+
+    assert "1 file" in notes
+    assert (folder / "BTC-USD.csv").exists()
+    assert list(folder.glob("BTC-USD_*.csv")) == []
+    mock_hub.dataset_upload.assert_called_once()
+
+
 def test_publish_uploads(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     data = tmp_path / "data"
     (data / "rates" / "1d").mkdir(parents=True)

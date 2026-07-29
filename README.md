@@ -45,15 +45,14 @@ data/
 │   ├── 1wk/
 │   │   └── AAPL.csv              # cumulative weekly bars
 │   ├── 1m/
-│   │   ├── AAPL_2026-07-09.csv   # dated 1-minute snapshots
-│   │   └── AAPL_2026-07-10.csv
+│   │   └── AAPL.csv              # consolidated 1-minute bars (≈7d retention)
 │   └── 5m/
-│       └── AAPL_2026-07-10.csv   # dated 5-minute snapshots
+│       └── AAPL.csv              # consolidated 5-minute bars (≈60d retention)
 ├── crypto/
 │   ├── 1d/
 │   │   └── BTC-USD.csv
 │   └── 1m/
-│       └── BTC-USD_2026-07-10.csv
+│       └── BTC-USD.csv
 └── ...
 ```
 
@@ -62,7 +61,7 @@ data/
 Supported Yahoo intervals: `1m`, `2m`, `5m`, `15m`, `30m`, `60m`, `90m`, `1h`, `1d`, `5d`, `1wk`, `1mo`, `3mo`.
 
 - **Cumulative** (`1d`, `5d`, `1wk`, `1mo`, `3mo`) — One file per ticker. New bars are appended; duplicate timestamps are dropped (last write wins), so re-runs refresh the latest candle safely.
-- **Intraday snapshots** (`1m`, `2m`, `5m`, `15m`, `30m`, `60m`, `90m`, `1h`) — Yahoo only keeps a rolling window (`1m` ≈ 7 days; other intraday ≈ 60 days). Each run writes **dated snapshot files** (`TICKER_YYYY-MM-DD.csv`) for every calendar day in the returned window. Recent days are overwritten on subsequent runs; older snapshots remain, so history accumulates without one giant rolling file.
+- **Intraday** (`1m`, `2m`, `5m`, `15m`, `30m`, `60m`, `90m`, `1h`) — Yahoo only keeps a rolling window (`1m` ≈ 7 days; other intraday ≈ 60 days). One consolidated CSV per ticker (same path shape as daily). Each refresh merges the latest Yahoo window and **prunes bars older than that retention**, so history and Kaggle file counts stay bounded. A one-time migrate step also collapses any legacy dated files (`TICKER_YYYY-MM-DD.csv`) into this layout before publish.
 
 CSV index column is `Datetime` (UTC, ISO-8601). Columns: Open, High, Low, Close, Adj Close, Volume (plus Dividends / Stock Splits when present).
 
@@ -189,7 +188,7 @@ The summary includes success/fail/skip counts, **failure rate** (failed ÷ attem
 1. Locate the **daily** and **intraday** roots on Kaggle (including nested `/kaggle/input/datasets/…` mounts) or a local `data/` checkout
 2. Explore asset classes / intervals
 3. Load cumulative daily bars, plot **normalized prices**, and run a **hybrid ARIMA–LSTM** price forecast
-4. Load dated intradaily snapshots and plot a single session
+4. Load consolidated intradaily bars and plot a single session
 
 ```bash
 # Requires Kaggle CLI auth (same token as publish)
@@ -205,7 +204,7 @@ Kernel: [Quickstart: Using the Global Markets OHLCV Dataset](https://www.kaggle.
 | **daily** | [benjaminpo/finance-dataset](https://www.kaggle.com/datasets/benjaminpo/finance-dataset) | `1d` `1wk` (+ other cumulative) |
 | **intraday** | [benjaminpo/finance-dataset-intraday](https://www.kaggle.com/datasets/benjaminpo/finance-dataset-intraday) | `1m`…`1h` |
 
-Splitting keeps each Ready queue smaller: daily publishes only cumulative CSVs; intradaily publishes only dated snapshot CSVs. Upload is still ~1–2 min; most remaining wait is Kaggle indexing of that slice’s files.
+Splitting keeps each Ready queue smaller: daily publishes only cumulative CSVs; intradaily publishes one consolidated CSV per ticker×interval (with retention prune). Upload is still ~1–2 min; most remaining wait is Kaggle indexing of that slice’s files.
 
 ```bash
 export KAGGLE_API_TOKEN=...          # from https://www.kaggle.com/settings/api
