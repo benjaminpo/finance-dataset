@@ -53,6 +53,8 @@ def _clear_cache():
         ("035420.KQ", "035420.KQ"),
         ("7203.T", "7203.T"),
         ("0700.HK", "0700.HK"),
+        ("2330.TW", "2330.TW"),
+        ("6488.TWO", "6488.TWO"),
         ("EURUSD=X", "EURUSD=X"),
         ("CL=F", "CL=F"),
         ("BTC-USD", "BTC-USD"),

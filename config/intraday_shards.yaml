@@ -57,6 +57,18 @@ shards:
     asset_classes: [stocks_eu]
     shard_index: 0
     shard_count: 1
+  - id: tw-0
+    asset_classes: [stocks_tw]
+    shard_index: 0
+    shard_count: 3
+  - id: tw-1
+    asset_classes: [stocks_tw]
+    shard_index: 1
+    shard_count: 3
+  - id: tw-2
+    asset_classes: [stocks_tw]
+    shard_index: 2
+    shard_count: 3
   - id: liquid
     asset_classes: [stocks_hk, crypto, indices, futures, currencies]
     shard_index: 0

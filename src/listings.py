@@ -115,6 +115,52 @@ def build_tse_listing_csv() -> bytes:
     return out.to_csv(index=False).encode("utf-8")
 
 
+# TWSE listed-company directory (OpenAPI JSON array).
+TWSE_LISTED_URL = "https://openapi.twse.com.tw/v1/opendata/t187ap03_L"
+
+
+def build_twse_listing_csv(url: str = TWSE_LISTED_URL) -> bytes:
+    """
+    Build a Symbol/Name/Industry CSV for TWSE listed companies.
+
+    Downloads the TWSE OpenAPI company directory (JSON) and maps each code to
+    Yahoo Finance form with a ``.TW`` suffix (e.g. ``2330.TW`` for TSMC).
+    """
+    import json
+
+    import pandas as pd
+
+    remote = download_bytes(url)
+    try:
+        rows = json.loads(remote.decode("utf-8"))
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"Invalid TWSE listing JSON from {url}: {exc}") from exc
+    if not isinstance(rows, list) or not rows:
+        raise RuntimeError(f"Empty TWSE listing from {url}")
+
+    records: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        code = str(row.get("公司代號") or row.get("Code") or "").strip()
+        if not code or not code.isdigit():
+            continue
+        symbol = f"{code}.TW"
+        if symbol in seen:
+            continue
+        seen.add(symbol)
+        name = str(row.get("公司簡稱") or row.get("公司名稱") or row.get("Name") or "").strip()
+        industry = str(row.get("產業別") or row.get("Industry") or "").strip()
+        records.append({"Symbol": symbol, "Name": name, "Industry": industry})
+
+    if not records:
+        raise RuntimeError(f"Empty TWSE listing after parse from {url}")
+
+    combined = pd.DataFrame(records).sort_values("Symbol")
+    return combined.to_csv(index=False).encode("utf-8")
+
+
 # Major European equity indices covered by pytickersymbols.
 EUROPE_INDICES = (
     "EURO STOXX 50",
@@ -271,6 +317,8 @@ def refresh_listings(config_path: Path) -> dict[str, int]:
       - ``source: krx``: rebuild KOSPI/KOSDAQ list via FinanceDataReader
       - ``source: tse``: rebuild Tokyo Stock Exchange list via FinanceDataReader
       - ``source: europe``: rebuild major European index constituents via pytickersymbols
+      - ``source: twse``: rebuild TWSE listed-company list from OpenAPI JSON
+        (optional ``url`` overrides the default directory endpoint)
       - ``source: plain_tickers`` (or ``russell2000``): rebuild Symbol CSV from a
         plain ticker list; ``url`` required for ``plain_tickers``, optional for
         ``russell2000`` (defaults to IWM holdings)
@@ -330,6 +378,23 @@ def refresh_listings(config_path: Path) -> dict[str, int]:
                     remote = build_europe_listing_csv()
                 except Exception as exc:  # noqa: BLE001
                     print(f"  FAILED to build Europe listing — {exc} (keeping local copy)", flush=True)
+                    summary["failed"] += 1
+                    continue
+                if _write_if_changed(local_path, remote):
+                    summary["updated"] += 1
+                continue
+
+            if source == "twse":
+                summary["checked"] += 1
+                listing_url = url or TWSE_LISTED_URL
+                print(f"Checking listing update: {listing_url}", flush=True)
+                try:
+                    remote = build_twse_listing_csv(url=listing_url)
+                except Exception as exc:  # noqa: BLE001
+                    print(
+                        f"  FAILED to build TWSE listing — {exc} (keeping local copy)",
+                        flush=True,
+                    )
                     summary["failed"] += 1
                     continue
                 if _write_if_changed(local_path, remote):

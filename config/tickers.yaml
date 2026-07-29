@@ -13,6 +13,7 @@
 #   .ST = Nasdaq Stockholm
 #   .HE = Nasdaq Helsinki
 #   .HK = Hong Kong Stock Exchange
+#   .TW = Taiwan Stock Exchange (TWSE)
 #   .T  = Tokyo Stock Exchange
 #   .KS = Korea Exchange (KOSPI)
 #   .KQ = Korea Exchange (KOSDAQ)
@@ -22,7 +23,7 @@
 #
 # `listings` maps an asset class to CSV entries. Each entry has a local
 # `path` (relative to this config directory) plus either a remote `url`
-# and/or a `source` (e.g. krx, tse, europe, plain_tickers, russell2000)
+# and/or a `source` (e.g. krx, tse, europe, twse, plain_tickers, russell2000)
 # used to refresh the file on each run. Symbol columns are unioned into
 # that class. US share-class dots are converted for Yahoo (BRK.B → BRK-B);
 # NASDAQ Test Issue = Y rows are skipped.
@@ -56,6 +57,10 @@ listings:
   stocks_hk:
     - path: listings/hangseng-constituents.csv
       url: https://yfiua.github.io/index-constituents/constituents-hsi.csv
+  stocks_tw:
+    - path: listings/twse-listed-symbols.csv
+      url: https://openapi.twse.com.tw/v1/opendata/t187ap03_L
+      source: twse  # TWSE listed companies JSON → Symbol CSV (.TW)
 
 # Optional extra tickers beyond the listing CSVs (usually empty).
 stocks_us: []
@@ -63,6 +68,7 @@ stocks_kr: []
 stocks_jp: []
 stocks_eu: []
 stocks_hk: []
+stocks_tw: []
 
 indices:
   # Americas
@@ -90,6 +96,7 @@ indices:
   - "^OMXH25"     # OMX Helsinki 25
   # Asia
   - "^HSI"        # Hang Seng
+  - "^TWII"       # TAIEX (Taiwan)
   - "^N225"       # Nikkei 225
   - "^KS11"       # KOSPI Composite Index
   - "^KQ11"       # KOSDAQ Composite Index

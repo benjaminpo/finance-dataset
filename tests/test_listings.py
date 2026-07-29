@@ -18,6 +18,7 @@ from src.listings import (
     build_plain_ticker_listing_csv,
     build_russell2000_listing_csv,
     build_tse_listing_csv,
+    build_twse_listing_csv,
     download_bytes,
     normalize_listing_entry,
     refresh_listings,
@@ -143,6 +144,34 @@ def test_build_europe_listing_csv() -> None:
     assert all(sfx in EUROPE_SUFFIXES for sfx in (".DE", ".AS"))
 
 
+def test_build_twse_listing_csv() -> None:
+    import json
+
+    payload = json.dumps(
+        [
+            {"公司代號": "2330", "公司簡稱": "台積電", "產業別": "24"},
+            {"公司代號": "1101", "公司簡稱": "台泥", "產業別": "01"},
+            {"公司代號": "skip", "公司簡稱": "bad"},
+        ],
+        ensure_ascii=False,
+    ).encode("utf-8")
+    with patch("src.listings.download_bytes", return_value=payload) as mock_dl:
+        raw = build_twse_listing_csv(url="https://example.com/twse.json")
+    mock_dl.assert_called_once_with("https://example.com/twse.json")
+    text = raw.decode("utf-8")
+    assert text.startswith("Symbol,Name,Industry\n")
+    assert "2330.TW" in text
+    assert "1101.TW" in text
+    assert "skip.TW" not in text
+    assert text.index("1101.TW") < text.index("2330.TW")
+
+
+def test_build_twse_listing_csv_empty_raises() -> None:
+    with patch("src.listings.download_bytes", return_value=b"[]"):
+        with pytest.raises(RuntimeError, match="Empty TWSE listing"):
+            build_twse_listing_csv()
+
+
 def test_build_plain_ticker_listing_csv() -> None:
     payload = b"AAPL\naap\n# comment\nNYSE:BRK.B\nCASH\nUSD\nXTSLA\nP5N994\n1BAD\nAAPL\n"
     with patch("src.listings.download_bytes", return_value=payload) as mock_dl:
@@ -231,7 +260,7 @@ def test_refresh_listings_empty_remote(tmp_path: Path) -> None:
     assert summary["failed"] == 1
 
 
-def test_refresh_listings_krx_tse_europe_plain_tickers(tmp_path: Path) -> None:
+def test_refresh_listings_krx_tse_europe_twse_plain_tickers(tmp_path: Path) -> None:
     config = tmp_path / "tickers.yaml"
     (tmp_path / "listings").mkdir()
     config.write_text(
@@ -245,6 +274,10 @@ def test_refresh_listings_krx_tse_europe_plain_tickers(tmp_path: Path) -> None:
         "  stocks_eu:\n"
         "    - path: listings/eu.csv\n"
         "      source: europe\n"
+        "  stocks_tw:\n"
+        "    - path: listings/twse.csv\n"
+        "      url: https://example.com/twse.json\n"
+        "      source: twse\n"
         "  stocks_us:\n"
         "    - path: listings/sp400.csv\n"
         "      url: https://example.com/mdy.txt\n"
@@ -259,12 +292,17 @@ def test_refresh_listings_krx_tse_europe_plain_tickers(tmp_path: Path) -> None:
         patch("src.listings.build_tse_listing_csv", return_value=b"Symbol\n1.T\n"),
         patch("src.listings.build_europe_listing_csv", return_value=b"Symbol\nX.DE\n"),
         patch(
+            "src.listings.build_twse_listing_csv",
+            return_value=b"Symbol\n2330.TW\n",
+        ) as mock_twse,
+        patch(
             "src.listings.build_plain_ticker_listing_csv",
             return_value=b"Symbol\nMDY\n",
         ) as mock_plain,
     ):
         summary = refresh_listings(config)
-    assert summary == {"checked": 5, "updated": 5, "failed": 0}
+    assert summary == {"checked": 6, "updated": 6, "failed": 0}
+    mock_twse.assert_called_once_with(url="https://example.com/twse.json")
     assert mock_plain.call_count == 2
     mock_plain.assert_any_call(url="https://example.com/mdy.txt")
     mock_plain.assert_any_call(url="https://example.com/iwm.txt")
@@ -296,6 +334,9 @@ def test_refresh_listings_source_failures(tmp_path: Path) -> None:
         "  stocks_eu:\n"
         "    - path: listings/eu.csv\n"
         "      source: europe\n"
+        "  stocks_tw:\n"
+        "    - path: listings/twse.csv\n"
+        "      source: twse\n"
         "  stocks_us:\n"
         "    - path: listings/r2k.csv\n"
         "      source: russell2000\n",
@@ -305,10 +346,11 @@ def test_refresh_listings_source_failures(tmp_path: Path) -> None:
         patch("src.listings.build_krx_listing_csv", side_effect=RuntimeError("krx")),
         patch("src.listings.build_tse_listing_csv", side_effect=RuntimeError("tse")),
         patch("src.listings.build_europe_listing_csv", side_effect=RuntimeError("eu")),
+        patch("src.listings.build_twse_listing_csv", side_effect=RuntimeError("twse")),
         patch(
             "src.listings.build_plain_ticker_listing_csv",
             side_effect=RuntimeError("r2k"),
         ),
     ):
         summary = refresh_listings(config)
-    assert summary == {"checked": 4, "updated": 0, "failed": 4}
+    assert summary == {"checked": 5, "updated": 0, "failed": 5}

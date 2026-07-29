@@ -155,7 +155,7 @@ def _to_yahoo_symbol(symbol: str) -> str:
     symbol = symbol.strip()
     upper = symbol.upper()
     exchange_suffixes = (
-        ".KS", ".KQ", ".L", ".HK", ".T", ".SS", ".SZ",
+        ".KS", ".KQ", ".L", ".HK", ".TW", ".TWO", ".T", ".SS", ".SZ",
         ".DE", ".PA", ".AS", ".BR", ".MI", ".MC", ".SW",
         ".ST", ".HE", ".CO", ".OL", ".LS", ".VI", ".IR", ".F",
     )

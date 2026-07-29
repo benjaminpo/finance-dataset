@@ -11,6 +11,7 @@ Automated pipeline that pulls historical and intradaily market data from [Yahoo 
 | `stocks_jp`  | Tokyo Stock Exchange (`.T`)      | `data/stocks_jp/`    |
 | `stocks_eu`  | STOXX/DAX/CAC/FTSE/AEX/IBEX/…    | `data/stocks_eu/`    |
 | `stocks_hk`  | Hang Seng Index (`.HK`)          | `data/stocks_hk/`    |
+| `stocks_tw`  | TWSE listed (`.TW`)              | `data/stocks_tw/`    |
 | `indices`    | ^GSPC, ^RUT, ^STOXX50E, ^KS11, … | `data/indices/`      |
 | `rates`      | ^IRX, ^FVX, ^TNX, ^TYX           | `data/rates/`        |
 | `futures`    | CL=F, ES=F                       | `data/futures/`      |
@@ -41,6 +42,8 @@ Each pipeline run (including the scheduled GitHub Action) refreshes those listin
 **Hong Kong stocks** (`stocks_hk`) are loaded from Hang Seng Index constituents:
 
 - [`config/listings/hangseng-constituents.csv`](config/listings/hangseng-constituents.csv) ([source](https://yfiua.github.io/index-constituents/constituents-hsi.csv); Yahoo `.HK` symbols)
+
+**Taiwan stocks** (`stocks_tw`) are rebuilt each run from the TWSE OpenAPI listed-company directory into [`config/listings/twse-listed-symbols.csv`](config/listings/twse-listed-symbols.csv) ([source](https://openapi.twse.com.tw/v1/opendata/t187ap03_L); Yahoo `.TW` suffix via `source: twse`).
 
 ## Storage layout
 

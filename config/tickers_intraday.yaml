@@ -31,6 +31,10 @@ listings:
   stocks_hk:
     - path: listings/hangseng-constituents.csv
       url: https://yfiua.github.io/index-constituents/constituents-hsi.csv
+  stocks_tw:
+    - path: listings/twse-listed-symbols.csv
+      url: https://openapi.twse.com.tw/v1/opendata/t187ap03_L
+      source: twse  # TWSE listed companies JSON → Symbol CSV (.TW)
 
 # Optional extra tickers beyond the listing CSVs (usually empty).
 stocks_us: []
@@ -38,6 +42,7 @@ stocks_kr: []
 stocks_jp: []
 stocks_eu: []
 stocks_hk: []
+stocks_tw: []
 
 indices:
   # Americas
@@ -65,6 +70,7 @@ indices:
   - "^OMXH25"     # OMX Helsinki 25
   # Asia
   - "^HSI"        # Hang Seng
+  - "^TWII"       # TAIEX (Taiwan)
   - "^N225"       # Nikkei 225
   - "^KS11"       # KOSPI Composite Index
   - "^KQ11"       # KOSDAQ Composite Index
