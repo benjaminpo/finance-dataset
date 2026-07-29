@@ -22,9 +22,10 @@
 #
 # `listings` maps an asset class to CSV entries. Each entry has a local
 # `path` (relative to this config directory) plus either a remote `url`
-# or a `source` (e.g. krx, tse, europe) used to refresh the file on each run.
-# Symbol columns are unioned into that class. US share-class dots are
-# converted for Yahoo (BRK.B → BRK-B); NASDAQ Test Issue = Y rows are skipped.
+# and/or a `source` (e.g. krx, tse, europe, russell2000) used to refresh
+# the file on each run. Symbol columns are unioned into that class. US
+# share-class dots are converted for Yahoo (BRK.B → BRK-B); NASDAQ
+# Test Issue = Y rows are skipped.
 
 listings:
   stocks_us:
@@ -32,6 +33,9 @@ listings:
       url: https://raw.githubusercontent.com/datasets/nasdaq-listings/master/data/nasdaq-listed-symbols.csv
     - path: listings/sp500-constituents.csv
       url: https://raw.githubusercontent.com/datasets/s-and-p-500-companies/master/data/constituents.csv
+    - path: listings/russell2000-constituents.csv
+      url: https://raw.githubusercontent.com/major/index-etfs/main/tickers/iwm.txt
+      source: russell2000  # plain ticker list → Symbol CSV (skip cash/collateral)
   stocks_kr:
     - path: listings/krx-listed-symbols.csv
       source: krx   # rebuild from KOSPI + KOSDAQ via FinanceDataReader

@@ -15,6 +15,7 @@ from src.listings import (
     _write_if_changed,
     build_europe_listing_csv,
     build_krx_listing_csv,
+    build_russell2000_listing_csv,
     build_tse_listing_csv,
     download_bytes,
     normalize_listing_entry,
@@ -141,6 +142,31 @@ def test_build_europe_listing_csv() -> None:
     assert all(sfx in EUROPE_SUFFIXES for sfx in (".DE", ".AS"))
 
 
+def test_build_russell2000_listing_csv() -> None:
+    payload = b"AAPL\naap\n# comment\nNYSE:BRK.B\nCASH\nUSD\nXTSLA\nP5N994\n1BAD\nAAPL\n"
+    with patch("src.listings.download_bytes", return_value=payload) as mock_dl:
+        raw = build_russell2000_listing_csv(url="https://example.com/iwm.txt")
+    mock_dl.assert_called_once_with("https://example.com/iwm.txt")
+    text = raw.decode("utf-8")
+    assert text.startswith("Symbol\n")
+    assert "AAPL" in text
+    assert "BRK.B" in text
+    assert "CASH" not in text
+    assert "USD" not in text
+    assert "XTSLA" not in text
+    assert "P5N994" not in text
+    assert "1BAD" not in text
+    # Deduped + sorted
+    assert text.count("AAPL") == 1
+    assert text.index("AAPL") < text.index("BRK.B")
+
+
+def test_build_russell2000_listing_csv_empty_raises() -> None:
+    with patch("src.listings.download_bytes", return_value=b"CASH\nUSD\n"):
+        with pytest.raises(RuntimeError, match="Empty Russell 2000"):
+            build_russell2000_listing_csv()
+
+
 def test_refresh_listings_url_create_and_unchanged(tmp_path: Path) -> None:
     config = tmp_path / "tickers.yaml"
     listing_rel = "listings/nasdaq.csv"
@@ -194,7 +220,7 @@ def test_refresh_listings_empty_remote(tmp_path: Path) -> None:
     assert summary["failed"] == 1
 
 
-def test_refresh_listings_krx_tse_europe(tmp_path: Path) -> None:
+def test_refresh_listings_krx_tse_europe_russell(tmp_path: Path) -> None:
     config = tmp_path / "tickers.yaml"
     (tmp_path / "listings").mkdir()
     config.write_text(
@@ -207,16 +233,25 @@ def test_refresh_listings_krx_tse_europe(tmp_path: Path) -> None:
         "      source: tse\n"
         "  stocks_eu:\n"
         "    - path: listings/eu.csv\n"
-        "      source: europe\n",
+        "      source: europe\n"
+        "  stocks_us:\n"
+        "    - path: listings/r2k.csv\n"
+        "      url: https://example.com/iwm.txt\n"
+        "      source: russell2000\n",
         encoding="utf-8",
     )
     with (
         patch("src.listings.build_krx_listing_csv", return_value=b"Symbol\nA.KS\n"),
         patch("src.listings.build_tse_listing_csv", return_value=b"Symbol\n1.T\n"),
         patch("src.listings.build_europe_listing_csv", return_value=b"Symbol\nX.DE\n"),
+        patch(
+            "src.listings.build_russell2000_listing_csv",
+            return_value=b"Symbol\nIWM\n",
+        ) as mock_r2k,
     ):
         summary = refresh_listings(config)
-    assert summary == {"checked": 3, "updated": 3, "failed": 0}
+    assert summary == {"checked": 4, "updated": 4, "failed": 0}
+    mock_r2k.assert_called_once_with(url="https://example.com/iwm.txt")
 
 
 def test_refresh_listings_source_failures(tmp_path: Path) -> None:
@@ -231,13 +266,20 @@ def test_refresh_listings_source_failures(tmp_path: Path) -> None:
         "      source: tse\n"
         "  stocks_eu:\n"
         "    - path: listings/eu.csv\n"
-        "      source: europe\n",
+        "      source: europe\n"
+        "  stocks_us:\n"
+        "    - path: listings/r2k.csv\n"
+        "      source: russell2000\n",
         encoding="utf-8",
     )
     with (
         patch("src.listings.build_krx_listing_csv", side_effect=RuntimeError("krx")),
         patch("src.listings.build_tse_listing_csv", side_effect=RuntimeError("tse")),
         patch("src.listings.build_europe_listing_csv", side_effect=RuntimeError("eu")),
+        patch(
+            "src.listings.build_russell2000_listing_csv",
+            side_effect=RuntimeError("r2k"),
+        ),
     ):
         summary = refresh_listings(config)
-    assert summary == {"checked": 3, "updated": 0, "failed": 3}
+    assert summary == {"checked": 4, "updated": 0, "failed": 4}

@@ -6,7 +6,7 @@ Automated pipeline that pulls historical and intradaily market data from [Yahoo 
 
 | Config key   | Examples                         | Path prefix          |
 |--------------|----------------------------------|----------------------|
-| `stocks_us`  | NASDAQ listings ∪ S&P 500        | `data/stocks_us/`    |
+| `stocks_us`  | NASDAQ ∪ S&P 500 ∪ Russell 2000  | `data/stocks_us/`    |
 | `stocks_kr`  | KOSPI + KOSDAQ (`.KS` / `.KQ`)   | `data/stocks_kr/`    |
 | `stocks_jp`  | Tokyo Stock Exchange (`.T`)      | `data/stocks_jp/`    |
 | `stocks_eu`  | STOXX/DAX/CAC/FTSE/AEX/IBEX/…    | `data/stocks_eu/`    |
@@ -23,10 +23,11 @@ Edit the lists in [`config/tickers.yaml`](config/tickers.yaml) to add or remove 
 
 - [`config/listings/nasdaq-listed-symbols.csv`](config/listings/nasdaq-listed-symbols.csv) ([source](https://raw.githubusercontent.com/datasets/nasdaq-listings/master/data/nasdaq-listed-symbols.csv))
 - [`config/listings/sp500-constituents.csv`](config/listings/sp500-constituents.csv) ([source](https://raw.githubusercontent.com/datasets/s-and-p-500-companies/master/data/constituents.csv))
+- [`config/listings/russell2000-constituents.csv`](config/listings/russell2000-constituents.csv) ([source](https://raw.githubusercontent.com/major/index-etfs/main/tickers/iwm.txt); rebuilt each run from the plain IWM ticker list via `source: russell2000`)
 
 Share classes like `BRK.B` are rewritten to Yahoo form (`BRK-B`). NASDAQ rows with `Test Issue = Y` are skipped, as are warrants / rights / units (limited Yahoo history).
 
-Each pipeline run (including the scheduled GitHub Action) checks those remote URLs first, compares SHA-256 hashes, and updates the local CSVs when content changed. Listing updates are committed to git; OHLCV under `data/` is uploaded to Kaggle. Use `--skip-listings-refresh` to skip the check, or `--listings-only` to refresh listings without fetching market data.
+Each pipeline run (including the scheduled GitHub Action) refreshes those listings first (remote URL downloads and `source:` builders), compares SHA-256 hashes, and updates the local CSVs when content changed. Listing updates are committed to git; OHLCV under `data/` is uploaded to Kaggle. Use `--skip-listings-refresh` to skip the check, or `--listings-only` to refresh listings without fetching market data.
 
 **Korean stocks** (`stocks_kr`) are rebuilt each run from KOSPI + KOSDAQ via [FinanceDataReader](https://github.com/FinanceData/FinanceDataReader) into [`config/listings/krx-listed-symbols.csv`](config/listings/krx-listed-symbols.csv), with Yahoo suffixes `.KS` (KOSPI) and `.KQ` (KOSDAQ).
 
@@ -95,7 +96,7 @@ CSV index column is `Datetime` (UTC, ISO-8601). Columns: Open, High, Low, Close,
 ├── src/
 │   ├── __init__.py
 │   ├── fetcher.py      # download + CSV merge logic
-│   ├── listings.py     # remote/KRX/TSE/Europe listing refresh
+│   ├── listings.py     # remote/KRX/TSE/Europe/Russell2000 listing refresh
 │   ├── main.py         # CLI entry point
 │   └── summary.py      # fetch failure-rate report (CI artifact)
 ├── tests/

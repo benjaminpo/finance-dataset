@@ -207,6 +207,56 @@ def build_europe_listing_csv() -> bytes:
     return combined.to_csv(index=False).encode("utf-8")
 
 
+# Daily-updated IWM (Russell 2000 ETF) plain ticker list.
+RUSSELL2000_TICKERS_URL = (
+    "https://raw.githubusercontent.com/major/index-etfs/main/tickers/iwm.txt"
+)
+
+# Cash / collateral rows that appear in IWM holdings but are not equities.
+_RUSSELL2000_SKIP = frozenset({"CASH", "USD", "XTSLA", "P5N994"})
+
+
+def build_russell2000_listing_csv(
+    url: str = RUSSELL2000_TICKERS_URL,
+) -> bytes:
+    """
+    Build a Symbol CSV for Russell 2000 constituents via IWM holdings.
+
+    Source is the daily-refreshed plain ticker file from major/index-etfs
+    (derived from iShares Russell 2000 ETF holdings). Non-equity rows
+    (cash / collateral) are dropped.
+    """
+    import re
+
+    import pandas as pd
+
+    remote = download_bytes(url)
+    text = remote.decode("utf-8")
+    ticker_re = re.compile(r"^[A-Z][A-Z0-9.\-]{0,9}$")
+
+    symbols: list[str] = []
+    seen: set[str] = set()
+    for line in text.splitlines():
+        raw = line.strip().upper()
+        if not raw or raw.startswith("#"):
+            continue
+        # TradingView-style EXCHANGE:TICKER → bare ticker.
+        if ":" in raw:
+            raw = raw.rsplit(":", 1)[-1]
+        if raw in _RUSSELL2000_SKIP or not ticker_re.match(raw):
+            continue
+        if raw in seen:
+            continue
+        seen.add(raw)
+        symbols.append(raw)
+
+    if not symbols:
+        raise RuntimeError("Empty Russell 2000 listing from IWM holdings")
+
+    combined = pd.DataFrame({"Symbol": symbols}).sort_values("Symbol")
+    return combined.to_csv(index=False).encode("utf-8")
+
+
 def refresh_listings(config_path: Path) -> dict[str, int]:
     """
     Refresh listing CSVs declared in config.
@@ -216,6 +266,8 @@ def refresh_listings(config_path: Path) -> dict[str, int]:
       - ``source: krx``: rebuild KOSPI/KOSDAQ list via FinanceDataReader
       - ``source: tse``: rebuild Tokyo Stock Exchange list via FinanceDataReader
       - ``source: europe``: rebuild major European index constituents via pytickersymbols
+      - ``source: russell2000``: rebuild Russell 2000 list from IWM holdings
+        (optional ``url`` overrides the default plain-ticker source)
 
     Returns ``{"checked": n, "updated": n, "failed": n}``.
     """
@@ -272,6 +324,23 @@ def refresh_listings(config_path: Path) -> dict[str, int]:
                     remote = build_europe_listing_csv()
                 except Exception as exc:  # noqa: BLE001
                     print(f"  FAILED to build Europe listing — {exc} (keeping local copy)", flush=True)
+                    summary["failed"] += 1
+                    continue
+                if _write_if_changed(local_path, remote):
+                    summary["updated"] += 1
+                continue
+
+            if source == "russell2000":
+                summary["checked"] += 1
+                listing_url = url or RUSSELL2000_TICKERS_URL
+                print(f"Checking listing update: {listing_url}", flush=True)
+                try:
+                    remote = build_russell2000_listing_csv(url=listing_url)
+                except Exception as exc:  # noqa: BLE001
+                    print(
+                        f"  FAILED to build Russell 2000 listing — {exc} (keeping local copy)",
+                        flush=True,
+                    )
                     summary["failed"] += 1
                     continue
                 if _write_if_changed(local_path, remote):

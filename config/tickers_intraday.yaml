@@ -8,6 +8,9 @@ listings:
       url: https://raw.githubusercontent.com/datasets/nasdaq-listings/master/data/nasdaq-listed-symbols.csv
     - path: listings/sp500-constituents.csv
       url: https://raw.githubusercontent.com/datasets/s-and-p-500-companies/master/data/constituents.csv
+    - path: listings/russell2000-constituents.csv
+      url: https://raw.githubusercontent.com/major/index-etfs/main/tickers/iwm.txt
+      source: russell2000  # plain ticker list → Symbol CSV (skip cash/collateral)
   stocks_kr:
     - path: listings/krx-listed-symbols.csv
       source: krx   # rebuild from KOSPI + KOSDAQ via FinanceDataReader
