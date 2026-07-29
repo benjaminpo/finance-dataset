@@ -10,7 +10,7 @@ Automated pipeline that pulls historical and intradaily market data from [Yahoo 
 | `stocks_kr`  | KOSPI + KOSDAQ (`.KS` / `.KQ`)   | `data/stocks_kr/`    |
 | `stocks_jp`  | Tokyo Stock Exchange (`.T`)      | `data/stocks_jp/`    |
 | `stocks_eu`  | STOXX/DAX/CAC/FTSE/AEX/IBEX/…    | `data/stocks_eu/`    |
-| `stocks_hk`  | Hang Seng / China internet (HK)  | `data/stocks_hk/`    |
+| `stocks_hk`  | Hang Seng Index (`.HK`)          | `data/stocks_hk/`    |
 | `indices`    | ^GSPC, ^RUT, ^STOXX50E, ^KS11, … | `data/indices/`      |
 | `rates`      | ^IRX, ^FVX, ^TNX, ^TYX           | `data/rates/`        |
 | `futures`    | CL=F, ES=F                       | `data/futures/`      |
@@ -37,6 +37,10 @@ Each pipeline run (including the scheduled GitHub Action) refreshes those listin
 **Japanese stocks** (`stocks_jp`) are rebuilt each run from the Tokyo Stock Exchange via FinanceDataReader into [`config/listings/tse-listed-symbols.csv`](config/listings/tse-listed-symbols.csv), with Yahoo suffix `.T` (e.g. `7203.T`).
 
 **European stocks** (`stocks_eu`) are rebuilt each run from major European indices (EURO STOXX 50, DAX/MDAX/SDAX/TecDAX, CAC 40/Mid 60, AEX, BEL 20, IBEX 35, FTSE 100, Switzerland 20, OMX Helsinki 25, OMX Stockholm 30) via [pytickersymbols](https://github.com/portfolioplus/pytickersymbols) into [`config/listings/europe-listed-symbols.csv`](config/listings/europe-listed-symbols.csv).
+
+**Hong Kong stocks** (`stocks_hk`) are loaded from Hang Seng Index constituents:
+
+- [`config/listings/hangseng-constituents.csv`](config/listings/hangseng-constituents.csv) ([source](https://yfiua.github.io/index-constituents/constituents-hsi.csv); Yahoo `.HK` symbols)
 
 ## Storage layout
 
