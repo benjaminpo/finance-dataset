@@ -67,7 +67,10 @@ stocks_us: []
 stocks_kr: []
 stocks_jp: []
 stocks_eu: []
-stocks_hk: []
+stocks_hk:
+  # Not Hang Seng constituents but previously tracked liquid HK names.
+  - "9866.HK"   # NIO
+  - "9868.HK"   # XPeng
 stocks_tw: []
 
 indices:
