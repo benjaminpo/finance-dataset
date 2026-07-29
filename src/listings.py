@@ -212,19 +212,17 @@ RUSSELL2000_TICKERS_URL = (
     "https://raw.githubusercontent.com/major/index-etfs/main/tickers/iwm.txt"
 )
 
-# Cash / collateral rows that appear in IWM holdings but are not equities.
-_RUSSELL2000_SKIP = frozenset({"CASH", "USD", "XTSLA", "P5N994"})
+# Cash / collateral rows that appear in ETF holdings but are not equities.
+_PLAIN_TICKER_SKIP = frozenset({"CASH", "USD", "XTSLA", "P5N994"})
 
 
-def build_russell2000_listing_csv(
-    url: str = RUSSELL2000_TICKERS_URL,
-) -> bytes:
+def build_plain_ticker_listing_csv(url: str) -> bytes:
     """
-    Build a Symbol CSV for Russell 2000 constituents via IWM holdings.
+    Build a Symbol CSV from a plain ticker list (one symbol per line).
 
-    Source is the daily-refreshed plain ticker file from major/index-etfs
-    (derived from iShares Russell 2000 ETF holdings). Non-equity rows
-    (cash / collateral) are dropped.
+    Used for ETF/index holdings mirrors such as major/index-etfs
+    (IWM / MDY / SPSM). Non-equity rows (cash / collateral) are dropped;
+    TradingView-style ``EXCHANGE:TICKER`` lines are normalized to the bare ticker.
     """
     import re
 
@@ -243,7 +241,7 @@ def build_russell2000_listing_csv(
         # TradingView-style EXCHANGE:TICKER → bare ticker.
         if ":" in raw:
             raw = raw.rsplit(":", 1)[-1]
-        if raw in _RUSSELL2000_SKIP or not ticker_re.match(raw):
+        if raw in _PLAIN_TICKER_SKIP or not ticker_re.match(raw):
             continue
         if raw in seen:
             continue
@@ -251,10 +249,17 @@ def build_russell2000_listing_csv(
         symbols.append(raw)
 
     if not symbols:
-        raise RuntimeError("Empty Russell 2000 listing from IWM holdings")
+        raise RuntimeError(f"Empty plain-ticker listing from {url}")
 
     combined = pd.DataFrame({"Symbol": symbols}).sort_values("Symbol")
     return combined.to_csv(index=False).encode("utf-8")
+
+
+def build_russell2000_listing_csv(
+    url: str = RUSSELL2000_TICKERS_URL,
+) -> bytes:
+    """Compatibility wrapper around :func:`build_plain_ticker_listing_csv`."""
+    return build_plain_ticker_listing_csv(url=url)
 
 
 def refresh_listings(config_path: Path) -> dict[str, int]:
@@ -266,8 +271,9 @@ def refresh_listings(config_path: Path) -> dict[str, int]:
       - ``source: krx``: rebuild KOSPI/KOSDAQ list via FinanceDataReader
       - ``source: tse``: rebuild Tokyo Stock Exchange list via FinanceDataReader
       - ``source: europe``: rebuild major European index constituents via pytickersymbols
-      - ``source: russell2000``: rebuild Russell 2000 list from IWM holdings
-        (optional ``url`` overrides the default plain-ticker source)
+      - ``source: plain_tickers`` (or ``russell2000``): rebuild Symbol CSV from a
+        plain ticker list; ``url`` required for ``plain_tickers``, optional for
+        ``russell2000`` (defaults to IWM holdings)
 
     Returns ``{"checked": n, "updated": n, "failed": n}``.
     """
@@ -330,15 +336,22 @@ def refresh_listings(config_path: Path) -> dict[str, int]:
                     summary["updated"] += 1
                 continue
 
-            if source == "russell2000":
+            if source in ("plain_tickers", "russell2000"):
                 summary["checked"] += 1
-                listing_url = url or RUSSELL2000_TICKERS_URL
+                listing_url = url or (RUSSELL2000_TICKERS_URL if source == "russell2000" else None)
+                if not listing_url:
+                    print(
+                        f"  FAILED — source {source!r} requires url for {local_path.name}",
+                        flush=True,
+                    )
+                    summary["failed"] += 1
+                    continue
                 print(f"Checking listing update: {listing_url}", flush=True)
                 try:
-                    remote = build_russell2000_listing_csv(url=listing_url)
+                    remote = build_plain_ticker_listing_csv(url=listing_url)
                 except Exception as exc:  # noqa: BLE001
                     print(
-                        f"  FAILED to build Russell 2000 listing — {exc} (keeping local copy)",
+                        f"  FAILED to build plain-ticker listing — {exc} (keeping local copy)",
                         flush=True,
                     )
                     summary["failed"] += 1

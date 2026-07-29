@@ -15,6 +15,7 @@ from src.listings import (
     _write_if_changed,
     build_europe_listing_csv,
     build_krx_listing_csv,
+    build_plain_ticker_listing_csv,
     build_russell2000_listing_csv,
     build_tse_listing_csv,
     download_bytes,
@@ -142,11 +143,11 @@ def test_build_europe_listing_csv() -> None:
     assert all(sfx in EUROPE_SUFFIXES for sfx in (".DE", ".AS"))
 
 
-def test_build_russell2000_listing_csv() -> None:
+def test_build_plain_ticker_listing_csv() -> None:
     payload = b"AAPL\naap\n# comment\nNYSE:BRK.B\nCASH\nUSD\nXTSLA\nP5N994\n1BAD\nAAPL\n"
     with patch("src.listings.download_bytes", return_value=payload) as mock_dl:
-        raw = build_russell2000_listing_csv(url="https://example.com/iwm.txt")
-    mock_dl.assert_called_once_with("https://example.com/iwm.txt")
+        raw = build_plain_ticker_listing_csv(url="https://example.com/mdy.txt")
+    mock_dl.assert_called_once_with("https://example.com/mdy.txt")
     text = raw.decode("utf-8")
     assert text.startswith("Symbol\n")
     assert "AAPL" in text
@@ -161,10 +162,20 @@ def test_build_russell2000_listing_csv() -> None:
     assert text.index("AAPL") < text.index("BRK.B")
 
 
-def test_build_russell2000_listing_csv_empty_raises() -> None:
+def test_build_russell2000_listing_csv_alias() -> None:
+    with patch(
+        "src.listings.build_plain_ticker_listing_csv",
+        return_value=b"Symbol\nAAPL\n",
+    ) as mock_build:
+        raw = build_russell2000_listing_csv(url="https://example.com/iwm.txt")
+    mock_build.assert_called_once_with(url="https://example.com/iwm.txt")
+    assert raw == b"Symbol\nAAPL\n"
+
+
+def test_build_plain_ticker_listing_csv_empty_raises() -> None:
     with patch("src.listings.download_bytes", return_value=b"CASH\nUSD\n"):
-        with pytest.raises(RuntimeError, match="Empty Russell 2000"):
-            build_russell2000_listing_csv()
+        with pytest.raises(RuntimeError, match="Empty plain-ticker listing"):
+            build_plain_ticker_listing_csv(url="https://example.com/empty.txt")
 
 
 def test_refresh_listings_url_create_and_unchanged(tmp_path: Path) -> None:
@@ -220,7 +231,7 @@ def test_refresh_listings_empty_remote(tmp_path: Path) -> None:
     assert summary["failed"] == 1
 
 
-def test_refresh_listings_krx_tse_europe_russell(tmp_path: Path) -> None:
+def test_refresh_listings_krx_tse_europe_plain_tickers(tmp_path: Path) -> None:
     config = tmp_path / "tickers.yaml"
     (tmp_path / "listings").mkdir()
     config.write_text(
@@ -235,6 +246,9 @@ def test_refresh_listings_krx_tse_europe_russell(tmp_path: Path) -> None:
         "    - path: listings/eu.csv\n"
         "      source: europe\n"
         "  stocks_us:\n"
+        "    - path: listings/sp400.csv\n"
+        "      url: https://example.com/mdy.txt\n"
+        "      source: plain_tickers\n"
         "    - path: listings/r2k.csv\n"
         "      url: https://example.com/iwm.txt\n"
         "      source: russell2000\n",
@@ -245,13 +259,28 @@ def test_refresh_listings_krx_tse_europe_russell(tmp_path: Path) -> None:
         patch("src.listings.build_tse_listing_csv", return_value=b"Symbol\n1.T\n"),
         patch("src.listings.build_europe_listing_csv", return_value=b"Symbol\nX.DE\n"),
         patch(
-            "src.listings.build_russell2000_listing_csv",
-            return_value=b"Symbol\nIWM\n",
-        ) as mock_r2k,
+            "src.listings.build_plain_ticker_listing_csv",
+            return_value=b"Symbol\nMDY\n",
+        ) as mock_plain,
     ):
         summary = refresh_listings(config)
-    assert summary == {"checked": 4, "updated": 4, "failed": 0}
-    mock_r2k.assert_called_once_with(url="https://example.com/iwm.txt")
+    assert summary == {"checked": 5, "updated": 5, "failed": 0}
+    assert mock_plain.call_count == 2
+    mock_plain.assert_any_call(url="https://example.com/mdy.txt")
+    mock_plain.assert_any_call(url="https://example.com/iwm.txt")
+
+
+def test_refresh_listings_plain_tickers_requires_url(tmp_path: Path) -> None:
+    config = tmp_path / "tickers.yaml"
+    config.write_text(
+        "listings:\n"
+        "  stocks_us:\n"
+        "    - path: listings/sp400.csv\n"
+        "      source: plain_tickers\n",
+        encoding="utf-8",
+    )
+    summary = refresh_listings(config)
+    assert summary == {"checked": 1, "updated": 0, "failed": 1}
 
 
 def test_refresh_listings_source_failures(tmp_path: Path) -> None:
@@ -277,7 +306,7 @@ def test_refresh_listings_source_failures(tmp_path: Path) -> None:
         patch("src.listings.build_tse_listing_csv", side_effect=RuntimeError("tse")),
         patch("src.listings.build_europe_listing_csv", side_effect=RuntimeError("eu")),
         patch(
-            "src.listings.build_russell2000_listing_csv",
+            "src.listings.build_plain_ticker_listing_csv",
             side_effect=RuntimeError("r2k"),
         ),
     ):

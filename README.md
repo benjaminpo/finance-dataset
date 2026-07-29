@@ -6,7 +6,7 @@ Automated pipeline that pulls historical and intradaily market data from [Yahoo 
 
 | Config key   | Examples                         | Path prefix          |
 |--------------|----------------------------------|----------------------|
-| `stocks_us`  | NASDAQ ∪ S&P 500 ∪ Russell 2000  | `data/stocks_us/`    |
+| `stocks_us`  | NASDAQ ∪ DJIA ∪ S&P 500/400/600 ∪ Russell 2000 | `data/stocks_us/` |
 | `stocks_kr`  | KOSPI + KOSDAQ (`.KS` / `.KQ`)   | `data/stocks_kr/`    |
 | `stocks_jp`  | Tokyo Stock Exchange (`.T`)      | `data/stocks_jp/`    |
 | `stocks_eu`  | STOXX/DAX/CAC/FTSE/AEX/IBEX/…    | `data/stocks_eu/`    |
@@ -23,6 +23,9 @@ Edit the lists in [`config/tickers.yaml`](config/tickers.yaml) to add or remove 
 
 - [`config/listings/nasdaq-listed-symbols.csv`](config/listings/nasdaq-listed-symbols.csv) ([source](https://raw.githubusercontent.com/datasets/nasdaq-listings/master/data/nasdaq-listed-symbols.csv))
 - [`config/listings/sp500-constituents.csv`](config/listings/sp500-constituents.csv) ([source](https://raw.githubusercontent.com/datasets/s-and-p-500-companies/master/data/constituents.csv))
+- [`config/listings/dowjones-constituents.csv`](config/listings/dowjones-constituents.csv) ([source](https://yfiua.github.io/index-constituents/constituents-dowjones.csv))
+- [`config/listings/sp400-constituents.csv`](config/listings/sp400-constituents.csv) ([source](https://raw.githubusercontent.com/major/index-etfs/main/tickers/mdy.txt); S&P MidCap 400 via MDY holdings, `source: plain_tickers`)
+- [`config/listings/sp600-constituents.csv`](config/listings/sp600-constituents.csv) ([source](https://raw.githubusercontent.com/major/index-etfs/main/tickers/spsm.txt); S&P SmallCap 600 via SPSM holdings, `source: plain_tickers`)
 - [`config/listings/russell2000-constituents.csv`](config/listings/russell2000-constituents.csv) ([source](https://raw.githubusercontent.com/major/index-etfs/main/tickers/iwm.txt); rebuilt each run from the plain IWM ticker list via `source: russell2000`)
 
 Share classes like `BRK.B` are rewritten to Yahoo form (`BRK-B`). NASDAQ rows with `Test Issue = Y` are skipped, as are warrants / rights / units (limited Yahoo history).

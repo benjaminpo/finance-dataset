@@ -8,6 +8,14 @@ listings:
       url: https://raw.githubusercontent.com/datasets/nasdaq-listings/master/data/nasdaq-listed-symbols.csv
     - path: listings/sp500-constituents.csv
       url: https://raw.githubusercontent.com/datasets/s-and-p-500-companies/master/data/constituents.csv
+    - path: listings/dowjones-constituents.csv
+      url: https://yfiua.github.io/index-constituents/constituents-dowjones.csv
+    - path: listings/sp400-constituents.csv
+      url: https://raw.githubusercontent.com/major/index-etfs/main/tickers/mdy.txt
+      source: plain_tickers  # S&P MidCap 400 via MDY holdings
+    - path: listings/sp600-constituents.csv
+      url: https://raw.githubusercontent.com/major/index-etfs/main/tickers/spsm.txt
+      source: plain_tickers  # S&P SmallCap 600 via SPSM holdings
     - path: listings/russell2000-constituents.csv
       url: https://raw.githubusercontent.com/major/index-etfs/main/tickers/iwm.txt
       source: russell2000  # plain ticker list → Symbol CSV (skip cash/collateral)
@@ -79,6 +87,8 @@ stocks_hk:
 indices:
   # Americas
   - "^GSPC"       # S&P 500
+  - "^MID"        # S&P MidCap 400
+  - "^SP600"      # S&P SmallCap 600
   - "^DJI"        # Dow Jones
   - "^IXIC"       # Nasdaq Composite
   - "^RUI"        # Russell 1000
