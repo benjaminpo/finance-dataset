@@ -156,7 +156,6 @@ Symbol,Name,Industry
 190A.T,Chordia Therapeutics Inc,생명 공학 및 의학 연구
 1911.T,Sumitomo Forestry Co Ltd,주택 건설
 1914.T,Japan Foundation Engineering Co Ltd,건설 및 엔지니어링
-191A.T,Mimosa Co Ltd,의료 시설 및 서비스
 1921.T,Tomoe Corp,건설 및 엔지니어링
 1925.T,Daiwa House Industry Co Ltd,주택 건설
 1926.T,Raito Kogyo Co Ltd,건설 및 엔지니어링
@@ -763,7 +762,6 @@ Symbol,Name,Industry
 3267.T,Phil Company Inc,건설 및 엔지니어링
 3269.T,Advance Residence Investment Corp,주거용 REITs
 326A.T,Aero Lab International Inc,항공우주 및 방위
-3271.T,The Global Ltd,"부동산 임대, 개발 및 운영"
 3276.T,Japan Property Management Center Co Ltd,"부동산 임대, 개발 및 운영"
 3277.T,Sansei Landic Co Ltd,"부동산 임대, 개발 및 운영"
 3279.T,Activia Properties Inc,상업용 REITs
@@ -2157,6 +2155,7 @@ Symbol,Name,Industry
 6037.T,Rakumachi Inc,온라인 서비스
 6038.T,IID Inc,광고 및 마케팅
 6039.T,Japan Animal Referral Medical Center Co Ltd,의료 시설 및 서비스
+603A.T,i Grid Solutions Inc,전력 유틸리티
 6040.T,Nippon Ski Resort Development Co Ltd,여가 및 오락시설
 6042.T,Nikki Co Ltd,"자동차, 트럭 및 오토바이 부품"
 6044.T,Sanki Service Corp,경영 지원 서비스
@@ -2164,6 +2163,7 @@ Symbol,Name,Industry
 6046.T,Linkbal Inc,개인 서비스
 6047.T,Gunosy Inc,소프트웨어
 6049.T,Itokuro Inc,온라인 서비스
+604A.T,beABLE Co Ltd,건설 및 엔지니어링
 6050.T,E-Guardian Inc,경영 지원 서비스
 6054.T,Livesense Inc,IT 서비스 및 컨설팅
 6055.T,Japan Material Co Ltd,반도체 장비 및 테스트
