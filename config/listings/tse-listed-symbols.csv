@@ -93,7 +93,7 @@ Symbol,Name,Industry
 1766.T,Token Corp,주택 건설
 1768.T,Sonec Corp,건설 및 엔지니어링
 1770.T,Fujita Engineering Co Ltd,건설 및 엔지니어링
-1773.T,YTL Corporation Bhd,복합 유틸리티
+1773.T,YTL Corporation Berhad,복합 유틸리티
 177A.T,Kohjin Bio Co Ltd,제약
 1780.T,Yamaura Corp,건설 및 엔지니어링
 1783.T,Fantasista Co Ltd,"부동산 임대, 개발 및 운영"
@@ -1042,7 +1042,7 @@ Symbol,Name,Industry
 3768.T,Riskmonster.com,IT 서비스 및 컨설팅
 3769.T,GMO Payment Gateway Inc,경영 지원 서비스
 3771.T,System Research Co Ltd,IT 서비스 및 컨설팅
-3772.T,Wealth Management Inc,"부동산 임대, 개발 및 운영"
+3772.T,Wealth Management  Inc.,"부동산 임대, 개발 및 운영"
 3773.T,Advanced Media Inc,소프트웨어
 3774.T,Internet Initiative Japan Inc,통합 통신 서비스
 3776.T,BroadBand Tower Inc,IT 서비스 및 컨설팅
@@ -1447,7 +1447,7 @@ Symbol,Name,Industry
 442A.T,Classico Inc,의류 및 액세서리
 4430.T,Tokai Soft Co Ltd,소프트웨어
 4431.T,Smaregi  Inc.,소프트웨어
-4432.T,WingArc1st Inc,소프트웨어
+4432.T,WingArc1st Inc.,소프트웨어
 4433.T,Hito Communications Holdings Inc,고용 서비스
 4434.T,Serverworks Co Ltd,IT 서비스 및 컨설팅
 4436.T,Minkabu The Infonoid Inc,광고 및 마케팅
@@ -1676,7 +1676,7 @@ Symbol,Name,Industry
 4825.T,Weathernews Inc,경영 지원 서비스
 4826.T,Computer Institute of Japan Ltd,IT 서비스 및 컨설팅
 4828.T,Business Engineering Corp,IT 서비스 및 컨설팅
-4829.T,Nihon Enterprise Co Ltd,IT 서비스 및 컨설팅
+4829.T,Nihon Enterprise Co. Ltd.,IT 서비스 및 컨설팅
 4832.T,JFE Systems Inc,IT 서비스 및 컨설팅
 4833.T,Def Consulting Inc,고용 서비스
 4838.T,Space Shower Skiyaki Holdings Inc,엔터테인먼트 제작
@@ -1991,7 +1991,7 @@ Symbol,Name,Industry
 562A.T,Houyou Inc,IT 서비스 및 컨설팅
 5631.T,Japan Steel Works Ltd,산업용 기계 및 장비
 5632.T,Mitsubishi Steel Mfg. Co Ltd,철 및 강철
-5644.T,Metalart Corp,"자동차, 트럭 및 오토바이 부품"
+5644.T,METALART CORPORATION,"자동차, 트럭 및 오토바이 부품"
 5658.T,Nichia Steel Works Ltd,철 및 강철
 5659.T,Nippon Seisen Co Ltd,철 및 강철
 565A.T,FFF Holdings Co Ltd,건설 자재 및 비품
@@ -2176,7 +2176,7 @@ Symbol,Name,Industry
 6073.T,Asante Inc,건설 및 엔지니어링
 6074.T,JSS Corp,개인 서비스
 6078.T,Value HR Co Ltd,의료 시설 및 서비스
-607A.T,every Inc,온라인 서비스
+607A.T,every  Inc.,온라인 서비스
 6080.T,M&A Capital Partners Co Ltd,투자 은행 및 중개 서비스
 6081.T,Allied Architects Inc,IT 서비스 및 컨설팅
 6082.T,Ride On Express Holdings Co Ltd,레스토랑 및 바
@@ -2330,7 +2330,7 @@ Symbol,Name,Industry
 6340.T,Shibuya Corp,산업용 기계 및 장비
 6342.T,Taihei Machinery Works Ltd,산업용 기계 및 장비
 6343.T,Freesia Macross Corp,주택 건설
-6345.T,Aichi Corp,중장비 및 차량
+6345.T,AICHI CORPORATION,중장비 및 차량
 6346.T,Kikukawa Enterprise Inc,산업용 기계 및 장비
 6347.T,Placo Co Ltd,산업용 기계 및 장비
 6349.T,Komori Corp,산업용 기계 및 장비
@@ -3197,7 +3197,7 @@ Symbol,Name,Industry
 7966.T,LINTEC Corporation,특수 화학제
 7970.T,Shin-Etsu Polymer Co Ltd,상품 화학
 7971.T,Toli Corp,건설 자재 및 비품
-7972.T,Itoki Corp,비즈니스 지원 용품
+7972.T,ITOKI CORPORATION,비즈니스 지원 용품
 7974.T,Nintendo Co.  Ltd.,장난감 및 어린이 제품
 7975.T,Lihit Lab Inc,비즈니스 지원 용품
 7976.T,Mitsubishi Pencil Co Ltd,비즈니스 지원 용품
@@ -3219,7 +3219,7 @@ Symbol,Name,Industry
 7997.T,Kurogane Kosakusho Ltd,비즈니스 지원 용품
 8001.T,ITOCHU Corporation,다각적 산업용 제품 도매
 8002.T,Marubeni Corporation,다각적 산업용 제품 도매
-8005.T,Scroll Corp,백화점
+8005.T,Scroll Corporation,백화점
 8006.T,Yuasa Funashoku Co Ltd,식품 소매 및 유통
 8007.T,Takashima & Co Ltd,건설 자재 및 비품
 8008.T,Yondoshi Holdings Inc,의류 및 액세서리
@@ -3255,7 +3255,7 @@ Symbol,Name,Industry
 8058.T,Mitsubishi Corporation,다각적 산업용 제품 도매
 8059.T,Daiichi Jitsugyo Co Ltd,산업용 기계 및 장비
 8060.T,Canon Marketing Japan Inc,사무기기
-8061.T,Seika Corp,산업용 기계 및 장비
+8061.T,SEIKA CORPORATION,산업용 기계 및 장비
 8065.T,Sato Sho-Ji Corp,철 및 강철
 8066.T,MITANI CORPORATION,건설 자재
 8070.T,Tokyo Sangyo Co Ltd,산업용 기계 및 장비
@@ -3277,7 +3277,7 @@ Symbol,Name,Industry
 8097.T,San-Ai Obbli Co Ltd,"오일, 가스 정제 및 마케팅"
 8098.T,Inabata & Co Ltd,상품 화학
 8101.T,GSI Creos Corp,직물 및 가죽제품
-8103.T,Meiwa Corp,상품 화학
+8103.T,MEIWA CORPORATION,상품 화학
 8104.T,Kuwazawa Holdings Corp,건설 자재
 8105.T,Bitcoin Japan Corporation,의류 및 액세서리
 8107.T,Kimuratan Corp,의류 및 액세서리
@@ -3650,7 +3650,7 @@ Symbol,Name,Industry
 9235.T,Ureru Net Advertising Group Co Ltd,광고 및 마케팅
 9236.T,Japan M&A Solution Inc,투자 관리 및 펀드 운영
 9237.T,Emimen Co Ltd,부동산 서비스
-9238.T,Value Creation Co Ltd,광고 및 마케팅
+9238.T,VALUE CREATION CO. LTD.,광고 및 마케팅
 9239.T,KET Inc,환경 서비스 및 장비
 9240.T,Delivery Consulting Inc,IT 서비스 및 컨설팅
 9241.T,Future Link Network Co Ltd,온라인 서비스
