@@ -601,7 +601,7 @@ Symbol,Name,Industry
 299A.T,Kurashiru  Inc.,소프트웨어
 3001.T,Katakura Industries Co Ltd,제약
 3002.T,Gunze Ltd,의류 및 액세서리
-3003.T,Hulic Co. Ltd.,"부동산 임대, 개발 및 운영"
+3003.T,Hulic Co.  Ltd.,"부동산 임대, 개발 및 운영"
 3004.T,Shinyei Kaisha,식품 소매 및 유통
 300A.T,MIC Co Ltd,경영 지원 서비스
 3010.T,Polaris Holdings Co Ltd,"호텔, 모텔 및 크루즈 라인"
@@ -1990,7 +1990,7 @@ Symbol,Name,Industry
 5622.T,OneBe Inc,소프트웨어
 562A.T,Houyou Inc,IT 서비스 및 컨설팅
 5631.T,Japan Steel Works Ltd,산업용 기계 및 장비
-5632.T,Mitsubishi Steel Mfg. Co Ltd,철 및 강철
+5632.T,Mitsubishi Steel Mfg. Co.  Ltd.,철 및 강철
 5644.T,METALART CORPORATION,"자동차, 트럭 및 오토바이 부품"
 5658.T,Nichia Steel Works Ltd,철 및 강철
 5659.T,Nippon Seisen Co Ltd,철 및 강철
@@ -3512,7 +3512,7 @@ Symbol,Name,Industry
 8928.T,Anabuki Kosan Inc,"부동산 임대, 개발 및 운영"
 8929.T,Aoyama Zaisan Networks Co Ltd,부동산 서비스
 8931.T,Wadakohsan Corp,"부동산 임대, 개발 및 운영"
-8934.T,Sun Frontier Fudousan Co Ltd,"부동산 임대, 개발 및 운영"
+8934.T,Sun Frontier Fudousan Co.  Ltd.,"부동산 임대, 개발 및 운영"
 8935.T,FJ Next Holdings Co Ltd,"부동산 임대, 개발 및 운영"
 8938.T,Glome Holdings Inc,경영 지원 서비스
 8944.T,Land Business Co Ltd,"부동산 임대, 개발 및 운영"
@@ -3596,7 +3596,7 @@ Symbol,Name,Industry
 9083.T,Shinki Bus Co Ltd,지상 및 해상 여객 운송
 9087.T,Takase Corp,"배달, 우편, 항공 화물 및 육상 물류"
 9090.T,AZ-COM MARUWA Holdings Inc.,지상 화물 및 물류
-9101.T,Nippon Yusen KK,해양 화물 및 물류
+9101.T,Nippon Yusen Kabushiki Kaisha,해양 화물 및 물류
 9104.T,Mitsui O.S.K. Lines  Ltd.,해양 화물 및 물류
 9107.T,Kawasaki Kisen Kaisha Ltd,해양 화물 및 물류
 9110.T,NS United Kaiun Kaisha Ltd,해양 화물 및 물류
