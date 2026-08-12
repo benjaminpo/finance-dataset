@@ -29,7 +29,7 @@ Symbol,Name,Industry
 1420.T,Sanyo Homes Corp,주택 건설
 1429.T,Nippon Aqua Co Ltd,건설 자재 및 비품
 142A.T,Jinjibu Co Ltd,고용 서비스
-1430.T,First-Corporation Inc,주택 건설
+1430.T,First-corporation Inc.,주택 건설
 1431.T,Lib Work Co Ltd,"부동산 임대, 개발 및 운영"
 1432.T,Doryoku Co Ltd,전기 부품 및 장비
 1433.T,Besterra Co Ltd,건설 및 엔지니어링
@@ -465,7 +465,7 @@ Symbol,Name,Industry
 2708.T,Kuze Co Ltd,식품 소매 및 유통
 271A.T,Accelia Inc,IT 서비스 및 컨설팅
 2721.T,J-Holdings Corp,"부동산 임대, 개발 및 운영"
-2722.T,IK Holdings Co Ltd,기타 전문 소매
+2722.T,IK HOLDINGS Co. Ltd.,기타 전문 소매
 2726.T,PAL Group Holdings Co Ltd,의류 및 액세서리 소매
 2730.T,EDION Corporation,컴퓨터 및 전자 제품 소매
 2733.T,Arata Corp,개인 생활 필수 용품
@@ -873,7 +873,7 @@ Symbol,Name,Industry
 3463.T,Ichigo Hotel REIT Investment Corp,특수 REITs
 3465.T,Ki-Star Real Estate Co Ltd,"부동산 임대, 개발 및 운영"
 3466.T,LaSalle Logiport REIT,상업용 REITs
-3467.T,Agratio Urban Design Inc,주택 건설
+3467.T,Agratio Urban Design Inc,"부동산 임대, 개발 및 운영"
 3468.T,Star Asia Investment Corporation,복합부동산 REITs
 3469.T,Dualtap Co Ltd,"부동산 임대, 개발 및 운영"
 3470.T,Marimo Regional Revitalization REIT Inc,복합부동산 REITs
@@ -2005,7 +2005,7 @@ Symbol,Name,Industry
 5703.T,Nippon Light Metal Holdings Co Ltd,알루미늄
 5704.T,JMC Corporation,특수 채굴 및 금속
 5706.T,Mitsui Kinzoku Co Ltd,특수 채굴 및 금속
-5707.T,Toho Zinc Co Ltd,특수 채굴 및 금속
+5707.T,Toho Zinc Co. Ltd.,특수 채굴 및 금속
 5711.T,MITSUBISHI MATERIALS CORPORATION,다각적 채굴
 5713.T,Sumitomo Metal Mining Co.  Ltd.,특수 채굴 및 금속
 5714.T,DOWA Holdings Co Ltd,특수 채굴 및 금속
@@ -3292,7 +3292,7 @@ Symbol,Name,Industry
 8129.T,TOHO HOLDINGS CO.  LTD.,제약
 8130.T,Sangetsu Corp,가정용 가구
 8131.T,Mitsuuroko Group Holdings Co Ltd,"오일, 가스 정제 및 마케팅"
-8132.T,Shinanen Holdings Co Ltd,"오일, 가스 정제 및 마케팅"
+8132.T,SHINANEN HOLDINGS CO.  LTD.,"오일, 가스 정제 및 마케팅"
 8133.T,Itochu Enex Co Ltd,"오일, 가스 정제 및 마케팅"
 8135.T,Zett Corp,오락용 제품
 8136.T,Sanrio Company  Ltd.,기타 전문 소매
@@ -3645,7 +3645,7 @@ Symbol,Name,Industry
 9227.T,Microwave Chemical Co.  Ltd.,상품 화학
 9229.T,Sunwels Co Ltd,의료 시설 및 서비스
 9233.T,Asia Air Survey Co Ltd,채굴 지원 서비스 및 장비
-9235.T,Ureru Net Advertising Group Co Ltd,광고 및 마케팅
+9235.T,Ureru Net Advertising Group Co. Ltd.,광고 및 마케팅
 9236.T,Japan M&A Solution Inc,투자 관리 및 펀드 운영
 9237.T,Emimen Co Ltd,부동산 서비스
 9238.T,VALUE CREATION CO. LTD.,광고 및 마케팅
@@ -3765,7 +3765,7 @@ Symbol,Name,Industry
 9438.T,MTI Ltd,온라인 서비스
 9439.T,M H Group Ltd,개인 서비스
 9441.T,Bell-Park Co Ltd,컴퓨터 및 전자 제품 소매
-9444.T,Toshin Holdings Co Ltd,무선 통신 서비스
+9444.T,TOSHIN HOLDINGS CO. LTD,무선 통신 서비스
 9445.T,Forval Telecom Inc,통합 통신 서비스
 9446.T,Sakai Holdings Co Ltd,컴퓨터 및 전자 제품 소매
 9449.T,GMO internet group  Inc.,온라인 서비스
