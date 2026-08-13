@@ -1661,7 +1661,7 @@ Symbol,Name,Industry
 478A.T,Hutzper Inc,IT 서비스 및 컨설팅
 4792.T,Yamada Consulting Group Co Ltd,경영 지원 서비스
 479A.T,PRONI Inc,온라인 서비스
-4800.T,Oricon Inc,온라인 서비스
+4800.T,Oricon Inc.,온라인 서비스
 4801.T,Central Sports Co Ltd,여가 및 오락시설
 4809.T,Paraca Inc,고속도로 및 철도
 480A.T,LiB Consulting Co Ltd,경영 지원 서비스
@@ -3090,7 +3090,7 @@ Symbol,Name,Industry
 7779.T,Cyberdyne Inc,첨단 의료 장비 및 기술
 7780.T,Menicon Co Ltd,"의료 장비, 물품 및 유통"
 7781.T,Hirayama Holdings Co Ltd,고용 서비스
-7782.T,Sincere Co Ltd,경영 지원 서비스
+7782.T,Sincere Co Ltd,"의료 장비, 물품 및 유통"
 7791.T,Dreambed Co Ltd,가정용 가구
 7792.T,Colan Totte Co Ltd,의류 및 액세서리
 7793.T,Image Magic Inc,온라인 서비스
@@ -3403,7 +3403,7 @@ Symbol,Name,Industry
 8418.T,Yamaguchi Financial Group  Inc.,은행
 8421.T,Shinkin Central Bank Pref Shs,은행
 8424.T,Fuyo General Lease Co.  Ltd.,기업 금융 서비스
-8425.T,Mizuho Leasing Co Ltd,기업 금융 서비스
+8425.T,Mizuho Leasing Company  Ltd,기업 금융 서비스
 8439.T,Tokyo Century Corporation,기업 금융 서비스
 8473.T,SBI Holdings Inc,다각적 투자 서비스
 8508.T,J Trust Co Ltd,소비자 대출
@@ -3548,7 +3548,7 @@ Symbol,Name,Industry
 9005.T,TOKYU CORPORATION,지상 및 해상 여객 운송
 9006.T,Keikyu Corporation,지상 및 해상 여객 운송
 9007.T,Odakyu Electric Railway Co.  Ltd.,지상 및 해상 여객 운송
-9008.T,Keio Corp,지상 및 해상 여객 운송
+9008.T,Keio Corporation,지상 및 해상 여객 운송
 9009.T,Keisei Electric Railway Co.  Ltd.,지상 및 해상 여객 운송
 9010.T,FUJI KYUKO CO.  LTD.,여가 및 오락시설
 9012.T,Chichibu Railway Co Ltd,지상 및 해상 여객 운송
