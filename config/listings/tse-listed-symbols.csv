@@ -14,7 +14,7 @@ Symbol,Name,Industry
 137A.T,Cocolive Inc,IT 서비스 및 컨설팅
 1380.T,Akikawa Foods & Farms Co Ltd,식품 가공
 1381.T,Axyz Co Ltd,식품 가공
-1382.T,Hob Co Ltd,어업 및 농업
+1382.T,HOB Co. Ltd.,어업 및 농업
 1383.T,Berg Earth Co Ltd,어업 및 농업
 1384.T,Hokuryo Co Ltd,어업 및 농업
 138A.T,Hikari Food Service Co Ltd,레스토랑 및 바
@@ -259,7 +259,7 @@ Symbol,Name,Industry
 2183.T,Linical Co Ltd,생명 공학 및 의학 연구
 2185.T,CMC Corp,광고 및 마케팅
 2186.T,Sobal Corp,IT 서비스 및 컨설팅
-218A.T,Liberaware Co Ltd,IT 서비스 및 컨설팅
+218A.T,Liberaware Co. Ltd.,IT 서비스 및 컨설팅
 2193.T,Cookpad Inc.,온라인 서비스
 2195.T,Amita Holdings Co Ltd,환경 서비스 및 장비
 2198.T,IKK Holdings Inc,개인 서비스
@@ -327,7 +327,7 @@ Symbol,Name,Industry
 2340.T,Gokurakuyu Holdings Co Ltd,개인 서비스
 2341.T,Arbeit-Times Co Ltd,소비자 출판
 2342.T,TransGenic Group Inc,백화점
-2345.T,HODL1 Inc,블록 체인 및 암호화폐
+2345.T,HODL1  inc.,블록 체인 및 암호화폐
 2349.T,Nippon Information Development Co Ltd,IT 서비스 및 컨설팅
 2351.T,ASJ Inc,IT 서비스 및 컨설팅
 2353.T,Nippon Parking Development Co Ltd,고속도로 및 철도
@@ -644,7 +644,7 @@ Symbol,Name,Industry
 3075.T,Choushimaru Co Ltd,레스토랑 및 바
 3076.T,Ai Holdings Corp,전자 장비 및 부품
 3077.T,Horiifoodservice Co Ltd,레스토랑 및 바
-3079.T,DVx Inc,"의료 장비, 물품 및 유통"
+3079.T,DVx Inc.,"의료 장비, 물품 및 유통"
 307A.T,Housing Staff Inc,주택 건설
 3080.T,Jason Co Ltd,식품 소매 및 유통
 3082.T,Kichiri Holdings & Co Ltd,레스토랑 및 바
@@ -783,7 +783,7 @@ Symbol,Name,Industry
 329A.T,Zeal Associate Corp,광고 및 마케팅
 3300.T,AMBITION DX HOLDINGS Co.  Ltd.,"부동산 임대, 개발 및 운영"
 3302.T,Teikoku Sen-I Co Ltd,직물 및 가죽제품
-3306.T,Nihon Seima Co Ltd,직물 및 가죽제품
+3306.T,THE NIHON SEIMA CO. LTD.,직물 및 가죽제품
 3309.T,Sekisui House Reit  Inc.,복합부동산 REITs
 330A.T,TalentX Inc,고용 서비스
 3315.T,Nippon Coke & Engineering Co Ltd,석탄
@@ -956,7 +956,7 @@ Symbol,Name,Industry
 3623.T,Billing System Corp,경영 지원 서비스
 3624.T,Axel Mark Inc,광고 및 마케팅
 3625.T,Techfirm Holdings Inc,IT 서비스 및 컨설팅
-3626.T,TISI Inc,IT 서비스 및 컨설팅
+3626.T,TISI Inc.,IT 서비스 및 컨설팅
 3627.T,Tecmira Holdings Inc,IT 서비스 및 컨설팅
 3628.T,Data Horizon Co Ltd,첨단 의료 장비 및 기술
 362A.T,Exeo Holdings Inc,"초, 중, 고등 교육기관"
@@ -2372,7 +2372,7 @@ Symbol,Name,Industry
 6417.T,Sankyo Co Ltd,카지노 및 도박
 6418.T,Japan Cash Machine Co Ltd,사무기기
 6419.T,Mars Group Holdings Corp,카지노 및 도박
-6420.T,Galilei Holdings Co Ltd,전기 부품 및 장비
+6420.T,GALILEI HOLDINGS CO. LTD.,전기 부품 및 장비
 6424.T,Takamisawa Cybernetics Co Ltd,산업용 기계 및 장비
 6425.T,Universal Entertainment Corp,"호텔, 모텔 및 크루즈 라인"
 6428.T,Oizumi Corp,카지노 및 도박
@@ -2388,7 +2388,7 @@ Symbol,Name,Industry
 6455.T,Morita Holdings Corp,중장비 및 차량
 6457.T,Glory Ltd,산업용 기계 및 장비
 6458.T,SINKO INDUSTRIES LTD.,전기 부품 및 장비
-6459.T,Daiwa Ltd,산업용 기계 및 장비
+6459.T,DAIWA LTD.,산업용 기계 및 장비
 6460.T,SEGA SAMMY HOLDINGS INC.,엔터테인먼트 제작
 6463.T,TPR Co Ltd,"자동차, 트럭 및 오토바이 부품"
 6464.T,Tsubaki Nakashima Co Ltd,산업용 기계 및 장비
@@ -3407,7 +3407,7 @@ Symbol,Name,Industry
 8473.T,SBI Holdings Inc,다각적 투자 서비스
 8508.T,J Trust Co Ltd,소비자 대출
 8511.T,JAPAN SECURITIES FINANCE CO.  LTD.,기업 금융 서비스
-8518.T,Japan Asia Investment Co Ltd,투자 관리 및 펀드 운영
+8518.T,Japan Asia Investment Company  Limited,투자 관리 및 펀드 운영
 8522.T,Bank of Nagoya Ltd,은행
 8524.T,North Pacific Bank Ltd,은행
 8537.T,Taiko Bank Ltd,은행
@@ -3490,7 +3490,7 @@ Symbol,Name,Industry
 8881.T,Nisshin Group Holdings Co Ltd,"부동산 임대, 개발 및 운영"
 8887.T,Syla Holdings Co Ltd,"부동산 임대, 개발 및 운영"
 8890.T,Raysum Co Ltd,"부동산 임대, 개발 및 운영"
-8891.T,AMG Holdings Co Ltd,"부동산 임대, 개발 및 운영"
+8891.T,AMG HOLDINGS CO.  LTD.,"부동산 임대, 개발 및 운영"
 8892.T,ES-CON JAPAN Ltd.,"부동산 임대, 개발 및 운영"
 8894.T,Revolution Co Ltd,부동산 서비스
 8897.T,Mirarth Holdings Inc,"부동산 임대, 개발 및 운영"
@@ -3526,7 +3526,7 @@ Symbol,Name,Industry
 8960.T,United Urban Investment Corporation,복합부동산 REITs
 8961.T,Mori Trust Reit Inc,복합부동산 REITs
 8963.T,Invincible Investment Corporation,복합부동산 REITs
-8964.T,Mitsui Fudosan Retail Fund Investment Corp,상업용 REITs
+8964.T,Mitsui Fudosan Retail Fund Investment Corporation,상업용 REITs
 8966.T,HEIWA REAL ESTATE REIT  Inc.,복합부동산 REITs
 8967.T,Japan Logistics Fund Inc,상업용 REITs
 8968.T,Fukuoka REIT Corp,상업용 REITs
@@ -3735,7 +3735,7 @@ Symbol,Name,Industry
 9376.T,Eurasia Travel Co Ltd,여가 및 오락시설
 9380.T,Azuma Shipping Co Ltd,해양 화물 및 물류
 9381.T,AIT Corp,해양 화물 및 물류
-9385.T,Shoei Corp,용기(종이 제외) 및 포장재
+9385.T,SHOEI CORPORATION,용기(종이 제외) 및 포장재
 9399.T,Beat Holdings Ltd,투자 관리 및 펀드 운영
 9401.T,TBS Holdings Inc,방송
 9404.T,Nippon Television Holdings Inc,방송
@@ -3938,7 +3938,7 @@ Symbol,Name,Industry
 9900.T,Sagami Holdings Corp,레스토랑 및 바
 9902.T,Nichiden Corp,산업용 기계 및 장비
 9903.T,Kanseki Co Ltd,주택 개조 제품 및 서비스 소매
-9904.T,Verite Co Ltd,의류 및 액세서리 소매
+9904.T,Verite Co. Ltd.,의류 및 액세서리 소매
 9906.T,Fujii Sangyo Corp,전기 부품 및 장비
 9908.T,Nihon Denkei Co Ltd,산업용 기계 및 장비
 9913.T,Nippo Ltd,전자 장비 및 부품
