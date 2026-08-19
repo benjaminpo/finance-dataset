@@ -210,7 +210,7 @@ Symbol,Name,Industry
 204A.T,TaiyoPackage Co Ltd,종이 포장재
 2053.T,Chubushiryo Co Ltd,어업 및 농업
 2055.T,Nichiwa Sangyo Co Ltd,어업 및 농업
-205A.T,Logos Holdings Inc,"부동산 임대, 개발 및 운영"
+205A.T,LOGOS HOLDINGS INC.,"부동산 임대, 개발 및 운영"
 2060.T,Feed One Co Ltd,어업 및 농업
 206A.T,PRISM BioLab Co Ltd,생명 공학 및 의학 연구
 207A.T,Rising Corp Inc,주택 건설
@@ -836,7 +836,7 @@ Symbol,Name,Industry
 340A.T,Zig-Zag Inc,온라인 서비스
 3415.T,Tokyo Base Co Ltd,의류 및 액세서리 소매
 3416.T,Pixta Inc,온라인 서비스
-3417.T,Ohki Healthcare Holdings Co Ltd,제약
+3417.T,OHKI HEALTHCARE HOLDINGS CO. LTD.,제약
 3418.T,Balnibarbi Co Ltd,레스토랑 및 바
 341A.T,Toyokoh Inc,건설 및 엔지니어링
 3420.T,KFC Ltd,건설 자재
@@ -2210,6 +2210,7 @@ Symbol,Name,Industry
 6146.T,Disco Corp,반도체 장비 및 테스트
 6147.T,Yamazaki Co Ltd,산업용 기계 및 장비
 6149.T,Odawara Engineering Co Ltd,산업용 기계 및 장비
+614A.T,Yamahachi Corporation,"부동산 임대, 개발 및 운영"
 6150.T,Takeda Machinery Co Ltd,산업용 기계 및 장비
 6151.T,Nitto Kohki Co Ltd,산업용 기계 및 장비
 6155.T,Takamatsu Machinery Co Ltd,산업용 기계 및 장비
