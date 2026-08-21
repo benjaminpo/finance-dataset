@@ -453,7 +453,7 @@ Symbol,Name,Industry
 2685.T,And ST HD Co Ltd,의류 및 액세서리 소매
 2687.T,CVS Bay Area Inc,경영 지원 서비스
 2689.T,OLBA HEALTHCARE HOLDINGS  INC.,"의료 장비, 물품 및 유통"
-268A.T,Rigaku Holdings Corp,전자 장비 및 부품
+268A.T,Rigaku Holdings Corporation,전자 장비 및 부품
 2693.T,YKT Corp,산업용 기계 및 장비
 2694.T,Yakiniku Sakai Holdings Inc,레스토랑 및 바
 2695.T,Kura Sushi Inc,레스토랑 및 바
@@ -1029,7 +1029,7 @@ Symbol,Name,Industry
 3744.T,SIOS Corp,소프트웨어
 3747.T,Intertrade Co Ltd,핀테크
 374A.T,Higuchi Consulting Co Ltd,IT 서비스 및 컨설팅
-3750.T,ADR Biomedical Holdings Inc,생명 공학 및 의학 연구
+3750.T,ADR Biomedical Holdings Inc.,생명 공학 및 의학 연구
 3753.T,Flight Solutions Inc,IT 서비스 및 컨설팅
 3758.T,Aeria Inc,온라인 서비스
 375A.T,YAK Holdings Co Ltd,부동산 서비스
@@ -1713,7 +1713,7 @@ Symbol,Name,Industry
 4918.T,Ivy Cosmetics Corp,개인 생활 필수 용품
 4919.T,Milbon Co Ltd,개인 생활 필수 용품
 4920.T,Nippon Shikizai Inc,개인 생활 필수 용품
-4922.T,Kose Holdings Corp,개인 생활 필수 용품
+4922.T,KOSE Holdings Corporation,개인 생활 필수 용품
 4923.T,Cota Co Ltd,개인 생활 필수 용품
 4925.T,Haba Laboratories Inc,개인 생활 필수 용품
 4926.T,C'Bon Cosmetics Co Ltd,개인 생활 필수 용품
@@ -2231,7 +2231,7 @@ Symbol,Name,Industry
 6180.T,GMO Media Inc,온라인 서비스
 6181.T,Tameny Inc,개인 서비스
 6182.T,MetaReal Corp,경영 지원 서비스
-6183.T,Bellsystem24 Holdings Inc,경영 지원 서비스
+6183.T,BELLSYSTEM24 HOLDINGS  INC.,경영 지원 서비스
 6184.T,Kamakura Shinsho Ltd,온라인 서비스
 6185.T,SMN Corp,온라인 서비스
 6186.T,Ichikura Co Ltd,의류 및 액세서리 소매
@@ -2912,7 +2912,7 @@ Symbol,Name,Industry
 7421.T,Kappa Create Co Ltd,레스토랑 및 바
 7422.T,Toho Lamac Co Ltd,제화
 7425.T,Hatsuho Shouji Co Ltd,건설 자재 및 비품
-7426.T,Yamadai Corp,건설 자재 및 비품
+7426.T,Yamadai Corporation,건설 자재 및 비품
 7427.T,Echo Trading Co Ltd,식품 소매 및 유통
 7433.T,Hakuto Co Ltd,반도체
 7434.T,Otake Corp,산업용 기계 및 장비
@@ -3762,7 +3762,7 @@ Symbol,Name,Industry
 9435.T,Hikari Tsushin Inc,통신 및 네트워킹
 9436.T,Okinawa Cellular Telephone Co,무선 통신 서비스
 9438.T,MTI Ltd,온라인 서비스
-9439.T,M H Group Ltd,개인 서비스
+9439.T,M H GROUP LTD.,개인 서비스
 9441.T,Bell-Park Co Ltd,컴퓨터 및 전자 제품 소매
 9444.T,TOSHIN HOLDINGS CO. LTD,무선 통신 서비스
 9445.T,Forval Telecom Inc,통합 통신 서비스
@@ -3901,7 +3901,7 @@ Symbol,Name,Industry
 9816.T,Striders Corp,"부동산 임대, 개발 및 운영"
 9818.T,Daimaru Enawin Co Ltd,"오일, 가스 정제 및 마케팅"
 9820.T,MT Genex Corp,건설 및 엔지니어링
-9823.T,Mammy Mart Holdings Corp,식품 소매 및 유통
+9823.T,Mammy Mart Holding Corporation,식품 소매 및 유통
 9824.T,Senshu Electric Co Ltd,전기 부품 및 장비
 9827.T,Lilycolor Co Ltd,가정용 가구
 9828.T,Genki Global Dining Concepts Corp,레스토랑 및 바
