@@ -1192,7 +1192,7 @@ Symbol,Name,Industry
 4019.T,Stmn Inc,경영 지원 서비스
 401A.T,Kasumigaseki Hotel REIT Investment Corp,특수 REITs
 4020.T,Betrend Corp,소프트웨어
-4021.T,Nissan Chemical Corporation,다각적 화학 산업
+4021.T,Nissan Chemical Corp,다각적 화학 산업
 4022.T,Rasa Industries Ltd,상품 화학
 4023.T,Kureha Corp,상품 화학
 4025.T,Taki Chemical Co Ltd,농화학제
@@ -2223,6 +2223,7 @@ Symbol,Name,Industry
 6166.T,Nakamura Choukou Co Ltd,산업용 기계 및 장비
 6167.T,Fuji Die Co Ltd,산업용 기계 및 장비
 6168.T,One Group Corp,산업용 기계 및 장비
+616A.T,SURIGIKEN CO. LTD.,IT 서비스 및 컨설팅
 6171.T,CE Management Integrated Laboratory Co Ltd,건설 및 엔지니어링
 6174.T,Dentas Co Ltd,"의료 장비, 물품 및 유통"
 6176.T,Brangista Inc,소비자 출판
@@ -2437,7 +2438,7 @@ Symbol,Name,Industry
 6527.T,Waka Manufacturing Co Ltd,전자 장비 및 부품
 6532.T,BayCurrent Inc,경영 지원 서비스
 6533.T,Orchestra Holdings Inc,광고 및 마케팅
-6535.T,i-mobile Co Ltd,온라인 서비스
+6535.T,i-mobile Co. Ltd.,온라인 서비스
 6537.T,Washhouse Co Ltd,개인 서비스
 6538.T,Disruptors Inc,고용 서비스
 6539.T,Matching Service Japan Co Ltd,고용 서비스
@@ -3545,7 +3546,7 @@ Symbol,Name,Industry
 9001.T,Tobu Railway Co Ltd,지상 및 해상 여객 운송
 9003.T,Sotetsu Holdings  Inc.,지상 및 해상 여객 운송
 9005.T,TOKYU CORPORATION,지상 및 해상 여객 운송
-9006.T,Keikyu Corporation,지상 및 해상 여객 운송
+9006.T,Keikyu Corp,지상 및 해상 여객 운송
 9007.T,Odakyu Electric Railway Co.  Ltd.,지상 및 해상 여객 운송
 9008.T,Keio Corporation,지상 및 해상 여객 운송
 9009.T,Keisei Electric Railway Co.  Ltd.,지상 및 해상 여객 운송
