@@ -496,7 +496,7 @@ Symbol,Name,Industry
 2784.T,Alfresa Holdings Corp,"의료 장비, 물품 및 유통"
 2788.T,Apple International Co Ltd,자동차 및 트럭 제조
 2789.T,Karula Co Ltd,레스토랑 및 바
-278A.T,Terra Drone Corp,항공우주 및 방위
+278A.T,Terra Drone Corporation,항공우주 및 방위
 2790.T,Nafco Co Ltd,주택 개조 제품 및 서비스 소매
 2791.T,Daikokutenbussan Co Ltd,식품 소매 및 유통
 2792.T,Honeys Holdings Co Ltd,의류 및 액세서리 소매
@@ -1791,7 +1791,6 @@ Symbol,Name,Industry
 507A.T,Digital Knowledge Co Ltd,소프트웨어
 509A.T,Green Light Renewable Energy Infrastructure Fund,재생 가능 에너지 장비 및 서비스
 5101.T,The Yokohama Rubber Company  Limited,타이어 및 고무 제품
-5103.T,Showa Holdings Co Ltd,식품 가공
 5105.T,Toyo Tire Corporation,타이어 및 고무 제품
 5108.T,BRIDGESTONE CORPORATION,타이어 및 고무 제품
 510A.T,Heart Up Co Ltd,개인 서비스
@@ -2229,6 +2228,7 @@ Symbol,Name,Industry
 6176.T,Brangista Inc,소비자 출판
 6177.T,AppBank Inc,온라인 서비스
 6178.T,Japan Post Holdings Co Ltd,생명 및 건강 보험
+617A.T,Reicious Co.  Ltd.,"부동산 임대, 개발 및 운영"
 6180.T,GMO Media Inc,온라인 서비스
 6181.T,Tameny Inc,개인 서비스
 6182.T,MetaReal Corp,경영 지원 서비스
@@ -3595,7 +3595,7 @@ Symbol,Name,Industry
 9087.T,Takase Corp,"배달, 우편, 항공 화물 및 육상 물류"
 9090.T,AZ-COM MARUWA Holdings Inc.,지상 화물 및 물류
 9101.T,Nippon Yusen Kabushiki Kaisha,해양 화물 및 물류
-9104.T,Mitsui O.S.K. Lines  Ltd.,해양 화물 및 물류
+9104.T,Mitsui O.s.k. Lines  Ltd,해양 화물 및 물류
 9107.T,Kawasaki Kisen Kaisha Ltd,해양 화물 및 물류
 9110.T,NS United Kaiun Kaisha Ltd,해양 화물 및 물류
 9115.T,Meiji Shipping Group Co Ltd,해양 화물 및 물류
@@ -3949,7 +3949,7 @@ Symbol,Name,Industry
 9929.T,Heiwa Paper Co Ltd,종이 제품
 9930.T,Kitazawa Sangyo Co Ltd,산업용 기계 및 장비
 9932.T,Sugimoto & Co Ltd,산업용 기계 및 장비
-9934.T,Inaba Denki Sangyo Co Ltd,전기 부품 및 장비
+9934.T,INABA DENKI SANGYO CO. LTD.,전기 부품 및 장비
 9936.T,Ohsho Food Service Corp,레스토랑 및 바
 9941.T,Taiyo Bussan Kaisha Ltd,어업 및 농업
 9946.T,Ministop Co Ltd,식품 소매 및 유통
