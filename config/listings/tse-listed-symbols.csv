@@ -243,7 +243,6 @@ Symbol,Name,Industry
 2158.T,FRONTEO  Inc.,IT 서비스 및 컨설팅
 215A.T,Timee  Inc.,고용 서비스
 2160.T,GNI Group Ltd.,생명 공학 및 의학 연구
-2162.T,nms Holdings Corp,전자 장비 및 부품
 2163.T,Artner Co Ltd,고용 서비스
 2164.T,Chiikishinbunsha Co Ltd,소비자 출판
 2168.T,Pasona Group Inc,고용 서비스
@@ -644,7 +643,6 @@ Symbol,Name,Industry
 3075.T,Choushimaru Co Ltd,레스토랑 및 바
 3076.T,Ai Holdings Corp,전자 장비 및 부품
 3077.T,Horiifoodservice Co Ltd,레스토랑 및 바
-3079.T,DVx Inc.,"의료 장비, 물품 및 유통"
 307A.T,Housing Staff Inc,주택 건설
 3080.T,Jason Co Ltd,식품 소매 및 유통
 3082.T,Kichiri Holdings & Co Ltd,레스토랑 및 바
@@ -1199,7 +1197,7 @@ Symbol,Name,Industry
 4026.T,Konoshima Chemical Co Ltd,건설 자재 및 비품
 4027.T,Tayca Corp,상품 화학
 4028.T,Ishihara Sangyo Kaisha Ltd,다각적 화학 산업
-402A.T,Axelspace Holdings Corp,항공우주 및 방위
+402A.T,Axelspace Holdings Corporation,항공우주 및 방위
 4031.T,Katakura & Co-op Agri Corp,농화학제
 403A.T,Hojogumi Co Ltd,건설 및 엔지니어링
 4040.T,Nankai Chemical Co Ltd,다각적 화학 산업
@@ -1235,7 +1233,7 @@ Symbol,Name,Industry
 4075.T,Brains Technology Inc,IT 서비스 및 컨설팅
 4076.T,CNS Co Ltd,IT 서비스 및 컨설팅
 4078.T,Sakai Chemical Industry Co Ltd,상품 화학
-407A.T,Unicon Holdings Co Ltd,건설 및 엔지니어링
+407A.T,UNICON Holdings Co.  Ltd.,건설 및 엔지니어링
 4082.T,Daiichi Kigenso Kagaku Kogyo Co Ltd,상품 화학
 4088.T,AIR WATER INC.,상품 화학
 4091.T,NIPPON SANSO HOLDINGS CORPORATION,상품 화학
@@ -1991,7 +1989,6 @@ Symbol,Name,Industry
 5658.T,Nichia Steel Works Ltd,철 및 강철
 5659.T,Nippon Seisen Co Ltd,철 및 강철
 565A.T,FFF Holdings Co Ltd,건설 자재 및 비품
-5660.T,Kobelco Wire Co Ltd,전기 부품 및 장비
 567A.T,D-Plus Co Ltd,"자동차 차량, 부품 및 서비스 소매"
 5695.T,Powdertech Co Ltd,상품 화학
 5697.T,Sanyu Co Ltd,철 및 강철
@@ -2216,6 +2213,7 @@ Symbol,Name,Industry
 6157.T,NS Tool Co Ltd,산업용 기계 및 장비
 6158.T,Waida MFG. Co Ltd,산업용 기계 및 장비
 6159.T,Micron Machinery Co Ltd,산업용 기계 및 장비
+615A.T,Interpark Co. Ltd.,소프트웨어
 6161.T,Estic Corp,산업용 기계 및 장비
 6165.T,Punch Industry Co Ltd,산업용 기계 및 장비
 6166.T,Nakamura Choukou Co Ltd,산업용 기계 및 장비
@@ -2303,7 +2301,7 @@ Symbol,Name,Industry
 6305.T,Hitachi Construction Machinery Co Ltd,중장비 및 차량
 6306.T,Nikko Co Ltd,중장비 및 차량
 6307.T,Sansei Co Ltd,산업용 기계 및 장비
-6309.T,Tomoe Engineering Co Ltd,상품 화학
+6309.T,TOMOE ENGINEERING CO. LTD.,상품 화학
 6310.T,Iseki&Co Ltd,중장비 및 차량
 6315.T,TOWA CORPORATION,반도체 장비 및 테스트
 6316.T,Maruyama MFG Co Inc,중장비 및 차량
@@ -2979,7 +2977,7 @@ Symbol,Name,Industry
 7552.T,Happinet Corp,장난감 및 어린이 제품
 7554.T,Kourakuen Corp,레스토랑 및 바
 7555.T,Ota Floriculture Auction Co Ltd,어업 및 농업
-7561.T,Hurxley Holdings Corp,레스토랑 및 바
+7561.T,HURXLEY HOLDINGS CORPORATION,레스토랑 및 바
 7562.T,Anrakutei Co Ltd,레스토랑 및 바
 7564.T,Workman Co Ltd,의류 및 액세서리 소매
 7565.T,Mansei Corp,전기 부품 및 장비
@@ -3892,7 +3890,7 @@ Symbol,Name,Industry
 9780.T,Harima B.Stem Corp,경영 지원 서비스
 9782.T,DMS Inc,광고 및 마케팅
 9788.T,Nac Co Ltd,건설 및 엔지니어링
-9790.T,Fukui Computer Holdings Inc,소프트웨어
+9790.T,Fukui Computer Holdings Inc.,소프트웨어
 9791.T,Biken Techno Corp,경영 지원 서비스
 9793.T,Daiseki Co Ltd,환경 서비스 및 장비
 9795.T,Step Co Ltd,기타 교육 서비스 제공
