@@ -474,7 +474,7 @@ Symbol,Name,Industry
 2737.T,Tomen Devices Corp,반도체
 2742.T,Halows Co Ltd,식품 소매 및 유통
 2747.T,Hokuyu Lucky Co Ltd,식품 소매 및 유통
-2749.T,JP-Holdings Inc,개인 서비스
+2749.T,JP-HOLDINGS INC.,개인 서비스
 274A.T,Garden Co Ltd,레스토랑 및 바
 2750.T,S.Ishimitsu & Co Ltd,식품 소매 및 유통
 2751.T,Tenpos Holdings Co Ltd,"가전제품, 도구 및 가정 용품"
@@ -594,7 +594,7 @@ Symbol,Name,Industry
 2993.T,Choei Inc,부동산 서비스
 2994.T,Answer Holdings Co Ltd,부동산 서비스
 2995.T,J-REX Corp,"부동산 임대, 개발 및 운영"
-2997.T,Storage-Oh Co Ltd,"부동산 임대, 개발 및 운영"
+2997.T,STORAGE-OH Co. Ltd.,"부동산 임대, 개발 및 운영"
 2998.T,CREAL Inc.,부동산 서비스
 2999.T,Home Position Co Ltd,"부동산 임대, 개발 및 운영"
 299A.T,Kurashiru  Inc.,소프트웨어
@@ -616,7 +616,7 @@ Symbol,Name,Industry
 3031.T,Raccoon Holdings Inc,온라인 서비스
 3034.T,Qol Holdings Co Ltd,의약품 소매
 3035.T,Ktk Inc,비즈니스 지원 용품
-3036.T,Alconix Corp,특수 채굴 및 금속
+3036.T,ALCONIX CORPORATION,특수 채굴 및 금속
 3038.T,KOBE BUSSAN CO.  LTD.,식품 소매 및 유통
 303A.T,visumo Inc,소프트웨어
 3040.T,Soliton Systems KK,온라인 서비스
@@ -1226,7 +1226,7 @@ Symbol,Name,Industry
 4068.T,Basis Corp,건설 및 엔지니어링
 4069.T,BlueMeme Inc,IT 서비스 및 컨설팅
 406A.T,Kankyou No Mikata Holdings Inc,환경 서비스 및 장비
-4071.T,Plus Alpha Consulting Co. Ltd.,IT 서비스 및 컨설팅
+4071.T,Plus Alpha Consulting Co. LTD.,IT 서비스 및 컨설팅
 4072.T,Densan System Holdings Co Ltd,IT 서비스 및 컨설팅
 4073.T,Global Communication Planning Co Ltd,IT 서비스 및 컨설팅
 4074.T,LaKeel Inc,IT 서비스 및 컨설팅
@@ -1390,9 +1390,9 @@ Symbol,Name,Industry
 4371.T,Core Concept Technologies Inc,IT 서비스 및 컨설팅
 4372.T,Ymirlink Inc,IT 서비스 및 컨설팅
 4373.T,Simplex Holdings Inc,IT 서비스 및 컨설팅
-4374.T,Robot Payment Inc,경영 지원 서비스
+4374.T,ROBOT PAYMENT INC.,경영 지원 서비스
 4375.T,Safie Inc,소프트웨어
-4376.T,Kufu Company Holdings Inc,광고 및 마케팅
+4376.T,Kufu Company Holdings Inc,온라인 서비스
 4377.T,One Career Inc,온라인 서비스
 4378.T,CINC Corp,경영 지원 서비스
 4379.T,Photosynth Inc,경영 지원 서비스
@@ -2888,7 +2888,7 @@ Symbol,Name,Industry
 7371.T,Zenken Corp,IT 서비스 및 컨설팅
 7372.T,Decollte Holdings Corp,개인 서비스
 7373.T,Aidma Holdings Inc,경영 지원 서비스
-7374.T,Interworks Confidence Inc,광고 및 마케팅
+7374.T,Interworks Confidence Inc,고용 서비스
 7375.T,Refinverse Group Inc,환경 서비스 및 장비
 7376.T,BCC Co Ltd,고용 서비스
 7377.T,DN Holdings Co Ltd,건설 및 엔지니어링
