@@ -253,14 +253,14 @@ Symbol,Name,Industry
 2175.T,SMS Co Ltd,고용 서비스
 2179.T,Seigakusha Co Ltd,기타 교육 서비스 제공
 217A.T,Support Co Ltd,건설 및 엔지니어링
-2180.T,Sunny Side Up Group Inc,광고 및 마케팅
+2180.T,SUNNY SIDE UP GROUP Inc.,광고 및 마케팅
 2181.T,Persol Holdings Co Ltd,고용 서비스
 2183.T,Linical Co Ltd,생명 공학 및 의학 연구
 2185.T,CMC Corp,광고 및 마케팅
 2186.T,Sobal Corp,IT 서비스 및 컨설팅
 218A.T,Liberaware Co. Ltd.,IT 서비스 및 컨설팅
 2193.T,Cookpad Inc.,온라인 서비스
-2195.T,Amita Holdings Co Ltd,환경 서비스 및 장비
+2195.T,AMITA HOLDINGS CO. LTD.,환경 서비스 및 장비
 2198.T,IKK Holdings Inc,개인 서비스
 219A.T,Heartseed Inc.,생명 공학 및 의학 연구
 2201.T,Morinaga & Co Ltd,식품 가공
@@ -862,7 +862,7 @@ Symbol,Name,Industry
 3451.T,Tosei Reit Investment Corp,복합부동산 REITs
 3452.T,B-Lot Company Limited,"부동산 임대, 개발 및 운영"
 3454.T,First Brothers Co Ltd,투자 은행 및 중개 서비스
-3455.T,Healthcare & Medical Investment Corp,특수 REITs
+3455.T,Healthcare & Medical Investment Corporation,특수 REITs
 3457.T,&Do Holdings Co Ltd,부동산 서비스
 3459.T,Samty Residential Investment Corp,주거용 REITs
 3461.T,Palma Co Ltd,경영 지원 서비스
@@ -888,7 +888,7 @@ Symbol,Name,Industry
 3483.T,Shoei Co Ltd,"부동산 임대, 개발 및 운영"
 3484.T,Innovation Holdings Co Ltd,"부동산 임대, 개발 및 운영"
 3486.T,Global Link Management Inc,"부동산 임대, 개발 및 운영"
-3487.T,CRE Logistics REIT Inc,상업용 REITs
+3487.T,CRE Logistics REIT  Inc.,상업용 REITs
 3488.T,Central Reit Investment Corp,복합부동산 REITs
 3489.T,FaithNetwork Co Ltd,"부동산 임대, 개발 및 운영"
 3490.T,Azplanning Co Ltd,부동산 서비스
@@ -1188,7 +1188,7 @@ Symbol,Name,Industry
 4016.T,MIT Holdings Co Ltd,IT 서비스 및 컨설팅
 4017.T,Creema Ltd,백화점
 4019.T,Stmn Inc,경영 지원 서비스
-401A.T,Kasumigaseki Hotel REIT Investment Corp,특수 REITs
+401A.T,Kasumigaseki Hotel REIT Investment Corporation,특수 REITs
 4020.T,Betrend Corp,소프트웨어
 4021.T,Nissan Chemical Corp,다각적 화학 산업
 4022.T,Rasa Industries Ltd,상품 화학
@@ -1394,7 +1394,7 @@ Symbol,Name,Industry
 4375.T,Safie Inc,소프트웨어
 4376.T,Kufu Company Holdings Inc,온라인 서비스
 4377.T,One Career Inc,온라인 서비스
-4378.T,CINC Corp,경영 지원 서비스
+4378.T,CINC Corp,소프트웨어
 4379.T,Photosynth Inc,경영 지원 서비스
 437A.T,Jwave Co Ltd,고용 서비스
 4380.T,M-mart Inc,온라인 서비스
@@ -2727,7 +2727,7 @@ Symbol,Name,Industry
 7079.T,WDB coco Co Ltd,경영 지원 서비스
 7080.T,Sportsfield Co Ltd,고용 서비스
 7081.T,Koyou Rentia Co Ltd,경영 지원 서비스
-7082.T,Jimoty Inc,온라인 서비스
+7082.T,Jimoty  Inc.,온라인 서비스
 7083.T,AHC Group Inc,의료 시설 및 서비스
 7084.T,Smile Holdings Inc,개인 서비스
 7085.T,Curves Holdings Co Ltd,여가 및 오락시설
@@ -2907,7 +2907,7 @@ Symbol,Name,Industry
 7416.T,Haruyama Holdings Inc,의류 및 액세서리 소매
 7417.T,Nanyo Corp,산업용 기계 및 장비
 7419.T,Nojima Corporation,컴퓨터 및 전자 제품 소매
-7421.T,Kappa Create Co Ltd,레스토랑 및 바
+7421.T,KAPPA.CREATE CO. LTD.,레스토랑 및 바
 7422.T,Toho Lamac Co Ltd,제화
 7425.T,Hatsuho Shouji Co Ltd,건설 자재 및 비품
 7426.T,Yamadai Corporation,건설 자재 및 비품
@@ -3518,7 +3518,7 @@ Symbol,Name,Industry
 8953.T,Japan Metropolitan Fund Investment Corporation,상업용 REITs
 8954.T,Orix JREIT Inc,상업용 REITs
 8955.T,Japan Prime Realty Investment Corporation,상업용 REITs
-8956.T,NTT UD REIT Investment Corp,복합부동산 REITs
+8956.T,NTT UD REIT Investment Corporation,복합부동산 REITs
 8957.T,TOKYU REIT  Inc.,복합부동산 REITs
 8958.T,Global One Real Estate Investment Corp,상업용 REITs
 8960.T,United Urban Investment Corporation,복합부동산 REITs
