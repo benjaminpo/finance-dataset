@@ -448,10 +448,10 @@ Symbol,Name,Industry
 2678.T,Askul Corp,온라인 서비스
 267A.T,Towarise Corp,소비자 대출
 2681.T,Geo Holdings Corp,기타 전문 소매
-2683.T,Uoki Co Ltd,식품 소매 및 유통
+2683.T,UOGroup CO.  LTD.,식품 소매 및 유통
 2685.T,And ST HD Co Ltd,의류 및 액세서리 소매
 2687.T,CVS Bay Area Inc,경영 지원 서비스
-2689.T,OLBA HEALTHCARE HOLDINGS  INC.,"의료 장비, 물품 및 유통"
+2689.T,OLBA DVx HEALTHCARE  Inc.,"의료 장비, 물품 및 유통"
 268A.T,Rigaku Holdings Corporation,전자 장비 및 부품
 2693.T,YKT Corp,산업용 기계 및 장비
 2694.T,Yakiniku Sakai Holdings Inc,레스토랑 및 바
@@ -1070,7 +1070,7 @@ Symbol,Name,Industry
 3836.T,Avant Group Corp,IT 서비스 및 컨설팅
 3837.T,Ad-Sol Nissin Corp,IT 서비스 및 컨설팅
 3839.T,ODK Solutions Co Ltd,IT 서비스 및 컨설팅
-3840.T,Path Corp,개인 생활 필수 용품
+3840.T,VIXTON corporation,개인 생활 필수 용품
 3841.T,Jedat Inc,소프트웨어
 3842.T,Nextgen Inc,소프트웨어
 3843.T,FreeBit Co Ltd,통합 통신 서비스
@@ -1823,7 +1823,7 @@ Symbol,Name,Industry
 5199.T,Fuji Latex Co Ltd,산업용 기계 및 장비
 519A.T,Basic Inc,소프트웨어
 5201.T,AGC Inc.,건설 자재 및 비품
-5202.T,Nippon Sheet Glass Co Ltd,건설 자재 및 비품
+5202.T,Nippon Sheet Glass Company  Limited,건설 자재 및 비품
 5204.T,Ishizuka Glass Co Ltd,용기(종이 제외) 및 포장재
 5208.T,Arisawa Mfg Co Ltd,전자 장비 및 부품
 520A.T,J-Pharma Co Ltd,생명 공학 및 의학 연구
@@ -2822,7 +2822,7 @@ Symbol,Name,Industry
 7247.T,Mikuni Corp,"자동차, 트럭 및 오토바이 부품"
 7254.T,Univance Corp,"자동차, 트럭 및 오토바이 부품"
 7255.T,Sakurai Ltd,"자동차, 트럭 및 오토바이 부품"
-7256.T,Kasai Kogyo Co.  Ltd,"자동차, 트럭 및 오토바이 부품"
+7256.T,KASAI KOGYO CO.  LTD.,"자동차, 트럭 및 오토바이 부품"
 7259.T,AISIN CORPORATION,"자동차, 트럭 및 오토바이 부품"
 7261.T,Mazda Motor Corporation,자동차 및 트럭 제조
 7264.T,Muro Corp,"자동차, 트럭 및 오토바이 부품"
@@ -2959,7 +2959,7 @@ Symbol,Name,Industry
 7520.T,Eco's Co Ltd,식품 소매 및 유통
 7521.T,Musashi Co Ltd,사무기기
 7522.T,Watami Co Ltd,레스토랑 및 바
-7523.T,Art Vivant Co Ltd,가정용 가구 소매
+7523.T,ART VIVANT CO. LTD.,가정용 가구 소매
 7524.T,Marche Corp,레스토랑 및 바
 7525.T,RIX Corp,산업용 기계 및 장비
 7527.T,Systemsoft Corp,IT 서비스 및 컨설팅
