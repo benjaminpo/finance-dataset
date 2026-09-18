@@ -524,7 +524,7 @@ Symbol,Name,Industry
 286A.T,EUCALIA Inc.,의료 시설 및 서비스
 2871.T,NICHIREI CORPORATION,식품 가공
 2872.T,Seihyo Co Ltd,식품 가공
-2874.T,Yokorei Co Ltd,식품 가공
+2874.T,YOKOREI CO. LTD.,식품 가공
 2875.T,Toyo Suisan Kaisha Ltd,식품 가공
 2876.T,Delsole Corp,식품 가공
 2877.T,NittoBest Corp,식품 가공
@@ -1139,7 +1139,7 @@ Symbol,Name,Industry
 3944.T,Furubayashi Shiko Co Ltd,종이 포장재
 3945.T,Superbag Co Ltd,종이 포장재
 3946.T,Tomoku Co Ltd,종이 포장재
-3947.T,Dynapac Co Ltd,종이 포장재
+3947.T,Dynapac Co. Ltd.,종이 포장재
 3948.T,Hikari Business Form Co Ltd,상업 인쇄 서비스
 3950.T,THE PACK CORPORATION,종이 포장재
 3951.T,Asahi Printing Co Ltd,종이 포장재
@@ -1243,7 +1243,7 @@ Symbol,Name,Industry
 4099.T,Shikoku Kasei Holdings Corp,상품 화학
 409A.T,Orion Breweries Ltd,양조업
 4100.T,Toda Kogyo Corp,특수 화학제
-4102.T,Maruo Calcium Co Ltd,상품 화학
+4102.T,Maruo Calcium Co. Ltd.,상품 화학
 4107.T,Ise Chemicals Corp,상품 화학
 4109.T,STELLA CHEMIFA CORPORATION,특수 화학제
 410A.T,GMO Commerce  Inc.,소프트웨어
@@ -1509,7 +1509,7 @@ Symbol,Name,Industry
 4539.T,Nippon Chemiphar Co Ltd,제약
 4540.T,TSUMURA & CO.,제약
 4543.T,TERUMO CORPORATION,"의료 장비, 물품 및 유통"
-4544.T,H.U. Group Holdings Inc,의료 시설 및 서비스
+4544.T,H.u. Group Holdings  Inc,의료 시설 및 서비스
 4547.T,Kissei Pharmaceutical Co Ltd,제약
 4548.T,Seikagaku Corp,제약
 4549.T,Eiken Chemical Co.  Ltd.,"의료 장비, 물품 및 유통"
@@ -1605,7 +1605,7 @@ Symbol,Name,Industry
 4689.T,LY Corp,온라인 서비스
 4691.T,WASHINGTON HOTEL CORPORATION,"호텔, 모텔 및 크루즈 라인"
 4694.T,BML Inc,의료 시설 및 서비스
-469A.T,Fitcrew Inc,여가 및 오락시설
+469A.T,Fitcrew Inc.,여가 및 오락시설
 4704.T,Trend Micro Incorporated,소프트웨어
 4705.T,Clip Corp,기타 교육 서비스 제공
 4707.T,Kitac Corp,건설 및 엔지니어링
@@ -2245,6 +2245,7 @@ Symbol,Name,Industry
 6203.T,Howa Machinery Ltd,산업용 기계 및 장비
 6208.T,Ishikawa Seisakusho Ltd,산업용 기계 및 장비
 6209.T,NPR-Riken Corp,"자동차, 트럭 및 오토바이 부품"
+620A.T,OHKEN Corporation,소프트웨어
 6217.T,Tsudakoma Corp,산업용 기계 및 장비
 6218.T,Enshu Ltd,산업용 기계 및 장비
 621A.T,Audiostock Inc.,엔터테인먼트 제작
@@ -2255,6 +2256,7 @@ Symbol,Name,Industry
 6227.T,Aimechatec Ltd,반도체 장비 및 테스트
 6228.T,JET Co Ltd,반도체 장비 및 테스트
 6229.T,Okumura Engineering Corp,산업용 기계 및 장비
+622A.T,Techno Craft Corporation,소프트웨어
 6230.T,Sanei Ltd,건설 자재 및 비품
 6231.T,Kimura Kohki Co Ltd,전기 부품 및 장비
 6232.T,ACSL Ltd,항공우주 및 방위
@@ -2263,6 +2265,7 @@ Symbol,Name,Industry
 6237.T,Iwaki Co Ltd,산업용 기계 및 장비
 6238.T,FuRyu Corp,장난감 및 어린이 제품
 6239.T,Nagaoka International Corp,산업용 기계 및 장비
+623A.T,Vertex co.  ltd.,"부동산 임대, 개발 및 운영"
 6240.T,Yamashin-Filter Corp,산업용 기계 및 장비
 6245.T,Hirano Tecseed Co Ltd,산업용 기계 및 장비
 6246.T,Techno Smart Corp,산업용 기계 및 장비
@@ -2274,6 +2277,7 @@ Symbol,Name,Industry
 6255.T,NPC Inc,산업용 기계 및 장비
 6257.T,Fujishoji Co Ltd,카지노 및 도박
 6258.T,Hirata Corp,산업용 기계 및 장비
+625A.T,Skyfall Inc.,광고 및 마케팅
 6262.T,Pegasus Co Ltd,산업용 기계 및 장비
 6264.T,Marumae Co Ltd,전자 장비 및 부품
 6265.T,Convum Ltd,산업용 기계 및 장비
@@ -2287,6 +2291,7 @@ Symbol,Name,Industry
 6277.T,Hosokawa Micron Corp,산업용 기계 및 장비
 6278.T,Union Tool Co,산업용 기계 및 장비
 6279.T,ZUIKO CORPORATION,산업용 기계 및 장비
+627A.T,akippa Inc.,온라인 서비스
 6282.T,Oiles Corp,산업용 기계 및 장비
 6284.T,Nissei ASB Machine Co Ltd,산업용 기계 및 장비
 6286.T,Seiko Corp,"자동차 차량, 부품 및 서비스 소매"
@@ -2854,7 +2859,7 @@ Symbol,Name,Industry
 7309.T,Shimano Inc,오락용 제품
 7313.T,TS Tech Co Ltd,"자동차, 트럭 및 오토바이 부품"
 7314.T,Odawara Auto-Machine Mfg Co Ltd,비즈니스 지원 용품
-7318.T,SERENDIP HOLDINGS Co Ltd,"자동차, 트럭 및 오토바이 부품"
+7318.T,SERENDIP HOLDINGS Co. Ltd.,"자동차, 트럭 및 오토바이 부품"
 7320.T,Solvvy Inc.,개인 서비스
 7322.T,San Ju San Financial Group Inc,은행
 7325.T,IRRC Corp,복합보험 및 중개인
@@ -3310,7 +3315,7 @@ Symbol,Name,Industry
 8158.T,Soda Nikka Co Ltd,상품 화학
 8159.T,Tachibana Eletech Co Ltd,산업용 기계 및 장비
 8160.T,Kisoji Co Ltd,레스토랑 및 바
-8163.T,SRS Holdings Co.  Ltd.,레스토랑 및 바
+8163.T,SRS HOLDINGS CO. LTD.,레스토랑 및 바
 8165.T,Senshukai Co Ltd,백화점
 8166.T,Taka-Q Co Ltd,의류 및 액세서리 소매
 8167.T,Retail Partners Co Ltd,식품 소매 및 유통
@@ -3641,7 +3646,7 @@ Symbol,Name,Industry
 9226.T,IGER Inc,광고 및 마케팅
 9227.T,Microwave Chemical Co.  Ltd.,상품 화학
 9229.T,Sunwels Co Ltd,의료 시설 및 서비스
-9233.T,Asia Air Survey Co Ltd,채굴 지원 서비스 및 장비
+9233.T,Asia Air Survey Co.  Ltd.,채굴 지원 서비스 및 장비
 9235.T,Ureru Net Advertising Group Co. Ltd.,광고 및 마케팅
 9236.T,Japan M&A Solution Inc,투자 관리 및 펀드 운영
 9237.T,Emimen Co Ltd,부동산 서비스
@@ -3913,7 +3918,7 @@ Symbol,Name,Industry
 9845.T,Parker Corp,상품 화학
 9846.T,Tenmaya Store Co Ltd,식품 소매 및 유통
 9849.T,Kyodo Paper Holdings,종이 제품
-9850.T,Gourmet Kineya Co Ltd,레스토랑 및 바
+9850.T,GOURMET KINEYA CO. LTD.,레스토랑 및 바
 9853.T,Ginza Renoir Co Ltd,레스토랑 및 바
 9854.T,Aigan Co Ltd,기타 전문 소매
 9856.T,KU Holdings Co Ltd,"자동차 차량, 부품 및 서비스 소매"
