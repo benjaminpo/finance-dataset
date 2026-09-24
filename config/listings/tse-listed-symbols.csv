@@ -498,7 +498,7 @@ Symbol,Name,Industry
 2791.T,Daikokutenbussan Co Ltd,식품 소매 및 유통
 2792.T,Honeys Holdings Co Ltd,의류 및 액세서리 소매
 2795.T,Nippon Primex Inc,컴퓨터 하드웨어
-2796.T,Pharmarise Holdings Corp,의약품 소매
+2796.T,Pharmarise Holdings Corporation,의약품 소매
 2798.T,Y's Table Corp,레스토랑 및 바
 279A.T,Interg Inc,온라인 서비스
 2801.T,Kikkoman Corp,식품 가공
@@ -1097,7 +1097,7 @@ Symbol,Name,Industry
 3895.T,Havix Corp,직물 및 가죽제품
 3896.T,Awa Paper & Technological Co Inc,"자동차, 트럭 및 오토바이 부품"
 389A.T,Hakko Automation Co Ltd,산업용 기계 및 장비
-3900.T,CrowdWorks Inc,IT 서비스 및 컨설팅
+3900.T,CrowdWorks Inc,고용 서비스
 3901.T,MarkLines Co.  Ltd.,온라인 서비스
 3903.T,gumi Inc,소프트웨어
 3904.T,Kayac Inc,IT 서비스 및 컨설팅
@@ -1453,7 +1453,7 @@ Symbol,Name,Industry
 4443.T,Sansan Inc,IT 서비스 및 컨설팅
 4444.T,InfoNet Inc,온라인 서비스
 4445.T,Living Technologies Inc,온라인 서비스
-4446.T,Link-U Group Inc,IT 서비스 및 컨설팅
+4446.T,Link-U Group Inc,광고 및 마케팅
 4447.T,PBsystems Inc,IT 서비스 및 컨설팅
 4448.T,kubell Co Ltd,소프트웨어
 4449.T,Giftee Inc,온라인 서비스
@@ -1634,7 +1634,7 @@ Symbol,Name,Industry
 4754.T,Tosnet Corp,경영 지원 서비스
 4755.T,Rakuten Group  Inc.,온라인 서비스
 475A.T,Gimic Co Ltd,온라인 서비스
-4760.T,Alpha Co Ltd,광고 및 마케팅
+4760.T,ALPHA CO.  LTD.,광고 및 마케팅
 4761.T,Sakura KCS Corp,IT 서비스 및 컨설팅
 4762.T,XNET Corp,IT 서비스 및 컨설팅
 4763.T,Creek & River Co Ltd,경영 지원 서비스
@@ -1919,7 +1919,7 @@ Symbol,Name,Industry
 547A.T,Muninova Holdings Inc,소비자 대출
 5480.T,Nippon Yakin Kogyo Co Ltd,철 및 강철
 5482.T,Aichi Steel Corp,철 및 강철
-5484.T,Tohoku Steel Co Ltd,철 및 강철
+5484.T,Tohoku Steel Co. Ltd.,철 및 강철
 548A.T,SystemEXE Inc,IT 서비스 및 컨설팅
 5491.T,Nippon Kinzoku Co Ltd,철 및 강철
 549A.T,Hito-to-hito Holdings Co Ltd,경영 지원 서비스
@@ -2180,7 +2180,7 @@ Symbol,Name,Industry
 6091.T,Wesco Holdings Inc,건설 및 엔지니어링
 6092.T,EnBio Holdings Inc,환경 서비스 및 장비
 6093.T,Mitra Group Inc,부동산 서비스
-6094.T,FreakOut Holdings Inc,투자 관리 및 펀드 운영
+6094.T,FreakOut Holdings Inc,광고 및 마케팅
 6098.T,Recruit Holdings Co Ltd,고용 서비스
 6099.T,Elan Corp,의료 시설 및 서비스
 6101.T,Tsugami Corp,산업용 기계 및 장비
@@ -2679,7 +2679,7 @@ Symbol,Name,Industry
 6995.T,Tokai Rika Co.  Ltd.,"자동차, 트럭 및 오토바이 부품"
 6996.T,Nichicon Corp,전기 부품 및 장비
 6997.T,Nippon Chemi-Con Corp,전자 장비 및 부품
-6998.T,Nippon Tungsten Co Ltd,전기 부품 및 장비
+6998.T,Nippon Tungsten Co Ltd,산업용 기계 및 장비
 6999.T,KOA Corp,전자 장비 및 부품
 7003.T,Mitsui E&S Co Ltd,조선
 7004.T,Kanadevia Corporation,산업용 기계 및 장비
@@ -2781,7 +2781,7 @@ Symbol,Name,Industry
 7172.T,Japan Investment Adviser Co Ltd,기업 금융 서비스
 7173.T,Tokyo Kiraboshi Financial Group Inc,은행
 7175.T,Imamura Securities Co Ltd,투자 은행 및 중개 서비스
-7176.T,Simplex Financial Holdings Co Ltd,다각적 투자 서비스
+7176.T,Simplex Financial Holdings Co Ltd,"금융, 상품 시장 운영 및 서비스 제공"
 7177.T,GMO Financial Holdings Inc,투자 은행 및 중개 서비스
 7180.T,Kyushu Financial Group Inc,은행
 7181.T,Japan Post Insurance Co Ltd,생명 및 건강 보험
@@ -2932,14 +2932,14 @@ Symbol,Name,Industry
 7459.T,Medipal Holdings Corp,제약
 7460.T,Yagi & Co Ltd,직물 및 가죽제품
 7461.T,Kimura Co Ltd,주택 개조 제품 및 서비스 소매
-7462.T,Capita Inc,"오일, 가스 정제 및 마케팅"
+7462.T,CAPITA Inc.,"오일, 가스 정제 및 마케팅"
 7463.T,Advan Group Co Ltd,건설 자재
 7464.T,Saftec Co Ltd,비즈니스 지원 용품
 7466.T,SPK Corp,"자동차, 트럭 및 오토바이 부품"
 7472.T,Toba Inc,산업용 기계 및 장비
 7475.T,Albis Co Ltd,식품 소매 및 유통
 7476.T,As One Corp,"의료 장비, 물품 및 유통"
-7477.T,Muraki Corp,"자동차 차량, 부품 및 서비스 소매"
+7477.T,MURAKI CORPORATION,"자동차 차량, 부품 및 서비스 소매"
 7480.T,Suzuden Corp,전기 부품 및 장비
 7481.T,Oie Sangyo Co Ltd,식품 소매 및 유통
 7482.T,Shimojima Co Ltd,용기(종이 제외) 및 포장재
@@ -3346,7 +3346,7 @@ Symbol,Name,Industry
 8247.T,Daiwa Co Ltd,백화점
 8252.T,MARUI GROUP CO.  LTD.,소비자 대출
 8253.T,Credit Saison Co.  Ltd.,소비자 대출
-8254.T,Saikaya Department Store Co Ltd,백화점
+8254.T,Saikaya Department Store Co. Ltd.,백화점
 8255.T,Axial Retailing Inc,식품 소매 및 유통
 8260.T,Izutsuya Co Ltd,백화점
 8267.T,AEON CO.  LTD.,식품 소매 및 유통
@@ -3809,7 +3809,7 @@ Symbol,Name,Industry
 9554.T,AViC Co Ltd,광고 및 마케팅
 9556.T,Intloop Inc,경영 지원 서비스
 9557.T,airCloset Inc,온라인 서비스
-9558.T,Japaniace Co Ltd,IT 서비스 및 컨설팅
+9558.T,Japaniace Co Ltd,소프트웨어
 9560.T,PROGRIT Inc,기타 교육 서비스 제공
 9561.T,Glad Cube Inc,광고 및 마케팅
 9562.T,Business Coach Inc,전문 및 비즈니스 교육
@@ -3851,7 +3851,7 @@ Symbol,Name,Industry
 9685.T,Kycom Holdings Co Ltd,IT 서비스 및 컨설팅
 9686.T,Toyo Tec Co Ltd,경영 지원 서비스
 9687.T,KSK Co Ltd,IT 서비스 및 컨설팅
-9691.T,Ryomo Systems Co Ltd,IT 서비스 및 컨설팅
+9691.T,RYOMO SYSTEMS CO. LTD.,IT 서비스 및 컨설팅
 9692.T,Computer Engineering & Consulting Ltd,IT 서비스 및 컨설팅
 9697.T,Capcom Co Ltd,소프트웨어
 9698.T,Creo Co Ltd,IT 서비스 및 컨설팅
