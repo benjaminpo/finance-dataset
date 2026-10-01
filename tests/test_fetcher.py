@@ -277,8 +277,7 @@ def test_save_intraday_consolidated(tmp_path: Path) -> None:
         index=idx,
     ).rename_axis("Datetime")
 
-    now = pd.Timestamp("2024-06-02 20:00:00+00:00")
-    n = save_intraday(df, tmp_path, "crypto", "BTC-USD", now=now)
+    n = save_intraday(df, tmp_path, "crypto", "BTC-USD")
     assert n == 3
     path = tmp_path / "crypto" / "1m" / "BTC-USD.csv"
     assert path.exists()
@@ -287,11 +286,11 @@ def test_save_intraday_consolidated(tmp_path: Path) -> None:
     assert not (tmp_path / "crypto" / "1m" / "BTC-USD_2024-06-01.csv").exists()
 
 
-def test_save_intraday_prunes_retention(tmp_path: Path) -> None:
-    now = pd.Timestamp("2024-06-20 12:00:00+00:00")
+def test_save_intraday_keeps_bars_outside_yahoo_window(tmp_path: Path) -> None:
+    """Bars older than Yahoo's 7-day 1m window stay in the cumulative file."""
     idx = pd.to_datetime(
         [
-            "2024-06-01 14:30:00+00:00",  # outside 7d window for 1m
+            "2024-06-01 14:30:00+00:00",  # older than the 7d fetch window
             "2024-06-18 14:30:00+00:00",
             "2024-06-19 14:30:00+00:00",
         ]
@@ -308,15 +307,54 @@ def test_save_intraday_prunes_retention(tmp_path: Path) -> None:
         index=idx,
     ).rename_axis("Datetime")
 
-    n = save_intraday(df, tmp_path, "crypto", "BTC-USD", interval="1m", now=now)
-    assert n == 2
+    n = save_intraday(df, tmp_path, "crypto", "BTC-USD", interval="1m")
+    assert n == 3
     loaded = pd.read_csv(
         tmp_path / "crypto" / "1m" / "BTC-USD.csv",
         index_col="Datetime",
         parse_dates=True,
     )
-    assert len(loaded) == 2
-    assert loaded.index.min() >= pd.Timestamp("2024-06-13 12:00:00+00:00")
+    assert len(loaded) == 3
+    assert loaded.index.min() == pd.Timestamp("2024-06-01 14:30:00+00:00")
+
+
+def test_save_intraday_appends_across_refreshes(tmp_path: Path) -> None:
+    """A later 7-day window is merged; previously stored bars are not dropped."""
+    older = pd.DataFrame(
+        {
+            "Open": [1.0],
+            "High": [1.2],
+            "Low": [0.9],
+            "Close": [1.1],
+            "Adj Close": [1.1],
+            "Volume": [10],
+        },
+        index=pd.to_datetime(["2024-05-01 14:30:00+00:00"]),
+    ).rename_axis("Datetime")
+    save_intraday(older, tmp_path, "crypto", "BTC-USD", interval="1m")
+
+    fresh = pd.DataFrame(
+        {
+            "Open": [2.0, 3.0],
+            "High": [2.2, 3.2],
+            "Low": [1.9, 2.9],
+            "Close": [2.1, 3.1],
+            "Adj Close": [2.1, 3.1],
+            "Volume": [20, 30],
+        },
+        index=pd.to_datetime(
+            ["2024-06-18 14:30:00+00:00", "2024-06-19 14:30:00+00:00"]
+        ),
+    ).rename_axis("Datetime")
+    n = save_intraday(fresh, tmp_path, "crypto", "BTC-USD", interval="1m")
+    assert n == 3
+    loaded = pd.read_csv(
+        tmp_path / "crypto" / "1m" / "BTC-USD.csv",
+        index_col="Datetime",
+        parse_dates=True,
+    )
+    assert len(loaded) == 3
+    assert loaded.index.min() == pd.Timestamp("2024-05-01 14:30:00+00:00")
 
 
 def test_save_intraday_absorbs_legacy_dated_files(tmp_path: Path) -> None:
@@ -348,10 +386,7 @@ def test_save_intraday_absorbs_legacy_dated_files(tmp_path: Path) -> None:
         },
         index=pd.to_datetime(["2024-06-02 14:30:00+00:00"]),
     ).rename_axis("Datetime")
-    now = pd.Timestamp("2024-06-02 20:00:00+00:00")
-    n = save_intraday(
-        fresh, tmp_path, "crypto", "BTC-USD", interval="5m", now=now
-    )
+    n = save_intraday(fresh, tmp_path, "crypto", "BTC-USD", interval="5m")
     assert n == 2
     assert not legacy.exists()
     assert (folder / "BTC-USD.csv").exists()
@@ -375,8 +410,7 @@ def test_consolidate_intraday_layout(tmp_path: Path) -> None:
         ).rename_axis("Datetime")
         df.to_csv(path, date_format="%Y-%m-%dT%H:%M:%S%z")
 
-    now = pd.Timestamp("2024-06-02 20:00:00+00:00")
-    stats = consolidate_intraday_layout(tmp_path, intervals=("5m",), now=now)
+    stats = consolidate_intraday_layout(tmp_path, intervals=("5m",))
     assert stats["dated_files_removed"] == 2
     assert stats["tickers_consolidated"] == 1
     consolidated = folder / "AAPL.csv"

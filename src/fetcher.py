@@ -70,10 +70,11 @@ INTRADAY_INTERVALS: tuple[str, ...] = (
     "1h",
 )
 
-# Intraday intervals: Yahoo keeps a rolling window only.
+# Intraday intervals: Yahoo only serves a rolling window per request.
 # 1m ≈ 7 days; other intraday ≤ 60 days.
-# Stored as one consolidated CSV per ticker (same layout as daily), pruned to
-# the Yahoo retention window on each write so Kaggle file counts stay bounded.
+# Stored as one cumulative CSV per ticker (same layout as daily). Each refresh
+# merges that window into the existing file and keeps older bars, so history
+# grows past the Yahoo window across successive runs.
 SNAPSHOT_PERIODS: dict[str, str] = {
     "1m": "7d",
     "2m": "60d",
@@ -89,19 +90,6 @@ SNAPSHOT_PERIODS: dict[str, str] = {
 _DATED_SNAPSHOT_RE = re.compile(
     r"^(?P<stem>.+)_(?P<day>\d{4}-\d{2}-\d{2})\.csv$"
 )
-
-
-def _period_to_days(period: str) -> int:
-    """Parse yfinance-style period strings like ``7d`` / ``60d`` to day counts."""
-    text = period.strip().lower()
-    if text.endswith("d") and text[:-1].isdigit():
-        return int(text[:-1])
-    raise ValueError(f"Unsupported period string for retention: {period!r}")
-
-
-SNAPSHOT_RETENTION_DAYS: dict[str, int] = {
-    interval: _period_to_days(period) for interval, period in SNAPSHOT_PERIODS.items()
-}
 
 # Day-or-longer bars: one cumulative CSV per ticker with incremental merges.
 CUMULATIVE_INTERVALS: frozenset[str] = frozenset({"1d", "5d", "1wk", "1mo", "3mo"})
@@ -352,7 +340,7 @@ def fetch_history(
     Download OHLCV history for a single ticker.
 
     Prefer ``start`` for incremental daily updates; use ``period`` for
-    full history or the fixed 7-day intraday window.
+    full history or Yahoo's rolling intraday window (stored cumulatively).
 
     Identical requests within one process are served from an in-memory cache
     so duplicate symbols across asset classes do not hit Yahoo twice.
@@ -515,29 +503,6 @@ def _read_ohlcv_csv(path: Path) -> pd.DataFrame:
         return pd.DataFrame()
 
 
-def _retention_cutoff(
-    interval: str, *, now: pd.Timestamp | None = None
-) -> pd.Timestamp:
-    days = SNAPSHOT_RETENTION_DAYS[interval]
-    anchor = now if now is not None else pd.Timestamp.now(tz="UTC")
-    if anchor.tzinfo is None:
-        anchor = anchor.tz_localize("UTC")
-    else:
-        anchor = anchor.tz_convert("UTC")
-    return anchor - pd.Timedelta(days=days)
-
-
-def _prune_intraday_frame(
-    df: pd.DataFrame, interval: str, *, now: pd.Timestamp | None = None
-) -> pd.DataFrame:
-    """Drop bars older than the Yahoo retention window for *interval*."""
-    if df.empty:
-        return df
-    cutoff = _retention_cutoff(interval, now=now)
-    pruned = df[df.index >= cutoff]
-    return pruned.sort_index()
-
-
 def _iter_legacy_dated_paths(
     data_dir: Path, asset_class: str, interval: str, ticker: str
 ) -> list[Path]:
@@ -630,17 +595,19 @@ def save_intraday(
     asset_class: str,
     ticker: str,
     interval: str = "1m",
-    *,
-    now: pd.Timestamp | None = None,
 ) -> int:
     """
-    Merge *df* into a consolidated per-ticker intraday CSV and prune retention.
+    Merge *df* into a cumulative per-ticker intraday CSV.
+
+    Yahoo only returns a rolling window (``1m`` ≈ 7 days; other intraday ≈ 60
+    days). Bars already stored from earlier refreshes are kept, so history
+    grows across runs. Duplicate timestamps are dropped (last write wins).
 
     Also absorbs and deletes any legacy dated day files
     (``TICKER_YYYY-MM-DD.csv``) for the same ticker/interval.
-    Returns the number of rows kept after pruning.
+    Returns the number of rows in the aggregated file.
     """
-    if interval not in SNAPSHOT_RETENTION_DAYS:
+    if interval not in SNAPSHOT_PERIODS:
         raise ValueError(f"Unsupported intraday interval '{interval}'")
 
     csv_path = _csv_path_intraday(data_dir, asset_class, interval, ticker)
@@ -653,9 +620,7 @@ def save_intraday(
     for legacy in legacy_paths:
         frames.append(_read_ohlcv_csv(legacy))
 
-    combined = _prune_intraday_frame(
-        _merge_ohlcv_frames(frames), interval, now=now
-    )
+    combined = _merge_ohlcv_frames(frames)
     csv_path.parent.mkdir(parents=True, exist_ok=True)
     if combined.empty:
         csv_path.unlink(missing_ok=True)
@@ -675,49 +640,37 @@ def save_intraday_snapshots(
     asset_class: str,
     ticker: str,
     interval: str = "1m",
-    *,
-    now: pd.Timestamp | None = None,
 ) -> int:
     """Backward-compatible alias for :func:`save_intraday`."""
-    return save_intraday(
-        df, data_dir, asset_class, ticker, interval=interval, now=now
-    )
+    return save_intraday(df, data_dir, asset_class, ticker, interval=interval)
 
 
 def consolidate_intraday_layout(
     data_dir: Path,
     *,
     intervals: tuple[str, ...] | list[str] | None = None,
-    now: pd.Timestamp | None = None,
 ) -> dict[str, int]:
     """
-    Migrate legacy dated snapshot CSVs into consolidated per-ticker files.
+    Migrate legacy dated snapshot CSVs into cumulative per-ticker files.
 
     For each intraday interval directory under *data_dir*:
     - merge ``TICKER_YYYY-MM-DD.csv`` files into ``TICKER.csv``
-    - prune bars outside the Yahoo retention window
+    - keep every bar (history is cumulative; Yahoo's fetch window is not a cap)
     - delete the dated files
 
-    Also re-prunes existing consolidated files that have no dated siblings.
     Safe to run repeatedly. Returns counts useful for CI logging.
     """
     root = Path(data_dir)
-    allowed = (
-        set(intervals)
-        if intervals is not None
-        else set(SNAPSHOT_RETENTION_DAYS)
-    )
-    allowed &= set(SNAPSHOT_RETENTION_DAYS)
+    allowed = set(intervals) if intervals is not None else set(SNAPSHOT_PERIODS)
+    allowed &= set(SNAPSHOT_PERIODS)
 
     dated_files_removed = 0
     tickers_consolidated = 0
-    tickers_pruned = 0
 
     if not root.is_dir():
         return {
             "dated_files_removed": 0,
             "tickers_consolidated": 0,
-            "tickers_pruned": 0,
         }
 
     for asset_dir in sorted(p for p in root.iterdir() if p.is_dir()):
@@ -727,24 +680,20 @@ def consolidate_intraday_layout(
                 continue
 
             dated_by_stem: dict[str, list[Path]] = {}
-            consolidated_paths: list[Path] = []
             for path in interval_dir.iterdir():
                 if not path.is_file() or path.suffix.lower() != ".csv":
                     continue
                 parsed = _parse_dated_snapshot_name(path.name)
-                if parsed is not None:
-                    stem, _day = parsed
-                    dated_by_stem.setdefault(stem, []).append(path)
-                else:
-                    consolidated_paths.append(path)
+                if parsed is None:
+                    continue
+                stem, _day = parsed
+                dated_by_stem.setdefault(stem, []).append(path)
 
             for stem, legacy_paths in dated_by_stem.items():
                 csv_path = interval_dir / f"{stem}.csv"
                 frames = [_read_ohlcv_csv(csv_path)]
                 frames.extend(_read_ohlcv_csv(p) for p in legacy_paths)
-                combined = _prune_intraday_frame(
-                    _merge_ohlcv_frames(frames), interval, now=now
-                )
+                combined = _merge_ohlcv_frames(frames)
                 if combined.empty:
                     csv_path.unlink(missing_ok=True)
                 else:
@@ -754,30 +703,11 @@ def consolidate_intraday_layout(
                 dated_files_removed += len(legacy_paths)
                 tickers_consolidated += 1
 
-            # Re-prune consolidated-only files (no dated siblings this pass).
-            for csv_path in consolidated_paths:
-                if _parse_dated_snapshot_name(csv_path.name) is not None:
-                    continue
-                if csv_path.stem in dated_by_stem:
-                    # Already rewritten above.
-                    continue
-                existing = _read_ohlcv_csv(csv_path)
-                if existing.empty:
-                    continue
-                pruned = _prune_intraday_frame(existing, interval, now=now)
-                if len(pruned) == len(existing):
-                    continue
-                if pruned.empty:
-                    csv_path.unlink(missing_ok=True)
-                else:
-                    _write_ohlcv_csv(pruned, csv_path)
-                tickers_pruned += 1
-
     return {
         "dated_files_removed": dated_files_removed,
         "tickers_consolidated": tickers_consolidated,
-        "tickers_pruned": tickers_pruned,
     }
+
 
 def update_ticker_cumulative(
     ticker: str,
@@ -836,7 +766,7 @@ def update_ticker_snapshot(
     *,
     skip_existing: bool = False,
 ) -> tuple[bool, str]:
-    """Fetch the rolling intraday window and merge into a consolidated CSV."""
+    """Fetch Yahoo's rolling window and merge it into cumulative intraday history."""
     period = SNAPSHOT_PERIODS.get(interval)
     if period is None:
         return False, f"Unsupported snapshot interval '{interval}'"
@@ -851,7 +781,7 @@ def update_ticker_snapshot(
             return False, f"No {interval} data (illiquid, halted, or unsupported)"
 
         n = save_intraday(df, data_dir, asset_class, ticker, interval=interval)
-        return True, f"{n} row(s) retained → {csv_path.relative_to(data_dir.parent)}"
+        return True, f"{n} row(s) → {csv_path.relative_to(data_dir.parent)}"
     except Exception as exc:  # noqa: BLE001
         return False, str(exc)
 
@@ -863,7 +793,7 @@ def update_ticker_1m(
     *,
     skip_existing: bool = False,
 ) -> tuple[bool, str]:
-    """Fetch the rolling 7-day 1-minute window into a consolidated CSV."""
+    """Fetch the latest 7-day 1-minute window and merge it into cumulative history."""
     return update_ticker_snapshot(
         ticker, asset_class, "1m", data_dir, skip_existing=skip_existing
     )

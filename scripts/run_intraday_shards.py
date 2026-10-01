@@ -118,15 +118,14 @@ def run_shards(
     data_root.mkdir(parents=True, exist_ok=True)
     shards = load_shards(shards_path)
 
-    # Collapse any pulled legacy dated snapshots before fetching so disk use
-    # and later Kaggle Ready indexing stay bounded.
+    # Collapse any pulled legacy dated snapshots into cumulative files before
+    # fetching so later Kaggle Ready indexing stays one file per ticker.
     stats = consolidate_intraday_layout(data_root, intervals=intervals)
     if any(stats.values()):
         print(
             "Consolidated intradaily layout: "
             f"dated_removed={stats['dated_files_removed']} "
-            f"tickers_merged={stats['tickers_consolidated']} "
-            f"pruned={stats['tickers_pruned']}",
+            f"tickers_merged={stats['tickers_consolidated']}",
             flush=True,
         )
     _sync_pull_state_file_counts(data_root, intervals=intervals)

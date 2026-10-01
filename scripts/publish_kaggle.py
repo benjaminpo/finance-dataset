@@ -199,8 +199,8 @@ def publish(
             "(or KAGGLE_USERNAME + KAGGLE_KEY), or place credentials in ~/.kaggle/."
         )
 
-    # Intraday: collapse legacy dated day CSVs into one file per ticker and prune
-    # retention before counting/uploading (keeps Kaggle Ready indexing tractable).
+    # Intraday: collapse legacy dated day CSVs into one cumulative file per
+    # ticker before counting/uploading (keeps Kaggle Ready indexing tractable).
     consolidate_intervals = _intraday_intervals_to_consolidate(include_intervals)
     if consolidate_intervals:
         stats = consolidate_intraday_layout(
@@ -208,12 +208,10 @@ def publish(
         )
         removed = int(stats.get("dated_files_removed", 0))
         consolidated = int(stats.get("tickers_consolidated", 0))
-        pruned = int(stats.get("tickers_pruned", 0))
-        if removed or consolidated or pruned:
+        if removed or consolidated:
             print(
                 "Consolidated intradaily layout: "
-                f"dated_removed={removed} tickers_merged={consolidated} "
-                f"pruned={pruned}",
+                f"dated_removed={removed} tickers_merged={consolidated}",
                 flush=True,
             )
         # Sync pull-state counts even when shards already consolidated (removed=0),
