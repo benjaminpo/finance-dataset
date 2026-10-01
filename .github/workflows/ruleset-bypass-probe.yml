@@ -1,0 +1,24 @@
+name: Ruleset bypass probe
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Push and revert an empty commit on main
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit --allow-empty -m "ci: ruleset bypass probe"
+          git push origin HEAD:main
+          git revert --no-edit HEAD
+          git rm -f .github/workflows/ruleset-bypass-probe.yml
+          git commit -m "ci: revert ruleset bypass probe"
+          git push origin HEAD:main
