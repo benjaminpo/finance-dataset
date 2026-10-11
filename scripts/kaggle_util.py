@@ -21,9 +21,10 @@ INTRADAY_HANDLE = "benjaminpo/finance-dataset-intraday"
 DAILY_METADATA = "config/kaggle/dataset-metadata.json"
 INTRADAY_METADATA = "config/kaggle/dataset-metadata-intraday.json"
 
-# All cumulative intervals belong on the daily dataset (CI publishes 1d+1wk).
+# All cumulative intervals belong on the daily dataset.
+# CI fetches 1d, 1wk, 1mo, and 3mo. 5d is uploaded when present, not required.
 DAILY_INTERVALS: tuple[str, ...] = ("1d", "5d", "1wk", "1mo", "3mo")
-DAILY_REQUIRE_INTERVALS: tuple[str, ...] = ("1d", "1wk")
+DAILY_REQUIRE_INTERVALS: tuple[str, ...] = ("1d", "1wk", "1mo", "3mo")
 INTRADAY_INTERVALS: tuple[str, ...] = (
     "1m",
     "2m",

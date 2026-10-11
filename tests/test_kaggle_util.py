@@ -57,6 +57,7 @@ def test_get_slice_and_ignore_patterns() -> None:
     assert daily.handle == "benjaminpo/finance-dataset"
     assert "1d" in daily.intervals
     assert "1m" not in daily.intervals
+    assert daily.require_intervals == ("1d", "1wk", "1mo", "3mo")
     intradaily = get_slice("intraday")
     assert intradaily.handle.endswith("-intraday")
     assert "**/1d/**" in interval_ignore_patterns(intradaily.intervals)

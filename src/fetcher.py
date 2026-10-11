@@ -55,8 +55,8 @@ ALL_INTERVALS: tuple[str, ...] = (
 # Default fetch set when --intervals is omitted.
 DEFAULT_INTERVALS: list[str] = list(ALL_INTERVALS)
 
-# CI daily workflow: full universe, lower volume.
-DAILY_INTERVALS: tuple[str, ...] = ("1d", "1wk")
+# CI daily workflow: full universe. 5d stays off the schedule.
+DAILY_INTERVALS: tuple[str, ...] = ("1d", "1wk", "1mo", "3mo")
 
 # CI intraday workflow: smaller universe (see config/tickers_intraday.yaml).
 INTRADAY_INTERVALS: tuple[str, ...] = (
