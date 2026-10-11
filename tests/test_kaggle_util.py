@@ -13,10 +13,13 @@ from scripts.kaggle_util import (
     count_data_files_by_interval,
     get_slice,
     interval_ignore_patterns,
+    is_missing_archive_error,
     is_missing_dataset_error,
     is_transient_dataset_access_error,
+    newest_archived_version,
     read_pull_state,
     split_handle,
+    versioned_dataset_handle,
     wait_until_ready,
     write_pull_state,
 )
@@ -79,6 +82,82 @@ def test_is_missing_dataset_error() -> None:
     assert is_missing_dataset_error(RuntimeError("404 Not Found"))
     assert is_missing_dataset_error(RuntimeError("Dataset does not exist"))
     assert not is_missing_dataset_error(RuntimeError("403 permission"))
+
+
+def test_is_missing_archive_error() -> None:
+    plain = RuntimeError("404 Client Error. Resource not found")
+    assert is_missing_archive_error(plain) is False
+    missing = RuntimeError("404 Client Error")
+    missing.response = type("Resp", (), {"text": '{"error":{"message":"No gcs url found"}}'})()
+    assert is_missing_archive_error(missing) is True
+
+
+def test_versioned_dataset_handle() -> None:
+    assert versioned_dataset_handle("owner/slug", None) == "owner/slug"
+    assert versioned_dataset_handle("owner/slug", 77) == "owner/slug/versions/77"
+    assert versioned_dataset_handle("owner/slug/versions/9", 8) == "owner/slug/versions/8"
+
+
+def test_newest_archived_version_skips_missing_bundle() -> None:
+    import requests
+
+    closed: list[int] = []
+
+    class _Resp:
+        def close(self) -> None:
+            closed.append(1)
+
+    def download(req: object) -> _Resp:
+        version = getattr(req, "dataset_version_number")
+        if version == 78:
+            err = requests.HTTPError("404 Client Error")
+            err.response = type(  # type: ignore[attr-defined]
+                "Resp",
+                (),
+                {"status_code": 404, "text": '{"error":{"message":"No gcs url found"}}'},
+            )()
+            raise err
+        return _Resp()
+
+    client = MagicMock()
+    client.__enter__.return_value = client
+    client.datasets.dataset_api_client.download_dataset.side_effect = download
+    with patch("kagglehub.clients.build_kaggle_client", return_value=client):
+        assert newest_archived_version("benjaminpo/finance-dataset", 78) == 77
+    assert closed == [1]
+
+
+def test_newest_archived_version_none_when_current_is_first() -> None:
+    assert newest_archived_version("owner/slug", 1) is None
+
+
+def test_newest_archived_version_reraises_unexpected_http_error() -> None:
+    import requests
+
+    def download(req: object) -> None:
+        err = requests.HTTPError("500 Server Error")
+        err.response = type("Resp", (), {"status_code": 500, "text": "boom"})()
+        raise err
+
+    client = MagicMock()
+    client.__enter__.return_value = client
+    client.datasets.dataset_api_client.download_dataset.side_effect = download
+    with (
+        patch("kagglehub.clients.build_kaggle_client", return_value=client),
+        pytest.raises(requests.HTTPError, match="500"),
+    ):
+        newest_archived_version("owner/slug", 4, max_back=1)
+
+
+def test_newest_archived_version_returns_none_when_window_has_no_bundle() -> None:
+    def download(req: object) -> None:
+        raise RuntimeError("404 not found")
+
+    client = MagicMock()
+    client.__enter__.return_value = client
+    client.datasets.dataset_api_client.download_dataset.side_effect = download
+    with patch("kagglehub.clients.build_kaggle_client", return_value=client):
+        assert newest_archived_version("owner/slug", 3, max_back=1) is None
 
 
 def test_is_transient_dataset_access_error() -> None:

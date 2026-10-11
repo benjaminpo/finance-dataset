@@ -11,6 +11,19 @@ from scripts.kaggle_util import DatasetSnapshot
 from scripts.pull_kaggle import _merge_tree, has_kaggle_credentials, main, pull
 
 
+def _missing_archive_error() -> RuntimeError:
+    err = RuntimeError(
+        "404 Client Error. Resource not found at URL: "
+        "https://kaggle.com/datasets/benjaminpo/finance-dataset/versions/78"
+    )
+    err.response = type(  # type: ignore[attr-defined]
+        "Resp",
+        (),
+        {"text": '{"error":{"code":404,"message":"No gcs url found"}}', "status_code": 404},
+    )()
+    return err
+
+
 def test_has_kaggle_credentials(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("KAGGLE_API_TOKEN", raising=False)
     monkeypatch.delenv("KAGGLE_USERNAME", raising=False)
@@ -140,6 +153,68 @@ def test_pull_optional_does_not_swallow_download_404(
                 download_retry_sec=0,
             )
     assert mock_hub.dataset_download.call_count == 3
+
+
+def test_pull_falls_back_when_current_archive_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Ready version with no GCS bundle should pull the previous zip."""
+    cache = tmp_path / "cache"
+    (cache / "stocks_us" / "1d").mkdir(parents=True)
+    (cache / "stocks_us" / "1d" / "AAPL.csv").write_text("a", encoding="utf-8")
+    monkeypatch.setenv("KAGGLE_API_TOKEN", "tok")
+    snap = DatasetSnapshot(
+        handle="benjaminpo/finance-dataset",
+        current_version=78,
+        status="READY",
+        total_bytes=100,
+        pending_versions=(),
+        failed_versions=(),
+        max_version=78,
+    )
+    mock_hub = MagicMock()
+    mock_hub.dataset_download.side_effect = [_missing_archive_error(), str(cache)]
+    with (
+        patch.dict("sys.modules", {"kagglehub": mock_hub}),
+        patch("scripts.pull_kaggle.wait_until_ready", return_value=snap),
+        patch("scripts.pull_kaggle.newest_archived_version", return_value=77),
+        patch("scripts.pull_kaggle.time.sleep") as sleep,
+    ):
+        n = pull(data_dir=tmp_path / "data", optional=True, download_retries=8)
+    assert n == 1
+    assert mock_hub.dataset_download.call_count == 2
+    assert mock_hub.dataset_download.call_args_list[0].args[0].endswith("/versions/78")
+    assert mock_hub.dataset_download.call_args_list[1].args[0].endswith("/versions/77")
+    sleep.assert_not_called()
+    state = (tmp_path / "data" / ".kaggle-pull-state.json").read_text(encoding="utf-8")
+    assert '"version": 77' in state
+
+
+def test_pull_missing_archive_without_fallback_still_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("KAGGLE_API_TOKEN", "tok")
+    snap = DatasetSnapshot(
+        handle="benjaminpo/finance-dataset",
+        current_version=78,
+        status="READY",
+        total_bytes=100,
+        pending_versions=(),
+        failed_versions=(),
+        max_version=78,
+    )
+    mock_hub = MagicMock()
+    mock_hub.dataset_download.side_effect = _missing_archive_error()
+    with (
+        patch.dict("sys.modules", {"kagglehub": mock_hub}),
+        patch("scripts.pull_kaggle.wait_until_ready", return_value=snap),
+        patch("scripts.pull_kaggle.newest_archived_version", return_value=None),
+        patch("scripts.pull_kaggle.time.sleep") as sleep,
+    ):
+        with pytest.raises(RuntimeError, match="versions/78"):
+            pull(data_dir=tmp_path / "data", optional=True, download_retries=8)
+    assert mock_hub.dataset_download.call_count == 1
+    sleep.assert_not_called()
 
 
 def test_download_retries_then_succeeds(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

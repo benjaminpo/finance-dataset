@@ -185,6 +185,8 @@ Progress is printed per job, e.g. `Fetching AAPL [1d]... Success — 2 new/updat
 
 Fetch workflows also support `workflow_dispatch`. They use **separate** concurrency groups (`finance-dataset-kaggle-daily` / `finance-dataset-kaggle-intraday`) and **separate Kaggle datasets**, so daily and intradaily Ready queues do not block each other.
 
+Listing commits fast-forward the default branch as `github-actions[bot]`. They are not opened as pull requests. The pull-request ruleset (`default-2`) bypasses that bot (and repository admins). The force-push and branch-deletion ruleset (`default-1`) has no bypass; the fetch jobs only fast-forward, so they are unaffected.
+
 Steps (each workflow): free disk → checkout → install → [`pull_kaggle.py --slice … --optional`](scripts/pull_kaggle.py) (wait until that slice’s latest Kaggle version is **Ready**, then merge it into `data/`, drop the kagglehub cache copy) → fetch (`src/main.py` for daily; [`run_intraday_shards.py`](scripts/run_intraday_shards.py) for all intradaily shards in one job) → upload **fetch summary** artifact (JSON + Markdown; also written to the job summary) → [`publish_kaggle.py --slice …`](scripts/publish_kaggle.py) (upload only that slice’s intervals, then wait until the new version is Ready) → [`batch_commit.py`](scripts/batch_commit.py) for listing CSV updates.
 
 `--optional` only soft-fails when the dataset does not exist yet (first publish). Auth / permission errors fail the job. Publish records counts per interval at pull time and refuses any reduction within that slice. Each workflow requires only its own intervals (`1d`/`1wk` or `1m`…`1h`).
@@ -271,7 +273,9 @@ Auth: set `KAGGLE_API_TOKEN`, or legacy `KAGGLE_USERNAME` + `KAGGLE_KEY`, or `~/
 
 1. Push this repo to GitHub and enable Actions.
 2. Add repository secret `KAGGLE_API_TOKEN` (Settings → Secrets and variables → Actions) from [Kaggle API settings](https://www.kaggle.com/settings/api) → **Generate New Token**.
-3. Ensure the default branch allows the `GITHUB_TOKEN` to write contents (Settings → Actions → General → Workflow permissions → **Read and write**) so listing commits can push.
+3. Let listing commits land on the default branch:
+   - Set workflow permissions to **Read and write** (Settings → Actions → General → Workflow permissions) so `GITHUB_TOKEN` can push.
+   - If a ruleset requires a pull request before merging into the default branch, add **`github-actions[bot]`** as a bypass actor on that rule. Leave force-push and branch-deletion rules with no bypass.
 4. The Kaggle targets must be **normal file datasets** (CSV trees), not “Create from GitHub” / repo-synced datasets. A GitHub-synced slug returns `Incompatible Dataset Type` on upload — delete it (or use a new `--handle`) before the first publish. After create, set the public title/description on the Kaggle UI if needed (`kagglehub` creates private datasets titled with the slug).
 5. If you still have the **combined** `benjaminpo/finance-dataset`, run the **Split Kaggle Datasets** workflow once (or [`scripts/split_kaggle_datasets.py`](scripts/split_kaggle_datasets.py) locally) before relying on the split CI fetch jobs. Otherwise run **Fetch Daily Bars** / **Fetch Intraday Bars** and let `--optional` create empty-history datasets on first publish.
 

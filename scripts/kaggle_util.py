@@ -227,8 +227,19 @@ def get_dataset_snapshot(handle: str) -> DatasetSnapshot:
     )
 
 
+def exception_response_text(exc: BaseException) -> str:
+    """Best-effort response body for a Kaggle HTTP error."""
+    response = getattr(exc, "response", None)
+    if response is None:
+        return ""
+    try:
+        return str(getattr(response, "text", "") or "")
+    except Exception:  # noqa: BLE001 — body may be unreadable after close
+        return ""
+
+
 def is_missing_dataset_error(exc: BaseException) -> bool:
-    text = str(exc).lower()
+    text = f"{exc}\n{exception_response_text(exc)}".lower()
     markers = (
         "404",
         "not found",
@@ -238,6 +249,71 @@ def is_missing_dataset_error(exc: BaseException) -> bool:
         "no dataset",
     )
     return any(m in text for m in markers)
+
+
+def is_missing_archive_error(exc: BaseException) -> bool:
+    """
+    True when a Ready version has files but no zip bundle.
+
+    Kaggle's DownloadDataset call then returns 404 ``No gcs url found``.
+    Retrying the same version does not create the bundle; an older version
+    that still has an archive.zip can be downloaded instead.
+    """
+    text = f"{exc}\n{exception_response_text(exc)}".lower()
+    return "no gcs url found" in text
+
+
+def versioned_dataset_handle(handle: str, version: int | None) -> str:
+    """Return *handle* pinned to *version*, or the unversioned handle."""
+    base = handle.split("/versions/", 1)[0].strip("/")
+    if version is None:
+        return base
+    return f"{base}/versions/{int(version)}"
+
+
+def newest_archived_version(
+    handle: str,
+    current_version: int,
+    *,
+    max_back: int = 12,
+) -> int | None:
+    """
+    Newest version strictly older than *current_version* whose zip bundle exists.
+
+    Probes DownloadDataset and closes the response without reading the archive.
+    Returns None when no recent version has a GCS bundle URL.
+    """
+    if current_version <= 1:
+        return None
+
+    import requests
+    from kagglehub.clients import build_kaggle_client
+    from kagglesdk.datasets.types.dataset_api_service import ApiDownloadDatasetRequest
+
+    owner, slug = split_handle(handle)
+    oldest = max(1, current_version - max_back)
+    with build_kaggle_client() as api_client:
+        for version in range(current_version - 1, oldest - 1, -1):
+            req = ApiDownloadDatasetRequest()
+            req.owner_slug = owner
+            req.dataset_slug = slug
+            req.dataset_version_number = version
+            try:
+                resp = api_client.datasets.dataset_api_client.download_dataset(req)
+            except requests.HTTPError as exc:
+                status = getattr(getattr(exc, "response", None), "status_code", None)
+                if status == 404 or is_missing_archive_error(exc):
+                    continue
+                raise
+            except Exception as exc:  # noqa: BLE001 — kaggle client wraps some HTTP errors
+                if is_missing_archive_error(exc) or is_missing_dataset_error(exc):
+                    continue
+                raise
+            close = getattr(resp, "close", None)
+            if callable(close):
+                close()
+            return version
+    return None
 
 
 def is_transient_dataset_access_error(exc: BaseException) -> bool:

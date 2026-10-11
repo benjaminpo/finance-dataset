@@ -22,7 +22,10 @@ from scripts.kaggle_util import (
     get_dataset_snapshot,
     get_slice,
     has_kaggle_credentials,
+    is_missing_archive_error,
     is_missing_dataset_error,
+    newest_archived_version,
+    versioned_dataset_handle,
     wait_until_ready,
     write_pull_state,
 )
@@ -63,11 +66,15 @@ def _download_dataset(
 
     attempts = max(1, retries)
     last_exc: BaseException | None = None
+    download_handle = versioned_dataset_handle(handle, version)
     for attempt in range(1, attempts + 1):
         try:
-            return Path(kagglehub.dataset_download(handle, force_download=force))
+            return Path(kagglehub.dataset_download(download_handle, force_download=force))
         except Exception as exc:  # noqa: BLE001 — kagglehub raises various HTTP errors
             last_exc = exc
+            # A Ready version with no GCS bundle will never appear via retry.
+            if is_missing_archive_error(exc):
+                raise
             # Only retry "not found" — auth/quota/etc. should fail immediately.
             if not is_missing_dataset_error(exc) or attempt >= attempts:
                 raise
@@ -106,6 +113,10 @@ def pull(
     Once the dataset is confirmed to exist (Ready snapshot), download failures
     always raise — including 404s on a specific version URL. Soft-failing those
     left CI with only the refreshed slice and no intradaily history.
+
+    A Ready version can still have no zip bundle (Kaggle 404 ``No gcs url found``
+    while individual files exist). That case downloads the newest older version
+    that still has an archive so the incremental fetch can publish a new version.
 
     When *intervals* is set, pull-state file counts are restricted to those
     interval directories (used by --slice daily|intraday).
@@ -149,13 +160,34 @@ def pull(
         f"(v{version}) ...",
         flush=True,
     )
-    cache_path = _download_dataset(
-        handle,
-        force=force,
-        version=version,
-        retries=download_retries,
-        retry_sec=download_retry_sec,
-    )
+    try:
+        cache_path = _download_dataset(
+            handle,
+            force=force,
+            version=version,
+            retries=download_retries,
+            retry_sec=download_retry_sec,
+        )
+    except Exception as exc:  # noqa: BLE001 — fall back only for a missing zip bundle
+        if not is_missing_archive_error(exc):
+            raise
+        archived = newest_archived_version(handle, version)
+        if archived is None:
+            raise
+        print(
+            f"WARNING: {handle} v{version} has no downloadable archive "
+            "(Kaggle: No gcs url found). "
+            f"Using v{archived} instead so the refresh can continue.",
+            flush=True,
+        )
+        cache_path = _download_dataset(
+            handle,
+            force=force,
+            version=archived,
+            retries=1,
+            retry_sec=download_retry_sec,
+        )
+        version = archived
     # Prefer copying from the cache path so we merge into an existing data/
     # tree instead of requiring an empty output_dir.
     if cache_path.resolve() == dest.resolve():
