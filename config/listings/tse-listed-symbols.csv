@@ -214,7 +214,7 @@ Symbol,Name,Industry
 207A.T,Rising Corp Inc,주택 건설
 208A.T,Kozo Keikaku Engineering Holdings Inc,소프트웨어
 209A.T,Onodani Machine Co Ltd,산업용 기계 및 장비
-2108.T,Nippon Beet Sugar Manufacturing Co Ltd,식품 가공
+2108.T,Nitten Co.  Ltd.,식품 가공
 2109.T,Mitsui DM Sugar Co.  Ltd.,식품 가공
 2112.T,Ensuiko Sugar Refining Co Ltd,식품 가공
 2114.T,Fuji Nihon Corp,식품 가공
@@ -444,7 +444,7 @@ Symbol,Name,Industry
 2676.T,Takachiho Koheki Co Ltd,전자 장비 및 부품
 2678.T,Askul Corp,온라인 서비스
 267A.T,Towarise Corp,소비자 대출
-2681.T,Geo Holdings Corp,기타 전문 소매
+2681.T,2nd RETAILING Co.  Ltd.,기타 전문 소매
 2683.T,UOGroup CO.  LTD.,식품 소매 및 유통
 2685.T,And ST HD Co Ltd,의류 및 액세서리 소매
 2687.T,CVS Bay Area Inc,경영 지원 서비스
@@ -712,7 +712,7 @@ Symbol,Name,Industry
 3185.T,Dream Vision Co Ltd,백화점
 3186.T,Nextage Co Ltd,"자동차 차량, 부품 및 서비스 소매"
 3187.T,Miratap Inc,건설 자재 및 비품
-3189.T,ANAP Holdings Inc,의류 및 액세서리 소매
+3189.T,ANAP HOLDINGS INC.,의류 및 액세서리 소매
 3190.T,Hotman Co Ltd,"자동차 차량, 부품 및 서비스 소매"
 3191.T,Joyful Honda Co.  Ltd.,주택 개조 제품 및 서비스 소매
 3192.T,Shirohato Co Ltd,온라인 서비스
@@ -778,7 +778,7 @@ Symbol,Name,Industry
 329A.T,Zeal Associate Corp,광고 및 마케팅
 3300.T,AMBITION DX HOLDINGS Co.  Ltd.,"부동산 임대, 개발 및 운영"
 3302.T,Teikoku Sen-I Co Ltd,직물 및 가죽제품
-3306.T,THE NIHON SEIMA CO. LTD.,직물 및 가죽제품
+3306.T,THE SEIMA HOLDINGS CO.  LTD.,직물 및 가죽제품
 3309.T,Sekisui House Reit  Inc.,복합부동산 REITs
 330A.T,TalentX Inc,고용 서비스
 3315.T,Nippon Coke & Engineering Co Ltd,석탄
@@ -910,7 +910,7 @@ Symbol,Name,Industry
 3541.T,Nousouken Corp,어업 및 농업
 3542.T,Vega Corporation Co Ltd,온라인 서비스
 3543.T,KOMEDA Holdings Co.  Ltd.,레스토랑 및 바
-3544.T,Satudora Holdings Co Ltd,의약품 소매
+3544.T,SATUDORA HOLDINGS CO. LTD.,의약품 소매
 3547.T,Unisia Holdings Co,레스토랑 및 바
 3548.T,Baroque Japan Ltd,의류 및 액세서리 소매
 3549.T,Kusuri No Aoki Holdings Co Ltd,의약품 소매
@@ -981,13 +981,12 @@ Symbol,Name,Industry
 3667.T,Enish Inc,소프트웨어
 3668.T,Colopl Inc,온라인 서비스
 366A.T,Wellness Communications Corp,의료 시설 및 서비스
-3670.T,Kyoritsu Computer & Communication Co Ltd,컴퓨터 및 전자 제품 소매
 3671.T,Softmax Co Ltd,IT 서비스 및 컨설팅
-3672.T,AltPlus Inc,소프트웨어
+3672.T,AltPlus Holdings Inc.,소프트웨어
 3673.T,Broadleaf Co Ltd,소프트웨어
 3674.T,Aucfan Co Ltd,온라인 서비스
 3675.T,Cross Marketing Group Inc,광고 및 마케팅
-3676.T,Digital Hearts Holdings Co Ltd,IT 서비스 및 컨설팅
+3676.T,DIGITAL HEARTS HOLDINGS Co.  Ltd.,IT 서비스 및 컨설팅
 3678.T,Media Do Co Ltd,소비자 출판
 3679.T,ZIGExN Co Ltd,온라인 서비스
 367A.T,Primo Global Holdings Co Ltd,의류 및 액세서리 소매
@@ -1042,7 +1041,6 @@ Symbol,Name,Industry
 3777.T,Environment Friendly Holdings Corp,경영 지원 서비스
 3778.T,SAKURA internet Inc.,온라인 서비스
 3779.T,J Escom Holdings Inc,광고 및 마케팅
-3787.T,Techno Mathematical Co Ltd,소프트웨어
 3788.T,GMO GlobalSign Holdings KK,온라인 서비스
 378A.T,Hit Co Ltd,광고 및 마케팅
 3791.T,IG Port Inc,엔터테인먼트 제작
@@ -1074,7 +1072,7 @@ Symbol,Name,Industry
 3844.T,Comture Corp,IT 서비스 및 컨설팅
 3845.T,I-Freek Mobile Inc,소프트웨어
 3848.T,Data Applications Co Ltd,IT 서비스 및 컨설팅
-3850.T,NTT Data Intramart Corp,소프트웨어
+3850.T,INTRAMART CORPORATION,소프트웨어
 3851.T,Nippon Ichi Software Inc,소프트웨어
 3853.T,ASTERIA Corporation,소프트웨어
 3854.T,I'LL Inc,IT 서비스 및 컨설팅
@@ -1111,7 +1109,7 @@ Symbol,Name,Industry
 3915.T,TerraSky Co Ltd,IT 서비스 및 컨설팅
 3916.T,Digital Information Technologies Corp,IT 서비스 및 컨설팅
 3917.T,iRidge Inc,소프트웨어
-3918.T,PCI Holdings Inc,소프트웨어
+3918.T,PCI Solutions Inc.,소프트웨어
 3920.T,Internetworking and Broadband Consulting Co Ltd,소프트웨어
 3921.T,Neojapan Inc,소프트웨어
 3922.T,PR Times Corp,온라인 서비스
@@ -1219,7 +1217,7 @@ Symbol,Name,Industry
 4063.T,Shin-Etsu Chemical Co.  Ltd.,다각적 화학 산업
 4064.T,Nippon Carbide Industries Co Inc,상품 화학
 4068.T,Basis Corp,건설 및 엔지니어링
-4069.T,BlueMeme Inc,IT 서비스 및 컨설팅
+4069.T,BlueMeme Group Inc.,IT 서비스 및 컨설팅
 406A.T,Kankyou No Mikata Holdings Inc,환경 서비스 및 장비
 4071.T,Plus Alpha Consulting Co. LTD.,IT 서비스 및 컨설팅
 4072.T,Densan System Holdings Co Ltd,IT 서비스 및 컨설팅
@@ -1349,11 +1347,10 @@ Symbol,Name,Industry
 4308.T,J-Stream Inc,온라인 서비스
 430A.T,Next Hands Co Ltd,IT 서비스 및 컨설팅
 4310.T,Dream Incubator Inc,경영 지원 서비스
-4316.T,Bemap Inc,통합 통신 서비스
 4317.T,Ray Corp,광고 및 마케팅
 4318.T,Quick Co Ltd,고용 서비스
 431A.T,uSonar Co Ltd,소프트웨어
-4320.T,CE Holdings Co Ltd,소프트웨어
+4320.T,CE Holdings Co. Ltd.,소프트웨어
 4323.T,Japan System Techniques Co Ltd,소프트웨어
 4324.T,DENTSU GROUP INC.,광고 및 마케팅
 4326.T,Intage Holdings Inc,광고 및 마케팅
@@ -1441,7 +1438,7 @@ Symbol,Name,Industry
 4432.T,WingArc1st Inc.,소프트웨어
 4433.T,Hito Communications Holdings Inc,고용 서비스
 4434.T,Serverworks Co Ltd,IT 서비스 및 컨설팅
-4436.T,Minkabu The Infonoid Inc,광고 및 마케팅
+4436.T,MINKABU THE INFONOID  Inc.,광고 및 마케팅
 4437.T,Gooddays Holdings Inc,IT 서비스 및 컨설팅
 4438.T,Welby Inc,소프트웨어
 4439.T,Toumei Co Ltd,통신 및 네트워킹
@@ -1449,7 +1446,7 @@ Symbol,Name,Industry
 4441.T,Tobila Systems Inc,IT 서비스 및 컨설팅
 4442.T,Valtes Holdings Co Ltd,IT 서비스 및 컨설팅
 4443.T,Sansan Inc,IT 서비스 및 컨설팅
-4444.T,InfoNet Inc,온라인 서비스
+4444.T,INFONET GROUP inc.,온라인 서비스
 4445.T,Living Technologies Inc,온라인 서비스
 4446.T,Link-U Group Inc,광고 및 마케팅
 4447.T,PBsystems Inc,IT 서비스 및 컨설팅
@@ -1694,7 +1691,7 @@ Symbol,Name,Industry
 4891.T,TMS Co Ltd,생명 공학 및 의학 연구
 4892.T,Cyfuse Biomedical KK,생명 공학 및 의학 연구
 4893.T,Noile-Immune Biotech Inc,생명 공학 및 의학 연구
-4894.T,Cuorips Inc,제약
+4894.T,Cuorips Inc.,제약
 4896.T,K Pharma Inc,제약
 4901.T,FUJIFILM Holdings Corporation,특수 화학제
 4902.T,KONICA MINOLTA  INC.,사무기기
@@ -1769,7 +1766,7 @@ Symbol,Name,Industry
 5037.T,Fitworks Co Ltd,IT 서비스 및 컨설팅
 5038.T,eWeLL Co Ltd,소프트웨어
 503A.T,BellChild Co Ltd,소프트웨어
-504A.T,Innovacell Inc,제약
+504A.T,Innovacell Inc.,제약
 505A.T,Geekly Inc,
 506A.T,Sinkanurse Inc,
 5071.T,VIS Co Ltd,주택 개조 제품 및 서비스 소매
@@ -1794,7 +1791,7 @@ Symbol,Name,Industry
 5126.T,Porters Corp,IT 서비스 및 컨설팅
 5129.T,Fixer Inc,IT 서비스 및 컨설팅
 5130.T,HiroHoldings Co Ltd,컴퓨터 및 전자 제품 소매
-5131.T,Linkers Corp,IT 서비스 및 컨설팅
+5131.T,Linkers Corporation,IT 서비스 및 컨설팅
 5132.T,pluszero Inc,IT 서비스 및 컨설팅
 5133.T,Terilogy Holdings Corp,통신 및 네트워킹
 5134.T,POPER Co Ltd,소프트웨어
@@ -1954,7 +1951,7 @@ Symbol,Name,Industry
 5587.T,Inbound Platform Corp,여가 및 오락시설
 5588.T,Fast Accounting Co Ltd,소프트웨어
 5589.T,Auto Server Co Ltd,온라인 서비스
-558A.T,Squeeze Inc,IT 서비스 및 컨설팅
+558A.T,SQUEEZE Inc.,IT 서비스 및 컨설팅
 5590.T,Netstars Co Ltd,핀테크
 5591.T,AVILEN Inc,소프트웨어
 5592.T,Kusurinomadoguchi Inc,첨단 의료 장비 및 기술
@@ -2023,7 +2020,7 @@ Symbol,Name,Industry
 5838.T,Rakuten Bank Ltd,은행
 583A.T,Real Estate Distribution System Co Ltd,부동산 서비스
 5840.T,Nippon Souken Co Ltd,복합보험 및 중개인
-5842.T,Integral Corporation,투자 관리 및 펀드 운영
+5842.T,Integral Group Corporation,투자 관리 및 펀드 운영
 5843.T,Nippon Insure Co Ltd,손해보험
 5844.T,Kyoto Financial Group  Inc.,은행
 5845.T,Zenhoren Co Ltd,소비자 대출
@@ -2051,7 +2048,7 @@ Symbol,Name,Industry
 589A.T,NEIS Co Ltd,전문 및 비즈니스 교육
 5900.T,Daiken Co Ltd,건설 자재 및 비품
 5901.T,Toyo Seikan Group Holdings  Ltd.,용기(종이 제외) 및 포장재
-5902.T,Hokkan Holdings Ltd,용기(종이 제외) 및 포장재
+5902.T,HOKKAN LIMITED,용기(종이 제외) 및 포장재
 5905.T,Nihon Seikan KK,용기(종이 제외) 및 포장재
 5906.T,MK Seiko Co Ltd,산업용 기계 및 장비
 5909.T,Corona Corp,"가전제품, 도구 및 가정 용품"
@@ -2108,7 +2105,7 @@ Symbol,Name,Industry
 5984.T,Kanefusa Corp,산업용 기계 및 장비
 5985.T,Suncall Corp,"자동차, 트럭 및 오토바이 부품"
 5986.T,Molitec Steel Co Ltd,철 및 강철
-5987.T,Onex Corp,철 및 강철
+5987.T,ONEX Corporation,철 및 강철
 5988.T,Piolax Inc,"자동차, 트럭 및 오토바이 부품"
 5989.T,H-One Co Ltd,"자동차, 트럭 및 오토바이 부품"
 598A.T,ChatPlus Co Ltd,소프트웨어
@@ -2158,7 +2155,7 @@ Symbol,Name,Industry
 6069.T,Trenders Inc,광고 및 마케팅
 6070.T,Careerlink Co Ltd,고용 서비스
 6071.T,IBJ Inc.,개인 서비스
-6072.T,Jibannet Holdings Co.  Ltd.,경영 지원 서비스
+6072.T,ERTH Group Co. Ltd.,경영 지원 서비스
 6073.T,Asante Inc,건설 및 엔지니어링
 6074.T,JSS Corp,개인 서비스
 6078.T,Value HR Co Ltd,의료 시설 및 서비스
@@ -2196,7 +2193,6 @@ Symbol,Name,Industry
 6144.T,Seibu Electric & Machinery Co Ltd,산업용 기계 및 장비
 6145.T,Nittoku Co Ltd,산업용 기계 및 장비
 6146.T,Disco Corp,반도체 장비 및 테스트
-6147.T,Yamazaki Co Ltd,산업용 기계 및 장비
 6149.T,Odawara Engineering Co Ltd,산업용 기계 및 장비
 614A.T,Yamahachi Corporation,"부동산 임대, 개발 및 운영"
 6150.T,Takeda Machinery Co Ltd,산업용 기계 및 장비
@@ -2358,6 +2354,7 @@ Symbol,Name,Industry
 6383.T,DAIFUKU CO.  LTD.,중전기장비
 6384.T,Showa Shinku Co Ltd,산업용 기계 및 장비
 6387.T,Samco Inc,반도체 장비 및 테스트
+638A.T,HIGHNESSCORPORATION CO. LTD.,
 6390.T,Kato Works Co Ltd,중장비 및 차량
 6391.T,Kaji Technology Corp,산업용 기계 및 장비
 6392.T,Yamada Corp,산업용 기계 및 장비
@@ -2370,11 +2367,12 @@ Symbol,Name,Industry
 6407.T,CKD Corp,산업용 기계 및 장비
 6408.T,Ogura Clutch Co Ltd,"자동차, 트럭 및 오토바이 부품"
 640A.T,ASNOVA Companies Inc.,기업 금융 서비스
-6412.T,Heiwa Corp,여가 및 오락시설
+6412.T,HEIWA HOLDINGS INC.,여가 및 오락시설
 6413.T,Riso Kagaku Corp,사무기기
 6417.T,Sankyo Co Ltd,카지노 및 도박
 6418.T,Japan Cash Machine Co Ltd,사무기기
 6419.T,Mars Group Holdings Corp,카지노 및 도박
+641A.T,NOK Group Corporation,산업용 기계 및 장비
 6420.T,GALILEI HOLDINGS CO. LTD.,전기 부품 및 장비
 6424.T,Takamisawa Cybernetics Co Ltd,산업용 기계 및 장비
 6425.T,Universal Entertainment Corp,"호텔, 모텔 및 크루즈 라인"
@@ -2393,6 +2391,7 @@ Symbol,Name,Industry
 6457.T,Glory Ltd,산업용 기계 및 장비
 6458.T,SINKO INDUSTRIES LTD.,전기 부품 및 장비
 6459.T,DAIWA LTD.,산업용 기계 및 장비
+645A.T,DigitalBerry Co.  Ltd.,광고 및 마케팅
 6460.T,SEGA SAMMY HOLDINGS INC.,엔터테인먼트 제작
 6463.T,TPR Co Ltd,"자동차, 트럭 및 오토바이 부품"
 6464.T,Tsubaki Nakashima Co Ltd,산업용 기계 및 장비
@@ -2461,7 +2460,7 @@ Symbol,Name,Industry
 6558.T,Cookbiz Co Ltd,고용 서비스
 6560.T,LTS Inc,경영 지원 서비스
 6561.T,Hanatour Japan Co Ltd,여가 및 오락시설
-6562.T,Geniee Inc,광고 및 마케팅
+6562.T,Geniee  Inc.,광고 및 마케팅
 6563.T,Mirai Works Inc,고용 서비스
 6564.T,Midac Holdings Co Ltd,환경 서비스 및 장비
 6565.T,ABhotel Co Ltd,"호텔, 모텔 및 크루즈 라인"
@@ -2765,7 +2764,7 @@ Symbol,Name,Industry
 7132.T,Flobal Corp,건설 자재 및 비품
 7133.T,Hyuga Primary Care Co Ltd,의약품 소매
 7134.T,Up Garage Group Co Ltd,"자동차, 트럭 및 오토바이 부품"
-7135.T,Japan Craft Holdings Co Ltd,기타 전문 소매
+7135.T,JAPAN CRAFT HOLDINGS CO.  LTD.,기타 전문 소매
 7137.T,Grantomato Co Ltd,식품 소매 및 유통
 7138.T,Torico Co Ltd,온라인 서비스
 7139.T,Tokyo Koatsu Co Ltd,상품 화학
@@ -2826,7 +2825,6 @@ Symbol,Name,Industry
 7246.T,Press Kogyo Co Ltd,"자동차, 트럭 및 오토바이 부품"
 7247.T,Mikuni Corp,"자동차, 트럭 및 오토바이 부품"
 7254.T,Univance Corp,"자동차, 트럭 및 오토바이 부품"
-7255.T,Sakurai Ltd,"자동차, 트럭 및 오토바이 부품"
 7256.T,KASAI KOGYO CO.  LTD.,"자동차, 트럭 및 오토바이 부품"
 7259.T,AISIN CORPORATION,"자동차, 트럭 및 오토바이 부품"
 7261.T,Mazda Motor Corporation,자동차 및 트럭 제조
@@ -3001,7 +2999,7 @@ Symbol,Name,Industry
 7602.T,Ledax Co Ltd,"자동차 차량, 부품 및 서비스 소매"
 7603.T,Gyet Co Ltd,의류 및 액세서리 소매
 7604.T,Umenohana Group Co Ltd,레스토랑 및 바
-7606.T,United Arrows Ltd,의류 및 액세서리 소매
+7606.T,TABAYA HOLDINGS Co. Ltd.,의류 및 액세서리 소매
 7607.T,Shinwa Co Ltd,산업용 기계 및 장비
 7608.T,SK Japan Co Ltd,장난감 및 어린이 제품
 7609.T,Daitron Co Ltd,전자 장비 및 부품
@@ -3044,13 +3042,12 @@ Symbol,Name,Industry
 7692.T,Earth Infinity Co Ltd,전력 유틸리티
 7693.T,Hokkaido Shika Sangyo Co Ltd,"의료 장비, 물품 및 유통"
 7694.T,Itsumo Inc,광고 및 마케팅
-7695.T,Koukandekirukun Inc,온라인 서비스
+7695.T,Reform Technology   Inc.,온라인 서비스
 7698.T,Iceco Inc,식품 소매 및 유통
 7699.T,Omni-plus System Ltd DRC,상품 화학
 7701.T,Shimadzu Corporation,사무기기
 7702.T,JMS Co Ltd,"의료 장비, 물품 및 유통"
 7707.T,Precision System Science Co Ltd,첨단 의료 장비 및 기술
-7709.T,Kubotek Corp,전기 부품 및 장비
 7711.T,Sukegawa Electric Co Ltd,전기 부품 및 장비
 7713.T,Sigma Koki Co Ltd,사무기기
 7715.T,Nagano Keiki Co Ltd,산업용 기계 및 장비
@@ -3131,8 +3128,7 @@ Symbol,Name,Industry
 7847.T,Graphite Design Inc,오락용 제품
 7849.T,Starts Publishing Corp,소비자 출판
 7850.T,Sougou Shouken Co Ltd,상업 인쇄 서비스
-7851.T,Kawase Computer Supplies Co Ltd,상업 인쇄 서비스
-7856.T,Hagihara Industries Inc,상품 화학
+7856.T,HAGIHARA INDUSTRIES INC.,상품 화학
 7857.T,Seki Co Ltd,상업 인쇄 서비스
 7859.T,Almedio Inc,컴퓨터 하드웨어
 7860.T,Avex Inc,엔터테인먼트 제작
@@ -3181,7 +3177,6 @@ Symbol,Name,Industry
 7942.T,JSP Corp,상품 화학
 7943.T,Nichiha Corp,건설 자재 및 비품
 7944.T,Roland Corp,오락용 제품
-7946.T,Koyosha Inc,상업 인쇄 서비스
 7947.T,Fp Corp,용기(종이 제외) 및 포장재
 7949.T,KOMATSU WALL INDUSTRY CO.  LTD.,건설 자재 및 비품
 7951.T,YAMAHA CORPORATION,오락용 제품
@@ -3205,7 +3200,6 @@ Symbol,Name,Industry
 7981.T,Takara Standard Co Ltd,건설 자재 및 비품
 7983.T,Miroku Corp,항공우주 및 방위
 7984.T,Kokuyo Co Ltd,비즈니스 지원 용품
-7985.T,Nepon Inc,전기 부품 및 장비
 7986.T,Nihon ISK Co Ltd,비즈니스 지원 용품
 7987.T,Nakabayashi Co Ltd,종이 제품
 7988.T,Nifco Inc,"자동차, 트럭 및 오토바이 부품"
@@ -3427,7 +3421,7 @@ Symbol,Name,Industry
 8585.T,Orient Corporation,소비자 대출
 8591.T,ORIX CORPORATION,다각적 투자 서비스
 8593.T,Mitsubishi HC Capital Inc,기업 금융 서비스
-8595.T,JAFCO Group Co.  Ltd.,투자 관리 및 펀드 운영
+8595.T,JAFCO Co.  Ltd.,투자 관리 및 펀드 운영
 8596.T,Kyushu Leasing Service Co Ltd,기업 금융 서비스
 8600.T,Tomony Holdings Inc,은행
 8601.T,Daiwa Securities Group Inc,투자 은행 및 중개 서비스
@@ -3590,7 +3584,7 @@ Symbol,Name,Industry
 9075.T,FUKUYAMA TRANSPORTING CO.  LTD.,지상 화물 및 물류
 9076.T,Seino Holdings Co Ltd,"배달, 우편, 항공 화물 및 육상 물류"
 9081.T,Kanagawa Chuo Kotsu Co.  Ltd.,지상 및 해상 여객 운송
-9082.T,Daiwa Motor Transportation Co Ltd,지상 및 해상 여객 운송
+9082.T,Daiwa Motor Transportation Co.  Ltd.,지상 및 해상 여객 운송
 9083.T,Shinki Bus Co Ltd,지상 및 해상 여객 운송
 9087.T,Takase Corp,"배달, 우편, 항공 화물 및 육상 물류"
 9090.T,AZ-COM MARUWA Holdings Inc.,지상 화물 및 물류
@@ -3641,7 +3635,7 @@ Symbol,Name,Industry
 9222.T,Manaby Co Ltd,전문 및 비즈니스 교육
 9225.T,Bridge Consulting Group Inc,경영 지원 서비스
 9226.T,IGER Inc,광고 및 마케팅
-9227.T,Microwave Chemical Co.  Ltd.,상품 화학
+9227.T,MWCC Inc.,상품 화학
 9229.T,Sunwels Co Ltd,의료 시설 및 서비스
 9233.T,Asia Air Survey Co.  Ltd.,채굴 지원 서비스 및 장비
 9235.T,Ureru Net Advertising Group Co. Ltd.,광고 및 마케팅
@@ -3938,7 +3932,7 @@ Symbol,Name,Industry
 9902.T,NICHIDEN Corporation,산업용 기계 및 장비
 9903.T,Kanseki Co Ltd,주택 개조 제품 및 서비스 소매
 9904.T,Verite Co. Ltd.,의류 및 액세서리 소매
-9906.T,Fujii Sangyo Corp,전기 부품 및 장비
+9906.T,Fujii Sangyo Holdings Corporation,전기 부품 및 장비
 9908.T,Nihon Denkei Co Ltd,산업용 기계 및 장비
 9913.T,Nippo Ltd,전자 장비 및 부품
 9914.T,Uematsu Shokai Co Ltd,산업용 기계 및 장비
@@ -3968,7 +3962,7 @@ Symbol,Name,Industry
 9980.T,MRK Holdings Inc,의류 및 액세서리
 9982.T,Takihyo Co Ltd,의류 및 액세서리
 9983.T,FAST RETAILING CO.  LTD.,의류 및 액세서리 소매
-9984.T,SoftBank Group Corp.,무선 통신 서비스
+9984.T,Softbank Group Corp,무선 통신 서비스
 9986.T,Zaoh Co Ltd,산업용 기계 및 장비
 9987.T,Suzuken Co Ltd,제약
 9989.T,Sundrug Co Ltd,의약품 소매
