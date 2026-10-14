@@ -63,7 +63,7 @@ jobs:
             artifacts/fetch-summary.md
           if-no-files-found: warn
 
-      - name: Publish daily OHLCV to Kaggle
+      - name: Quality-check and publish daily OHLCV to Kaggle
         env:
           KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
         run: >

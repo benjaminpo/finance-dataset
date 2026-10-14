@@ -84,10 +84,10 @@ data/
 
 ### Interval strategy
 
-Supported Yahoo intervals: `1m`, `2m`, `5m`, `15m`, `30m`, `60m`, `90m`, `1h`, `1d`, `5d`, `1wk`, `1mo`, `3mo`.
+Supported Yahoo intervals: `1m`, `2m`, `5m`, `15m`, `30m`, `60m`, `90m`, `1d`, `5d`, `1wk`, `1mo`, `3mo`. Yahoo’s `1h` interval is the same bars as `60m`, so it is not stored.
 
 - **Cumulative** (`1d`, `5d`, `1wk`, `1mo`, `3mo`) — One file per ticker. New bars are appended; duplicate timestamps are dropped (last write wins), so re-runs refresh the latest candle safely.
-- **Intraday** (`1m`, `2m`, `5m`, `15m`, `30m`, `60m`, `90m`, `1h`) — Yahoo only returns a rolling window per request (`1m` ≈ 7 days; other intraday ≈ 60 days). One cumulative CSV per ticker (same path shape as daily). Each refresh merges that window into the existing file and **keeps older bars**, so history grows past the Yahoo window across successive runs. Duplicate timestamps are dropped (last write wins). A migrate step also collapses any legacy dated files (`TICKER_YYYY-MM-DD.csv`) into this layout before publish. File counts stay one CSV per ticker×interval; file size grows with accumulated history.
+- **Intraday** (`1m`, `2m`, `5m`, `15m`, `30m`, `60m`, `90m`) — Yahoo only returns a rolling window per request (`1m` ≈ 7 days; other intraday ≈ 60 days). One cumulative CSV per ticker (same path shape as daily). Each refresh merges that window into the existing file and **keeps older bars**, so history grows past the Yahoo window across successive runs. Duplicate timestamps are dropped (last write wins). A migrate step also collapses any legacy dated files (`TICKER_YYYY-MM-DD.csv`) into this layout before publish. File counts stay one CSV per ticker×interval; file size grows with accumulated history.
 
 CSV index column is `Datetime` (UTC, ISO-8601). Columns: Open, High, Low, Close, Adj Close, Volume (plus Dividends / Stock Splits when present).
 
@@ -165,7 +165,7 @@ python src/main.py --intervals 1d 1wk 1mo 3mo
 
 # Match CI intraday job (full listings; optional shard filters)
 python src/main.py --config config/tickers_intraday.yaml \
-  --intervals 1m 2m 5m 15m 30m 60m 90m 1h \
+  --intervals 1m 2m 5m 15m 30m 60m 90m \
   --asset-classes stocks_us --shard-index 0 --shard-count 6
 
 # Faster first backfill: daily only, then resume if interrupted
@@ -180,7 +180,7 @@ python src/main.py --config config/tickers.yaml --data-dir data --workers 12 --s
 | ------------------------- | ---------------------- | ------------------------------------------------------------------------------ |
 | `--config`                | `config/tickers.yaml`  | Ticker lists                                                                   |
 | `--data-dir`              | `data`                 | CSV root                                                                       |
-| `--intervals`             | all 13 Yahoo intervals | Any of `1m`/`2m`/`5m`/`15m`/`30m`/`60m`/`90m`/`1h`/`1d`/`5d`/`1wk`/`1mo`/`3mo` |
+| `--intervals`             | all 12 Yahoo intervals | Any of `1m`/`2m`/`5m`/`15m`/`30m`/`60m`/`90m`/`1d`/`5d`/`1wk`/`1mo`/`3mo`      |
 | `--workers`               | `8`                    | Parallel Yahoo fetch threads                                                   |
 | `--sleep`                 | `0.25`                 | Seconds to pause after each request                                            |
 | `--skip-existing`         | off                    | Skip tickers that already have data (resume)                                   |
@@ -193,7 +193,7 @@ python src/main.py --config config/tickers.yaml --data-dir data --workers 12 --s
 | `-v`                      | off                    | Debug logging                                                                  |
 
 
-CI splits the work so Actions stays practical: **daily** refreshes `1d`, `1wk`, `1mo`, and `3mo` for the full listing universe (~27k symbols) into [finance-dataset](https://www.kaggle.com/datasets/benjaminpo/finance-dataset); **intraday** refreshes `1m`…`1h` into [finance-dataset-intraday](https://www.kaggle.com/datasets/benjaminpo/finance-dataset-intraday) in one job that runs symbol shards sequentially (`[config/intraday_shards.yaml](config/intraday_shards.yaml)`) so each Kaggle dataset is pulled and published **once** per run. `5d` stays off the schedule and is uploaded only when those files are already present. Prefer `--intervals 1d` for the first local backfill, then publish. Use `--skip-existing` to resume after an interrupt.
+CI splits the work so Actions stays practical: **daily** refreshes `1d`, `1wk`, `1mo`, and `3mo` for the full listing universe (~27k symbols) into [finance-dataset](https://www.kaggle.com/datasets/benjaminpo/finance-dataset); **intraday** refreshes `1m`…`90m` into [finance-dataset-intraday](https://www.kaggle.com/datasets/benjaminpo/finance-dataset-intraday) in one job that runs symbol shards sequentially (`[config/intraday_shards.yaml](config/intraday_shards.yaml)`) so each Kaggle dataset is pulled and published **once** per run. `5d` stays off the schedule and is uploaded only when those files are already present. Prefer `--intervals 1d` for the first local backfill, then publish. Use `--skip-existing` to resume after an interrupt.
 
 Progress is printed per job, e.g. `Fetching AAPL [1d]... Success — 2 new/updated row(s)`.
 
@@ -203,7 +203,7 @@ Progress is printed per job, e.g. `Fetching AAPL [1d]... Success — 2 new/updat
 | Workflow                  | File                                                                       | Schedule                         | Config                                                                          | Intervals              |
 | ------------------------- | -------------------------------------------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------- | ---------------------- |
 | **Fetch Daily Bars**      | `[data_fetch_daily.yml](.github/workflows/data_fetch_daily.yml)`           | `0 23 * * `* (23:00 UTC daily)   | `tickers.yaml`                                                                  | `1d` `1wk` `1mo` `3mo` |
-| **Fetch Intraday Bars**   | `[data_fetch_intraday.yml](.github/workflows/data_fetch_intraday.yml)`     | `15 15,18,21 * * 1-5` (weekdays) | `tickers_intraday.yaml` + `[intraday_shards.yaml](config/intraday_shards.yaml)` | `1m`…`1h`              |
+| **Fetch Intraday Bars**   | `[data_fetch_intraday.yml](.github/workflows/data_fetch_intraday.yml)`     | `15 15,18,21 * * 1-5` (weekdays) | `tickers_intraday.yaml` + `[intraday_shards.yaml](config/intraday_shards.yaml)` | `1m`…`90m`              |
 | **Split Kaggle Datasets** | `[split_kaggle_datasets.yml](.github/workflows/split_kaggle_datasets.yml)` | manual (`workflow_dispatch`)     | —                                                                               | one-time migration     |
 
 
@@ -211,9 +211,9 @@ Fetch workflows also support `workflow_dispatch`. They use **separate** concurre
 
 Listing commits fast-forward the default branch as `github-actions[bot]`. They are not opened as pull requests. The pull-request ruleset (`default-2`) bypasses that bot (and repository admins). The force-push and branch-deletion ruleset (`default-1`) has no bypass; the fetch jobs only fast-forward, so they are unaffected.
 
-Steps (each workflow): free disk → checkout → install → `[pull_kaggle.py --slice … --optional](scripts/pull_kaggle.py)` (wait until that slice’s latest Kaggle version is **Ready**, then merge it into `data/`, drop the kagglehub cache copy) → fetch (`src/main.py` for daily; `[run_intraday_shards.py](scripts/run_intraday_shards.py)` for all intradaily shards in one job) → upload **fetch summary** artifact (JSON + Markdown; also written to the job summary) → `[publish_kaggle.py --slice …](scripts/publish_kaggle.py)` (upload only that slice’s intervals, then wait until the new version is Ready) → `[batch_commit.py](scripts/batch_commit.py)` for listing CSV updates.
+Steps (each workflow): free disk → checkout → install → `[pull_kaggle.py --slice … --optional](scripts/pull_kaggle.py)` (wait until that slice’s latest Kaggle version is **Ready**, then merge it into `data/`, drop the kagglehub cache copy) → fetch (`src/main.py` for daily; `[run_intraday_shards.py](scripts/run_intraday_shards.py)` for all intradaily shards in one job) → upload **fetch summary** artifact (JSON + Markdown; also written to the job summary) → `[publish_kaggle.py --slice …](scripts/publish_kaggle.py)` (quality-check that slice’s CSVs, upload them, then wait until the new version is Ready) → `[batch_commit.py](scripts/batch_commit.py)` for listing CSV updates.
 
-`--optional` only soft-fails when the dataset does not exist yet (first publish). Auth / permission errors fail the job. Publish records counts per interval at pull time and refuses any reduction within that slice. Each workflow requires only its own intervals (`1d`/`1wk`/`1mo`/`3mo` or `1m`…`1h`).
+`--optional` only soft-fails when the dataset does not exist yet (first publish). Auth / permission errors fail the job. Publish records counts per interval at pull time and refuses any reduction within that slice. Before upload it also rejects CSVs that are missing OHLCV columns, have no bars, or fail a row-level OHLC check (every file’s header and first bar, plus a full scan of 200 files spread across the tree — or every file when the tree is smaller). Each workflow requires only its own intervals (`1d`/`1wk`/`1mo`/`3mo` or `1m`…`90m`).
 
 The summary includes success/fail/skip counts, **failure rate** (failed ÷ attempted), breakdowns by interval and asset class, and per-ticker failure messages so Yahoo blanks / rate-limit gaps are visible without digging through the full log. Exit behavior is unchanged: the job only fails the fetch step when *every* ticker fails.
 
@@ -239,7 +239,7 @@ Kernel: [Quickstart: Using the Global Markets OHLCV Dataset](https://www.kaggle.
 | Slice        | Dataset                                                                                                    | Intervals                                    |
 | ------------ | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
 | **daily**    | [benjaminpo/finance-dataset](https://www.kaggle.com/datasets/benjaminpo/finance-dataset)                   | `1d` `1wk` `1mo` `3mo` (+ `5d` when present) |
-| **intraday** | [benjaminpo/finance-dataset-intraday](https://www.kaggle.com/datasets/benjaminpo/finance-dataset-intraday) | `1m`…`1h`                                    |
+| **intraday** | [benjaminpo/finance-dataset-intraday](https://www.kaggle.com/datasets/benjaminpo/finance-dataset-intraday) | `1m`…`90m`                                    |
 
 
 Splitting keeps each Ready queue smaller: daily publishes only cumulative CSVs; intradaily publishes one cumulative CSV per ticker×interval. Upload is still ~1–2 min; most remaining wait is Kaggle indexing of that slice’s files.
@@ -290,6 +290,8 @@ python scripts/split_kaggle_datasets.py
 | `--ready-timeout-sec`                | `14400`                                       | Max seconds to wait for Ready                          |
 | `--ready-poll-sec`                   | `60`                                          | Base poll interval (backoff increases over time)       |
 | `--allow-shrink`                     | off                                           | Allow publish with fewer files than pulled             |
+| `--skip-quality-check`               | off                                           | Publish even if OHLCV checks fail                      |
+| `--quality-sample`                   | `200`                                         | Files scanned row-by-row; smaller trees are fully scanned |
 | `--require-intervals`                | slice defaults                                | Require files for each listed interval before publish  |
 
 
@@ -316,5 +318,6 @@ Auth: set `KAGGLE_API_TOKEN`, or legacy `KAGGLE_USERNAME` + `KAGGLE_KEY`, or `~/
 - In-process Yahoo response cache — identical ticker/interval requests are not downloaded twice in one run.
 - `--skip-existing` resumes long backfills without re-downloading completed tickers.
 - Corrupt or unreadable existing CSVs trigger a full refetch for that ticker rather than a crash.
+- Publish runs an OHLCV quality check first and refuses the upload when bars are missing, mis-ordered, or inconsistent (`High` below `Low` / `Open` / `Close`). `--skip-quality-check` bypasses that gate.
 - Exit code `2` only if **every** fetch failed; partial success exits `0`.
 

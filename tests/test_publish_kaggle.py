@@ -18,6 +18,11 @@ from scripts.publish_kaggle import (
     write_upload_metadata,
 )
 
+VALID_BAR_CSV = (
+    "Datetime,Open,High,Low,Close,Adj Close,Volume\n"
+    "2024-01-02T00:00:00+0000,10,11,9,10.5,10.5,100\n"
+)
+
 
 def _write_metadata(path: Path, handle: str = "benjaminpo/finance-dataset") -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -91,7 +96,7 @@ def test_load_metadata_defaults(tmp_path: Path) -> None:
 def test_publish_dry_run(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     data = tmp_path / "data"
     (data / "indices" / "1d").mkdir(parents=True)
-    (data / "indices" / "1d" / "GSPC.csv").write_text("x", encoding="utf-8")
+    (data / "indices" / "1d" / "GSPC.csv").write_text(VALID_BAR_CSV, encoding="utf-8")
     meta = _write_metadata(tmp_path / "meta.json")
     monkeypatch.delenv("KAGGLE_API_TOKEN", raising=False)
 
@@ -166,7 +171,7 @@ def test_publish_consolidates_dated_intraday_before_upload(
 def test_publish_uploads(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     data = tmp_path / "data"
     (data / "rates" / "1d").mkdir(parents=True)
-    (data / "rates" / "1d" / "TNX.csv").write_text("x", encoding="utf-8")
+    (data / "rates" / "1d" / "TNX.csv").write_text(VALID_BAR_CSV, encoding="utf-8")
     meta = _write_metadata(tmp_path / "meta.json")
     monkeypatch.setenv("KAGGLE_API_TOKEN", "tok")
 
@@ -196,8 +201,8 @@ def test_publish_slice_filters_intervals(
     data = tmp_path / "data"
     (data / "crypto" / "1d").mkdir(parents=True)
     (data / "crypto" / "1m").mkdir(parents=True)
-    (data / "crypto" / "1d" / "BTC.csv").write_text("d", encoding="utf-8")
-    (data / "crypto" / "1m" / "BTC.csv").write_text("m", encoding="utf-8")
+    (data / "crypto" / "1d" / "BTC.csv").write_text(VALID_BAR_CSV, encoding="utf-8")
+    (data / "crypto" / "1m" / "BTC.csv").write_text(VALID_BAR_CSV, encoding="utf-8")
     meta = _write_metadata(tmp_path / "meta.json")
     monkeypatch.setenv("KAGGLE_API_TOKEN", "tok")
 
@@ -226,8 +231,8 @@ def test_publish_include_intervals_ignores_other_slice_shrink(
     data = tmp_path / "data"
     (data / "crypto" / "1d").mkdir(parents=True)
     (data / "crypto" / "1m").mkdir(parents=True)
-    (data / "crypto" / "1d" / "BTC.csv").write_text("d", encoding="utf-8")
-    (data / "crypto" / "1m" / "BTC.csv").write_text("m", encoding="utf-8")
+    (data / "crypto" / "1d" / "BTC.csv").write_text(VALID_BAR_CSV, encoding="utf-8")
+    (data / "crypto" / "1m" / "BTC.csv").write_text(VALID_BAR_CSV, encoding="utf-8")
     from scripts.kaggle_util import write_pull_state
 
     write_pull_state(data, "benjaminpo/finance-dataset", 2, 2)
@@ -302,7 +307,7 @@ def test_publish_wait_ready_targets_max_version_plus_one(
 
     data = tmp_path / "data"
     (data / "rates" / "1d").mkdir(parents=True)
-    (data / "rates" / "1d" / "TNX.csv").write_text("x", encoding="utf-8")
+    (data / "rates" / "1d" / "TNX.csv").write_text(VALID_BAR_CSV, encoding="utf-8")
     meta = _write_metadata(tmp_path / "meta.json")
     monkeypatch.setenv("KAGGLE_API_TOKEN", "tok")
 
@@ -339,7 +344,7 @@ def test_publish_incompatible_dataset_type(
 ) -> None:
     data = tmp_path / "data"
     data.mkdir()
-    (data / "x.csv").write_text("1", encoding="utf-8")
+    (data / "x.csv").write_text(VALID_BAR_CSV, encoding="utf-8")
     meta = _write_metadata(tmp_path / "meta.json")
     monkeypatch.setenv("KAGGLE_API_TOKEN", "tok")
 
@@ -372,7 +377,7 @@ def test_publish_missing_credentials(tmp_path: Path, monkeypatch: pytest.MonkeyP
 def test_main_dry_run(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     data = tmp_path / "data"
     data.mkdir()
-    (data / "a.csv").write_text("1", encoding="utf-8")
+    (data / "a.csv").write_text(VALID_BAR_CSV, encoding="utf-8")
     meta = _write_metadata(tmp_path / "meta.json")
     monkeypatch.chdir(tmp_path)
     assert (
@@ -410,3 +415,64 @@ def test_parse_args_slice() -> None:
     assert "1m" in resolved["include_intervals"]
     assert "1d" not in resolved["include_intervals"]
     assert resolved["required_intervals"][0] == "1m"
+
+
+def test_publish_refuses_ohlcv_quality_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    data = tmp_path / "data"
+    folder = data / "stocks_us" / "1d"
+    folder.mkdir(parents=True)
+    (folder / "AAPL.csv").write_text(
+        "Datetime,Open,High,Low,Close,Volume\n"
+        "2024-01-02T00:00:00+0000,10,9,11,10,100\n",
+        encoding="utf-8",
+    )
+    meta = _write_metadata(tmp_path / "meta.json")
+    monkeypatch.delenv("KAGGLE_API_TOKEN", raising=False)
+
+    with pytest.raises(RuntimeError, match="quality check failed"):
+        publish(data_dir=data, metadata=meta, dry_run=True)
+
+
+def test_publish_skip_quality_check(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    data = tmp_path / "data"
+    folder = data / "stocks_us" / "1d"
+    folder.mkdir(parents=True)
+    (folder / "AAPL.csv").write_text(
+        "Datetime,Open,High,Low,Close,Volume\n"
+        "2024-01-02T00:00:00+0000,10,9,11,10,100\n",
+        encoding="utf-8",
+    )
+    meta = _write_metadata(tmp_path / "meta.json")
+    monkeypatch.delenv("KAGGLE_API_TOKEN", raising=False)
+
+    notes = publish(
+        data_dir=data,
+        metadata=meta,
+        dry_run=True,
+        skip_quality_check=True,
+    )
+    assert "1 file" in notes
+
+
+def test_main_quality_failure(tmp_path: Path) -> None:
+    data = tmp_path / "data"
+    folder = data / "stocks_us" / "1d"
+    folder.mkdir(parents=True)
+    (folder / "AAPL.csv").write_text("not,a,csv\n", encoding="utf-8")
+    meta = _write_metadata(tmp_path / "meta.json")
+    assert (
+        main(
+            [
+                "--data-dir",
+                str(data),
+                "--metadata",
+                str(meta),
+                "--dry-run",
+            ]
+        )
+        == 1
+    )

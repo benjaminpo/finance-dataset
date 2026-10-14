@@ -59,13 +59,13 @@ jobs:
             artifacts/fetch-summary.md
           if-no-files-found: warn
 
-      - name: Publish intradaily OHLCV to Kaggle
+      - name: Quality-check and publish intradaily OHLCV to Kaggle
         env:
           KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
         run: >
           python scripts/publish_kaggle.py
           --slice intraday
-          --version-notes "Intraday refresh (1m–1h, full universe)"
+          --version-notes "Intraday refresh (1m–90m, full universe)"
 
       - name: Commit listing updates
         env:

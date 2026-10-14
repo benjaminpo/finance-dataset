@@ -32,6 +32,7 @@ from scripts.kaggle_util import (
     wait_until_ready,
     write_pull_state,
 )
+from scripts.quality_check import DEFAULT_QUALITY_SAMPLE, check_ohlcv_tree
 from src.fetcher import consolidate_intraday_layout
 
 DEFAULT_HANDLE = DAILY_HANDLE
@@ -180,12 +181,17 @@ def publish(
     allow_shrink: bool = False,
     required_intervals: tuple[str, ...] = (),
     include_intervals: tuple[str, ...] | None = None,
+    skip_quality_check: bool = False,
+    quality_sample: int = DEFAULT_QUALITY_SAMPLE,
 ) -> str:
     """
     Upload *data_dir* as a new version of the Kaggle dataset *handle*.
 
     When *include_intervals* is set, only those interval directories are counted
     and uploaded (other known intervals are ignored via kagglehub patterns).
+
+    Before upload, CSVs are checked for an OHLCV header, a usable first bar,
+    and (for a sample of files) sorted unique timestamps and High/Low consistency.
 
     Returns the version notes used for the upload.
     """
@@ -230,6 +236,18 @@ def publish(
         required_intervals=required_intervals,
         include_intervals=include_intervals,
     )
+    if skip_quality_check:
+        print(
+            "WARNING: Skipping OHLCV quality check because "
+            "--skip-quality-check was set.",
+            flush=True,
+        )
+    else:
+        check_ohlcv_tree(
+            data_path,
+            intervals=include_intervals,
+            sample_size=quality_sample,
+        )
 
     date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     notes = version_notes or f"OHLCV refresh {date} ({n_files} file(s))"
@@ -372,6 +390,20 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Allow publishing fewer files than were pulled (dangerous)",
     )
     parser.add_argument(
+        "--skip-quality-check",
+        action="store_true",
+        help="Publish even if OHLCV quality checks fail (dangerous)",
+    )
+    parser.add_argument(
+        "--quality-sample",
+        type=int,
+        default=DEFAULT_QUALITY_SAMPLE,
+        help=(
+            "How many files to scan row-by-row "
+            f"(default: {DEFAULT_QUALITY_SAMPLE}; smaller trees are fully scanned)"
+        ),
+    )
+    parser.add_argument(
         "--require-intervals",
         nargs="+",
         default=None,
@@ -435,6 +467,8 @@ def main(argv: list[str] | None = None) -> int:
             allow_shrink=args.allow_shrink,
             required_intervals=resolved["required_intervals"],
             include_intervals=resolved["include_intervals"],
+            skip_quality_check=args.skip_quality_check,
+            quality_sample=args.quality_sample,
         )
     except (FileNotFoundError, RuntimeError, OSError, TimeoutError, ValueError) as exc:
         print(exc, file=sys.stderr)

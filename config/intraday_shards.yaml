@@ -1,4 +1,4 @@
-# CI shard plan for intraday fetches (1m…1h). Run sequentially in one job so
+# CI shard plan for intraday fetches (1m…90m). Run sequentially in one job so
 # Kaggle is pulled once and published once per workflow (not per shard).
 shards:
   - id: us-0

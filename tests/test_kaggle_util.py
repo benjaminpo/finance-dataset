@@ -60,7 +60,9 @@ def test_get_slice_and_ignore_patterns() -> None:
     assert daily.require_intervals == ("1d", "1wk", "1mo", "3mo")
     intradaily = get_slice("intraday")
     assert intradaily.handle.endswith("-intraday")
+    assert "1h" not in intradaily.intervals
     assert "**/1d/**" in interval_ignore_patterns(intradaily.intervals)
+    assert "**/1h/**" in interval_ignore_patterns(intradaily.intervals)
     assert "**/1m/**" not in interval_ignore_patterns(intradaily.intervals)
     with pytest.raises(ValueError, match="Unknown Kaggle slice"):
         get_slice("weekly")

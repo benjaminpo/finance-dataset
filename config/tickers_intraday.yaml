@@ -1,4 +1,4 @@
-# Full-universe intraday (1m…1h) CI — same listings as tickers.yaml.
+# Full-universe intraday (1m…90m) CI — same listings as tickers.yaml.
 # Split across GitHub Actions matrix shards (see data_fetch_intraday.yml).
 # Listing paths are relative to this config directory (config/).
 

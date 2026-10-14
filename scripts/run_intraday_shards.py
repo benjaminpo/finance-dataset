@@ -27,7 +27,7 @@ from scripts.kaggle_util import (  # noqa: E402
 
 DEFAULT_SHARDS = _ROOT / "config" / "intraday_shards.yaml"
 DEFAULT_CONFIG = _ROOT / "config" / "tickers_intraday.yaml"
-DEFAULT_INTERVALS = ("1m", "2m", "5m", "15m", "30m", "60m", "90m", "1h")
+DEFAULT_INTERVALS = ("1m", "2m", "5m", "15m", "30m", "60m", "90m")
 
 
 def _sync_pull_state_file_counts(

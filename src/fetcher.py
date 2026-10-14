@@ -36,7 +36,8 @@ REQUEST_DELAY_SECONDS = 0.25
 # Default parallel Yahoo requests. Keep modest to avoid hard rate limits.
 DEFAULT_WORKERS = 8
 
-# Yahoo Finance intervals this pipeline supports (all valid yfinance intervals).
+# Yahoo Finance intervals this pipeline supports.
+# 1h is omitted: Yahoo returns the same bars as 60m.
 ALL_INTERVALS: tuple[str, ...] = (
     "1m",
     "2m",
@@ -45,7 +46,6 @@ ALL_INTERVALS: tuple[str, ...] = (
     "30m",
     "60m",
     "90m",
-    "1h",
     "1d",
     "5d",
     "1wk",
@@ -68,7 +68,6 @@ INTRADAY_INTERVALS: tuple[str, ...] = (
     "30m",
     "60m",
     "90m",
-    "1h",
 )
 
 # Intraday intervals: Yahoo only serves a rolling window per request.
@@ -84,7 +83,6 @@ SNAPSHOT_PERIODS: dict[str, str] = {
     "30m": "60d",
     "60m": "60d",
     "90m": "60d",
-    "1h": "60d",
 }
 
 # Legacy dated snapshot filenames: TICKER_YYYY-MM-DD.csv

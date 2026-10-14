@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import time
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -33,10 +34,12 @@ INTRADAY_INTERVALS: tuple[str, ...] = (
     "30m",
     "60m",
     "90m",
-    "1h",
 )
 INTRADAY_REQUIRE_INTERVALS: tuple[str, ...] = INTRADAY_INTERVALS
-KNOWN_INTERVALS: tuple[str, ...] = DAILY_INTERVALS + INTRADAY_INTERVALS
+# Yahoo's 1h interval is the same bars as 60m. Keep the label so publish
+# ignore-patterns drop leftover 1h directories instead of re-uploading them.
+RETIRED_INTERVALS: tuple[str, ...] = ("1h",)
+KNOWN_INTERVALS: tuple[str, ...] = DAILY_INTERVALS + INTRADAY_INTERVALS + RETIRED_INTERVALS
 
 
 @dataclass(frozen=True)
@@ -99,15 +102,15 @@ def split_handle(handle: str) -> tuple[str, str]:
     return parts[0], parts[1]
 
 
-def count_data_files(
+def iter_data_files(
     data_dir: Path,
     *,
     intervals: tuple[str, ...] | list[str] | None = None,
-) -> int:
+) -> Iterator[Path]:
+    """Yield files that pull/publish treat as dataset payload."""
     if not data_dir.is_dir():
-        return 0
+        return
     allowed = set(intervals) if intervals is not None else None
-    total = 0
     for path in data_dir.rglob("*"):
         if not path.is_file() or path.name in SKIP_COUNT_NAMES:
             continue
@@ -115,8 +118,15 @@ def count_data_files(
             parts = path.relative_to(data_dir).parts
             if len(parts) < 3 or parts[1] not in allowed:
                 continue
-        total += 1
-    return total
+        yield path
+
+
+def count_data_files(
+    data_dir: Path,
+    *,
+    intervals: tuple[str, ...] | list[str] | None = None,
+) -> int:
+    return sum(1 for _ in iter_data_files(data_dir, intervals=intervals))
 
 
 def count_data_files_by_interval(
