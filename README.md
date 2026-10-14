@@ -1,49 +1,51 @@
 # Finance Dataset Pipeline
 
-Automated pipeline that pulls historical and intradaily market data from [Yahoo Finance](https://finance.yahoo.com/) via [`yfinance`](https://github.com/ranaroussi/yfinance) and writes partitioned CSV files under `data/`. GitHub Actions run on a **split schedule** (daily bars in one job; intradaily across region/symbol shards), publish to **two Kaggle datasets** ([daily](https://www.kaggle.com/datasets/benjaminpo/finance-dataset) / [intraday](https://www.kaggle.com/datasets/benjaminpo/finance-dataset-intraday)), and commit listing CSV updates (not the bulk price files) back to this repository.
+Automated pipeline that pulls historical and intradaily market data from [Yahoo Finance](https://finance.yahoo.com/) via `[yfinance](https://github.com/ranaroussi/yfinance)` and writes partitioned CSV files under `data/`. GitHub Actions run on a **split schedule** (daily bars in one job; intradaily across region/symbol shards), publish to **two Kaggle datasets** ([daily](https://www.kaggle.com/datasets/benjaminpo/finance-dataset) / [intraday](https://www.kaggle.com/datasets/benjaminpo/finance-dataset-intraday)), and commit listing CSV updates (not the bulk price files) back to this repository.
 
 ## Asset classes
 
-| Config key   | Examples                         | Path prefix          |
-|--------------|----------------------------------|----------------------|
-| `stocks_us`  | NASDAQ ∪ DJIA ∪ S&P 500/400/600 ∪ Russell 2000 | `data/stocks_us/` |
-| `stocks_kr`  | KOSPI + KOSDAQ (`.KS` / `.KQ`)   | `data/stocks_kr/`    |
-| `stocks_jp`  | Tokyo Stock Exchange (`.T`)      | `data/stocks_jp/`    |
-| `stocks_eu`  | STOXX/DAX/CAC/FTSE/AEX/IBEX/…    | `data/stocks_eu/`    |
-| `stocks_hk`  | Hang Seng Index (`.HK`)          | `data/stocks_hk/`    |
-| `stocks_tw`  | TWSE listed (`.TW`)              | `data/stocks_tw/`    |
-| `indices`    | ^GSPC, ^RUT, ^STOXX50E, ^KS11, … | `data/indices/`      |
-| `rates`      | ^IRX, ^FVX, ^TNX, ^TYX           | `data/rates/`        |
-| `futures`    | CL=F, ES=F                       | `data/futures/`      |
-| `crypto`     | BTC-USD, ETH-USD, SOL-USD, …     | `data/crypto/`       |
-| `currencies` | EURUSD=X, GBPUSD=X, KRW=X, …     | `data/currencies/`   |
 
-Edit the lists in [`config/tickers.yaml`](config/tickers.yaml) to add or remove symbols.
+| Config key   | Examples                                       | Path prefix        |
+| ------------ | ---------------------------------------------- | ------------------ |
+| `stocks_us`  | NASDAQ + DJIA + S&P 500/400/600 + Russell 2000 | `data/stocks_us/`  |
+| `stocks_kr`  | KOSPI + KOSDAQ (`.KS` / `.KQ`)                 | `data/stocks_kr/`  |
+| `stocks_jp`  | Tokyo Stock Exchange (`.T`)                    | `data/stocks_jp/`  |
+| `stocks_eu`  | STOXX/DAX/CAC/FTSE/AEX/IBEX/…                  | `data/stocks_eu/`  |
+| `stocks_hk`  | Hang Seng Index (`.HK`)                        | `data/stocks_hk/`  |
+| `stocks_tw`  | TWSE listed (`.TW`)                            | `data/stocks_tw/`  |
+| `indices`    | ^GSPC, ^RUT, ^STOXX50E, ^KS11, …               | `data/indices/`    |
+| `rates`      | ^IRX, ^FVX, ^TNX, ^TYX                         | `data/rates/`      |
+| `futures`    | CL=F, ES=F                                     | `data/futures/`    |
+| `crypto`     | BTC-USD, ETH-USD, SOL-USD, …                   | `data/crypto/`     |
+| `currencies` | EURUSD=X, GBPUSD=X, KRW=X, …                   | `data/currencies/` |
+
+
+Edit the lists in `[config/tickers.yaml](config/tickers.yaml)` to add or remove symbols.
 
 **US stocks** are loaded as the union of Symbol columns from:
 
-- [`config/listings/nasdaq-listed-symbols.csv`](config/listings/nasdaq-listed-symbols.csv) ([source](https://raw.githubusercontent.com/datasets/nasdaq-listings/master/data/nasdaq-listed-symbols.csv))
-- [`config/listings/sp500-constituents.csv`](config/listings/sp500-constituents.csv) ([source](https://raw.githubusercontent.com/datasets/s-and-p-500-companies/master/data/constituents.csv))
-- [`config/listings/dowjones-constituents.csv`](config/listings/dowjones-constituents.csv) ([source](https://yfiua.github.io/index-constituents/constituents-dowjones.csv))
-- [`config/listings/sp400-constituents.csv`](config/listings/sp400-constituents.csv) ([source](https://raw.githubusercontent.com/major/index-etfs/main/tickers/mdy.txt); S&P MidCap 400 via MDY holdings, `source: plain_tickers`)
-- [`config/listings/sp600-constituents.csv`](config/listings/sp600-constituents.csv) ([source](https://raw.githubusercontent.com/major/index-etfs/main/tickers/spsm.txt); S&P SmallCap 600 via SPSM holdings, `source: plain_tickers`)
-- [`config/listings/russell2000-constituents.csv`](config/listings/russell2000-constituents.csv) ([source](https://raw.githubusercontent.com/major/index-etfs/main/tickers/iwm.txt); rebuilt each run from the plain IWM ticker list via `source: russell2000`)
+- `[config/listings/nasdaq-listed-symbols.csv](config/listings/nasdaq-listed-symbols.csv)` ([source](https://raw.githubusercontent.com/datasets/nasdaq-listings/master/data/nasdaq-listed-symbols.csv))
+- `[config/listings/sp500-constituents.csv](config/listings/sp500-constituents.csv)` ([source](https://raw.githubusercontent.com/datasets/s-and-p-500-companies/master/data/constituents.csv))
+- `[config/listings/dowjones-constituents.csv](config/listings/dowjones-constituents.csv)` ([source](https://yfiua.github.io/index-constituents/constituents-dowjones.csv))
+- `[config/listings/sp400-constituents.csv](config/listings/sp400-constituents.csv)` ([source](https://raw.githubusercontent.com/major/index-etfs/main/tickers/mdy.txt); S&P MidCap 400 via MDY holdings, `source: plain_tickers`)
+- `[config/listings/sp600-constituents.csv](config/listings/sp600-constituents.csv)` ([source](https://raw.githubusercontent.com/major/index-etfs/main/tickers/spsm.txt); S&P SmallCap 600 via SPSM holdings, `source: plain_tickers`)
+- `[config/listings/russell2000-constituents.csv](config/listings/russell2000-constituents.csv)` ([source](https://raw.githubusercontent.com/major/index-etfs/main/tickers/iwm.txt); rebuilt each run from the plain IWM ticker list via `source: russell2000`)
 
 Share classes like `BRK.B` are rewritten to Yahoo form (`BRK-B`). NASDAQ rows with `Test Issue = Y` are skipped, as are warrants / rights / units (limited Yahoo history).
 
 Each pipeline run (including the scheduled GitHub Action) refreshes those listings first (remote URL downloads and `source:` builders), compares SHA-256 hashes, and updates the local CSVs when content changed. Listing updates are committed to git; OHLCV under `data/` is uploaded to Kaggle. Use `--skip-listings-refresh` to skip the check, or `--listings-only` to refresh listings without fetching market data.
 
-**Korean stocks** (`stocks_kr`) are rebuilt each run from KOSPI + KOSDAQ via [FinanceDataReader](https://github.com/FinanceData/FinanceDataReader) into [`config/listings/krx-listed-symbols.csv`](config/listings/krx-listed-symbols.csv), with Yahoo suffixes `.KS` (KOSPI) and `.KQ` (KOSDAQ).
+**Korean stocks** (`stocks_kr`) are rebuilt each run from KOSPI + KOSDAQ via [FinanceDataReader](https://github.com/FinanceData/FinanceDataReader) into `[config/listings/krx-listed-symbols.csv](config/listings/krx-listed-symbols.csv)`, with Yahoo suffixes `.KS` (KOSPI) and `.KQ` (KOSDAQ).
 
-**Japanese stocks** (`stocks_jp`) are rebuilt each run from the Tokyo Stock Exchange via FinanceDataReader into [`config/listings/tse-listed-symbols.csv`](config/listings/tse-listed-symbols.csv), with Yahoo suffix `.T` (e.g. `7203.T`).
+**Japanese stocks** (`stocks_jp`) are rebuilt each run from the Tokyo Stock Exchange via FinanceDataReader into `[config/listings/tse-listed-symbols.csv](config/listings/tse-listed-symbols.csv)`, with Yahoo suffix `.T` (e.g. `7203.T`).
 
-**European stocks** (`stocks_eu`) are rebuilt each run from major European indices (EURO STOXX 50, DAX/MDAX/SDAX/TecDAX, CAC 40/Mid 60, AEX, BEL 20, IBEX 35, FTSE 100, Switzerland 20, OMX Helsinki 25, OMX Stockholm 30) via [pytickersymbols](https://github.com/portfolioplus/pytickersymbols) into [`config/listings/europe-listed-symbols.csv`](config/listings/europe-listed-symbols.csv).
+**European stocks** (`stocks_eu`) are rebuilt each run from major European indices (EURO STOXX 50, DAX/MDAX/SDAX/TecDAX, CAC 40/Mid 60, AEX, BEL 20, IBEX 35, FTSE 100, Switzerland 20, OMX Helsinki 25, OMX Stockholm 30) via [pytickersymbols](https://github.com/portfolioplus/pytickersymbols) into `[config/listings/europe-listed-symbols.csv](config/listings/europe-listed-symbols.csv)`.
 
 **Hong Kong stocks** (`stocks_hk`) are loaded from Hang Seng Index constituents:
 
-- [`config/listings/hangseng-constituents.csv`](config/listings/hangseng-constituents.csv) ([source](https://yfiua.github.io/index-constituents/constituents-hsi.csv); Yahoo `.HK` symbols)
+- `[config/listings/hangseng-constituents.csv](config/listings/hangseng-constituents.csv)` ([source](https://yfiua.github.io/index-constituents/constituents-hsi.csv); Yahoo `.HK` symbols)
 
-**Taiwan stocks** (`stocks_tw`) are rebuilt each run from the TWSE OpenAPI listed-company directory into [`config/listings/twse-listed-symbols.csv`](config/listings/twse-listed-symbols.csv) ([source](https://openapi.twse.com.tw/v1/opendata/t187ap03_L); Yahoo `.TW` suffix via `source: twse`).
+**Taiwan stocks** (`stocks_tw`) are rebuilt each run from the TWSE OpenAPI listed-company directory into `[config/listings/twse-listed-symbols.csv](config/listings/twse-listed-symbols.csv)` ([source](https://openapi.twse.com.tw/v1/opendata/t187ap03_L); Yahoo `.TW` suffix via `source: twse`).
 
 ## Storage layout
 
@@ -65,6 +67,8 @@ data/
 │       └── BTC-USD.csv
 └── ...
 ```
+
+
 
 ### Interval strategy
 
@@ -115,6 +119,8 @@ CSV index column is `Datetime` (UTC, ISO-8601). Columns: Open, High, Low, Close,
 └── README.md
 ```
 
+
+
 ## Local setup
 
 Requires **Python 3.11+** (`pytickersymbols` and related deps no longer support 3.10).
@@ -125,6 +131,8 @@ source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
+
+
 ### Tests
 
 ```bash
@@ -132,7 +140,7 @@ pip install -r requirements-dev.txt
 pytest
 ```
 
-Runs the unit suite under `tests/` with coverage on `src/` and `scripts/` (fail under 80%). CI workflow: [`.github/workflows/tests.yml`](.github/workflows/tests.yml).
+Runs the unit suite under `tests/` with coverage on `src/` and `scripts/` (fail under 80%). CI workflow: `[.github/workflows/tests.yml](.github/workflows/tests.yml)`.
 
 ### Run the pipeline
 
@@ -155,39 +163,43 @@ python src/main.py --intervals 1d --skip-existing
 python src/main.py --config config/tickers.yaml --data-dir data --workers 12 --sleep 0.25 -v
 ```
 
-| Flag                        | Default                 | Description                                      |
-|-----------------------------|-------------------------|--------------------------------------------------|
-| `--config`                  | `config/tickers.yaml`   | Ticker lists                                     |
-| `--data-dir`                | `data`                  | CSV root                                         |
-| `--intervals`               | all 13 Yahoo intervals  | Any of `1m`/`2m`/`5m`/`15m`/`30m`/`60m`/`90m`/`1h`/`1d`/`5d`/`1wk`/`1mo`/`3mo` |
-| `--workers`                 | `8`                     | Parallel Yahoo fetch threads                     |
-| `--sleep`                   | `0.25`                  | Seconds to pause after each request              |
-| `--skip-existing`           | off                     | Skip tickers that already have data (resume)     |
-| `--skip-listings-refresh`   | off                     | Skip remote/KRX/TSE/Europe listing updates       |
-| `--listings-only`           | off                     | Refresh listings without fetching market data    |
-| `--asset-classes`           | all in config           | Restrict fetch to named asset classes            |
-| `--shard-index`             | `0`                     | Zero-based slice when splitting a class in CI    |
-| `--shard-count`             | `1`                     | Number of shards (`1` = no split)                |
-| `--summary-path`            | off                     | Write JSON (+ sibling `.md`) fetch failure report |
-| `-v`                        | off                     | Debug logging                                    |
 
-CI splits the work so Actions stays practical: **daily** refreshes `1d`, `1wk`, `1mo`, and `3mo` for the full listing universe (~12k symbols) into [finance-dataset](https://www.kaggle.com/datasets/benjaminpo/finance-dataset); **intraday** refreshes `1m`…`1h` into [finance-dataset-intraday](https://www.kaggle.com/datasets/benjaminpo/finance-dataset-intraday) in one job that runs symbol shards sequentially ([`config/intraday_shards.yaml`](config/intraday_shards.yaml)) so each Kaggle dataset is pulled and published **once** per run. `5d` stays off the schedule and is uploaded only when those files are already present. Prefer `--intervals 1d` for the first local backfill, then publish. Use `--skip-existing` to resume after an interrupt.
+| Flag                      | Default                | Description                                                                    |
+| ------------------------- | ---------------------- | ------------------------------------------------------------------------------ |
+| `--config`                | `config/tickers.yaml`  | Ticker lists                                                                   |
+| `--data-dir`              | `data`                 | CSV root                                                                       |
+| `--intervals`             | all 13 Yahoo intervals | Any of `1m`/`2m`/`5m`/`15m`/`30m`/`60m`/`90m`/`1h`/`1d`/`5d`/`1wk`/`1mo`/`3mo` |
+| `--workers`               | `8`                    | Parallel Yahoo fetch threads                                                   |
+| `--sleep`                 | `0.25`                 | Seconds to pause after each request                                            |
+| `--skip-existing`         | off                    | Skip tickers that already have data (resume)                                   |
+| `--skip-listings-refresh` | off                    | Skip remote/KRX/TSE/Europe listing updates                                     |
+| `--listings-only`         | off                    | Refresh listings without fetching market data                                  |
+| `--asset-classes`         | all in config          | Restrict fetch to named asset classes                                          |
+| `--shard-index`           | `0`                    | Zero-based slice when splitting a class in CI                                  |
+| `--shard-count`           | `1`                    | Number of shards (`1` = no split)                                              |
+| `--summary-path`          | off                    | Write JSON (+ sibling `.md`) fetch failure report                              |
+| `-v`                      | off                    | Debug logging                                                                  |
+
+
+CI splits the work so Actions stays practical: **daily** refreshes `1d`, `1wk`, `1mo`, and `3mo` for the full listing universe (~12k symbols) into [finance-dataset](https://www.kaggle.com/datasets/benjaminpo/finance-dataset); **intraday** refreshes `1m`…`1h` into [finance-dataset-intraday](https://www.kaggle.com/datasets/benjaminpo/finance-dataset-intraday) in one job that runs symbol shards sequentially (`[config/intraday_shards.yaml](config/intraday_shards.yaml)`) so each Kaggle dataset is pulled and published **once** per run. `5d` stays off the schedule and is uploaded only when those files are already present. Prefer `--intervals 1d` for the first local backfill, then publish. Use `--skip-existing` to resume after an interrupt.
 
 Progress is printed per job, e.g. `Fetching AAPL [1d]... Success — 2 new/updated row(s)`.
 
 ## GitHub Actions
 
-| Workflow | File | Schedule | Config | Intervals |
-|----------|------|----------|--------|-----------|
-| **Fetch Daily Bars** | [`data_fetch_daily.yml`](.github/workflows/data_fetch_daily.yml) | `0 23 * * *` (23:00 UTC daily) | `tickers.yaml` | `1d` `1wk` `1mo` `3mo` |
-| **Fetch Intraday Bars** | [`data_fetch_intraday.yml`](.github/workflows/data_fetch_intraday.yml) | `15 15,18,21 * * 1-5` (weekdays) | `tickers_intraday.yaml` + [`intraday_shards.yaml`](config/intraday_shards.yaml) | `1m`…`1h` |
-| **Split Kaggle Datasets** | [`split_kaggle_datasets.yml`](.github/workflows/split_kaggle_datasets.yml) | manual (`workflow_dispatch`) | — | one-time migration |
+
+| Workflow                  | File                                                                       | Schedule                         | Config                                                                          | Intervals              |
+| ------------------------- | -------------------------------------------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------- | ---------------------- |
+| **Fetch Daily Bars**      | `[data_fetch_daily.yml](.github/workflows/data_fetch_daily.yml)`           | `0 23 * * `* (23:00 UTC daily)   | `tickers.yaml`                                                                  | `1d` `1wk` `1mo` `3mo` |
+| **Fetch Intraday Bars**   | `[data_fetch_intraday.yml](.github/workflows/data_fetch_intraday.yml)`     | `15 15,18,21 * * 1-5` (weekdays) | `tickers_intraday.yaml` + `[intraday_shards.yaml](config/intraday_shards.yaml)` | `1m`…`1h`              |
+| **Split Kaggle Datasets** | `[split_kaggle_datasets.yml](.github/workflows/split_kaggle_datasets.yml)` | manual (`workflow_dispatch`)     | —                                                                               | one-time migration     |
+
 
 Fetch workflows also support `workflow_dispatch`. They use **separate** concurrency groups (`finance-dataset-kaggle-daily` / `finance-dataset-kaggle-intraday`) and **separate Kaggle datasets**, so daily and intradaily Ready queues do not block each other.
 
 Listing commits fast-forward the default branch as `github-actions[bot]`. They are not opened as pull requests. The pull-request ruleset (`default-2`) bypasses that bot (and repository admins). The force-push and branch-deletion ruleset (`default-1`) has no bypass; the fetch jobs only fast-forward, so they are unaffected.
 
-Steps (each workflow): free disk → checkout → install → [`pull_kaggle.py --slice … --optional`](scripts/pull_kaggle.py) (wait until that slice’s latest Kaggle version is **Ready**, then merge it into `data/`, drop the kagglehub cache copy) → fetch (`src/main.py` for daily; [`run_intraday_shards.py`](scripts/run_intraday_shards.py) for all intradaily shards in one job) → upload **fetch summary** artifact (JSON + Markdown; also written to the job summary) → [`publish_kaggle.py --slice …`](scripts/publish_kaggle.py) (upload only that slice’s intervals, then wait until the new version is Ready) → [`batch_commit.py`](scripts/batch_commit.py) for listing CSV updates.
+Steps (each workflow): free disk → checkout → install → `[pull_kaggle.py --slice … --optional](scripts/pull_kaggle.py)` (wait until that slice’s latest Kaggle version is **Ready**, then merge it into `data/`, drop the kagglehub cache copy) → fetch (`src/main.py` for daily; `[run_intraday_shards.py](scripts/run_intraday_shards.py)` for all intradaily shards in one job) → upload **fetch summary** artifact (JSON + Markdown; also written to the job summary) → `[publish_kaggle.py --slice …](scripts/publish_kaggle.py)` (upload only that slice’s intervals, then wait until the new version is Ready) → `[batch_commit.py](scripts/batch_commit.py)` for listing CSV updates.
 
 `--optional` only soft-fails when the dataset does not exist yet (first publish). Auth / permission errors fail the job. Publish records counts per interval at pull time and refuses any reduction within that slice. Each workflow requires only its own intervals (`1d`/`1wk`/`1mo`/`3mo` or `1m`…`1h`).
 
@@ -195,7 +207,7 @@ The summary includes success/fail/skip counts, **failure rate** (failed ÷ attem
 
 ### Kaggle demo notebook
 
-[`notebooks/kaggle-returns-demo/finance-dataset-usage-demo.ipynb`](notebooks/kaggle-returns-demo/finance-dataset-usage-demo.ipynb) is a public Kaggle kernel that attaches both datasets and shows how to:
+`[notebooks/kaggle-returns-demo/finance-dataset-usage-demo.ipynb](notebooks/kaggle-returns-demo/finance-dataset-usage-demo.ipynb)` is a public Kaggle kernel that attaches both datasets and shows how to:
 
 1. Locate the **daily** and **intraday** roots on Kaggle (including nested `/kaggle/input/datasets/…` mounts) or a local `data/` checkout
 2. Explore asset classes / intervals
@@ -211,10 +223,12 @@ Kernel: [Quickstart: Using the Global Markets OHLCV Dataset](https://www.kaggle.
 
 ### Kaggle publish
 
-| Slice | Dataset | Intervals |
-|-------|---------|-----------|
-| **daily** | [benjaminpo/finance-dataset](https://www.kaggle.com/datasets/benjaminpo/finance-dataset) | `1d` `1wk` `1mo` `3mo` (+ `5d` when present) |
-| **intraday** | [benjaminpo/finance-dataset-intraday](https://www.kaggle.com/datasets/benjaminpo/finance-dataset-intraday) | `1m`…`1h` |
+
+| Slice        | Dataset                                                                                                    | Intervals                                    |
+| ------------ | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| **daily**    | [benjaminpo/finance-dataset](https://www.kaggle.com/datasets/benjaminpo/finance-dataset)                   | `1d` `1wk` `1mo` `3mo` (+ `5d` when present) |
+| **intraday** | [benjaminpo/finance-dataset-intraday](https://www.kaggle.com/datasets/benjaminpo/finance-dataset-intraday) | `1m`…`1h`                                    |
+
 
 Splitting keeps each Ready queue smaller: daily publishes only cumulative CSVs; intradaily publishes one cumulative CSV per ticker×interval. Upload is still ~1–2 min; most remaining wait is Kaggle indexing of that slice’s files.
 
@@ -240,7 +254,7 @@ python scripts/publish_kaggle.py --slice daily --dry-run
 1. Merge/push this branch.
 2. GitHub → **Actions** → **Split Kaggle Datasets** → **Run workflow** (optional dry-run first).
 3. After it succeeds, run the normal daily/intradaily fetch workflows.
-   If intradaily already uploaded but the job failed on Ready wait, re-run with
+  If intradaily already uploaded but the job failed on Ready wait, re-run with
    **only = daily** (skips re-uploading intradaily, waits for it, then publishes daily).
 
 Or locally:
@@ -250,20 +264,22 @@ python scripts/split_kaggle_datasets.py
 # or: python scripts/split_kaggle_datasets.py --dry-run
 ```
 
-| Flag / env                 | Default                         | Description                                      |
-|----------------------------|---------------------------------|--------------------------------------------------|
-| `--slice`                  | off                             | `daily` or `intraday` (sets handle/metadata/intervals) |
-| `--handle` / `KAGGLE_DATASET_HANDLE` | slice default or `benjaminpo/finance-dataset` | Kaggle dataset slug |
-| `--data-dir`               | `data`                          | Local OHLCV root                                 |
-| `--metadata`               | slice default under `config/kaggle/` | Dataset title/id/license metadata      |
-| `--include-intervals`      | slice intervals                 | Only count/upload these interval dirs            |
-| `--version-notes`          | dated file-count summary        | Notes shown on the new Kaggle version            |
-| `--dry-run` / `--optional` | off                             | Plan-only publish / soft-fail pull if dataset missing |
-| `--no-wait-ready`          | off                             | Skip Ready polling (not recommended in CI)       |
-| `--ready-timeout-sec`      | `14400`                         | Max seconds to wait for Ready                    |
-| `--ready-poll-sec`         | `60`                            | Base poll interval (backoff increases over time) |
-| `--allow-shrink`           | off                             | Allow publish with fewer files than pulled       |
-| `--require-intervals`      | slice defaults                  | Require files for each listed interval before publish |
+
+| Flag / env                           | Default                                       | Description                                            |
+| ------------------------------------ | --------------------------------------------- | ------------------------------------------------------ |
+| `--slice`                            | off                                           | `daily` or `intraday` (sets handle/metadata/intervals) |
+| `--handle` / `KAGGLE_DATASET_HANDLE` | slice default or `benjaminpo/finance-dataset` | Kaggle dataset slug                                    |
+| `--data-dir`                         | `data`                                        | Local OHLCV root                                       |
+| `--metadata`                         | slice default under `config/kaggle/`          | Dataset title/id/license metadata                      |
+| `--include-intervals`                | slice intervals                               | Only count/upload these interval dirs                  |
+| `--version-notes`                    | dated file-count summary                      | Notes shown on the new Kaggle version                  |
+| `--dry-run` / `--optional`           | off                                           | Plan-only publish / soft-fail pull if dataset missing  |
+| `--no-wait-ready`                    | off                                           | Skip Ready polling (not recommended in CI)             |
+| `--ready-timeout-sec`                | `14400`                                       | Max seconds to wait for Ready                          |
+| `--ready-poll-sec`                   | `60`                                          | Base poll interval (backoff increases over time)       |
+| `--allow-shrink`                     | off                                           | Allow publish with fewer files than pulled             |
+| `--require-intervals`                | slice defaults                                | Require files for each listed interval before publish  |
+
 
 Ready polling waits for the **target** version only: stale failed versions ahead of a READY current do not abort pulls, and publish targets `max_version + 1` so prior failures are skipped.
 
@@ -274,10 +290,12 @@ Auth: set `KAGGLE_API_TOKEN`, or legacy `KAGGLE_USERNAME` + `KAGGLE_KEY`, or `~/
 1. Push this repo to GitHub and enable Actions.
 2. Add repository secret `KAGGLE_API_TOKEN` (Settings → Secrets and variables → Actions) from [Kaggle API settings](https://www.kaggle.com/settings/api) → **Generate New Token**.
 3. Let listing commits land on the default branch:
-   - Set workflow permissions to **Read and write** (Settings → Actions → General → Workflow permissions) so `GITHUB_TOKEN` can push.
-   - If a ruleset requires a pull request before merging into the default branch, add **`github-actions[bot]`** as a bypass actor on that rule. Leave force-push and branch-deletion rules with no bypass.
+  - Set workflow permissions to **Read and write** (Settings → Actions → General → Workflow permissions) so `GITHUB_TOKEN` can push.
+  - If a ruleset requires a pull request before merging into the default branch, add `github-actions[bot]` as a bypass actor on that rule. Leave force-push and branch-deletion rules with no bypass.
 4. The Kaggle targets must be **normal file datasets** (CSV trees), not “Create from GitHub” / repo-synced datasets. A GitHub-synced slug returns `Incompatible Dataset Type` on upload — delete it (or use a new `--handle`) before the first publish. After create, set the public title/description on the Kaggle UI if needed (`kagglehub` creates private datasets titled with the slug).
-5. If you still have the **combined** `benjaminpo/finance-dataset`, run the **Split Kaggle Datasets** workflow once (or [`scripts/split_kaggle_datasets.py`](scripts/split_kaggle_datasets.py) locally) before relying on the split CI fetch jobs. Otherwise run **Fetch Daily Bars** / **Fetch Intraday Bars** and let `--optional` create empty-history datasets on first publish.
+5. If you still have the **combined** `benjaminpo/finance-dataset`, run the **Split Kaggle Datasets** workflow once (or `[scripts/split_kaggle_datasets.py](scripts/split_kaggle_datasets.py)` locally) before relying on the split CI fetch jobs. Otherwise run **Fetch Daily Bars** / **Fetch Intraday Bars** and let `--optional` create empty-history datasets on first publish.
+
+
 
 ## Robustness
 
@@ -287,3 +305,4 @@ Auth: set `KAGGLE_API_TOKEN`, or legacy `KAGGLE_USERNAME` + `KAGGLE_KEY`, or `~/
 - `--skip-existing` resumes long backfills without re-downloading completed tickers.
 - Corrupt or unreadable existing CSVs trigger a full refetch for that ticker rather than a crash.
 - Exit code `2` only if **every** fetch failed; partial success exits `0`.
+

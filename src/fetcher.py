@@ -25,6 +25,7 @@ class JobResult(TypedDict):
     asset_class: str
     interval: str
     message: str
+    had_history: bool
 
 # Columns we persist to CSV (OHLCV + Dividends/Stock Splits when present).
 OHLCV_COLUMNS = ["Open", "High", "Low", "Close", "Adj Close", "Volume"]
@@ -449,6 +450,19 @@ def _csv_path_cumulative(
     return data_dir / asset_class / interval / f"{_safe_ticker_filename(ticker)}.csv"
 
 
+def csv_has_bars(path: Path) -> bool:
+    """True when *path* exists and has at least one data row under the header."""
+    if not path.is_file():
+        return False
+    try:
+        with path.open("r", encoding="utf-8", errors="replace") as handle:
+            if not handle.readline():
+                return False
+            return bool(handle.readline())
+    except OSError:
+        return False
+
+
 def _csv_path_1d(data_dir: Path, asset_class: str, ticker: str) -> Path:
     """Path for a cumulative daily CSV, e.g. data/stocks_us/1d/AAPL.csv."""
     return _csv_path_cumulative(data_dir, asset_class, "1d", ticker)
@@ -806,6 +820,7 @@ def _job_result(
     asset_class: str,
     interval: str,
     message: str = "",
+    had_history: bool = False,
 ) -> JobResult:
     return {
         "status": status,
@@ -813,6 +828,7 @@ def _job_result(
         "asset_class": asset_class,
         "interval": interval,
         "message": message,
+        "had_history": had_history,
     }
 
 
@@ -862,6 +878,7 @@ def _record_job_result(summary: dict, result: JobResult) -> None:
                 "asset_class": result["asset_class"],
                 "interval": result["interval"],
                 "message": result["message"],
+                "had_history": bool(result.get("had_history", False)),
             }
         )
 
@@ -888,6 +905,11 @@ def _run_one_job(
 ) -> JobResult:
     """Execute a single ticker/interval job; return a structured result."""
     label = f"[{done}/{total}] Fetching {ticker} [{interval}]..."
+    had_history = False
+    if interval in CUMULATIVE_INTERVALS or interval in SNAPSHOT_PERIODS:
+        had_history = csv_has_bars(
+            _csv_path_cumulative(data_dir, asset_class, interval, ticker)
+        )
 
     if interval in CUMULATIVE_INTERVALS:
         ok, msg = update_ticker_cumulative(
@@ -906,6 +928,7 @@ def _run_one_job(
             asset_class=asset_class,
             interval=interval,
             message=f"unsupported interval '{interval}'",
+            had_history=had_history,
         )
 
     with _print_lock:
@@ -919,6 +942,7 @@ def _run_one_job(
         asset_class=asset_class,
         interval=interval,
         message=msg,
+        had_history=had_history,
     )
 
 
@@ -938,7 +962,9 @@ def run_pipeline(
 
     Returns a summary dict with success / failure counts, per-interval and
     per-asset-class breakdowns, ``failure_rate`` (failed / attempted), and a
-    ``failures`` list of ``{ticker, asset_class, interval, message}``.
+    ``failures`` list of ``{ticker, asset_class, interval, message, had_history}``.
+    ``had_history`` is true when that ticker already had a non-empty CSV before
+    this attempt.
 
     ``workers`` > 1 fetches tickers concurrently (much faster for large universes).
     ``skip_existing`` resumes a long first backfill by skipping tickers that

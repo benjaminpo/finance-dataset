@@ -621,6 +621,7 @@ def test_run_pipeline_summary(tmp_path: Path) -> None:
             "asset_class": "crypto",
             "interval": "1m",
             "message": "no data",
+            "had_history": False,
         }
     ]
     assert summary["by_interval"]["1d"]["success"] == 1
