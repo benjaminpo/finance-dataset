@@ -17,13 +17,20 @@
 #   .T  = Tokyo Stock Exchange
 #   .KS = Korea Exchange (KOSPI)
 #   .KQ = Korea Exchange (KOSDAQ)
+#   .TO = Toronto Stock Exchange
+#   .V  = TSX Venture Exchange
+#   .AX = Australian Securities Exchange
+#   .NS = National Stock Exchange of India
+#   .SS = Shanghai Stock Exchange
+#   .SZ = Shenzhen Stock Exchange
 #   =F  = Futures
 #   =X  = Forex
 #   -USD = Crypto quoted in USD
 #
 # `listings` maps an asset class to CSV entries. Each entry has a local
 # `path` (relative to this config directory) plus either a remote `url`
-# and/or a `source` (e.g. krx, tse, europe, twse, plain_tickers, russell2000)
+# and/or a `source` (e.g. krx, tse, europe, twse, tsx, asx, nse, china,
+# plain_tickers, russell2000)
 # used to refresh the file on each run. Symbol columns are unioned into
 # that class. US share-class dots are converted for Yahoo (BRK.B → BRK-B);
 # NASDAQ Test Issue = Y rows are skipped.
@@ -61,6 +68,18 @@ listings:
     - path: listings/twse-listed-symbols.csv
       url: https://openapi.twse.com.tw/v1/opendata/t187ap03_L
       source: twse  # TWSE listed companies JSON → Symbol CSV (.TW)
+  stocks_ca:
+    - path: listings/tsx-listed-symbols.csv
+      source: tsx   # rebuild TSX + TSXV equities from the TMX company directory
+  stocks_au:
+    - path: listings/asx-listed-symbols.csv
+      source: asx   # rebuild ASX listed companies (.AX)
+  stocks_in:
+    - path: listings/nse-listed-symbols.csv
+      source: nse   # rebuild NSE equities from EQUITY_L.csv (.NS)
+  stocks_cn:
+    - path: listings/cn-listed-symbols.csv
+      source: china # rebuild SSE + SZSE via FinanceDataReader (.SS / .SZ)
 
 # Optional extra tickers beyond the listing CSVs (usually empty).
 stocks_us: []
@@ -72,6 +91,10 @@ stocks_hk:
   - "9866.HK"   # NIO
   - "9868.HK"   # XPeng
 stocks_tw: []
+stocks_ca: []
+stocks_au: []
+stocks_in: []
+stocks_cn: []
 
 indices:
   # Americas
@@ -84,6 +107,7 @@ indices:
   - "^RUT"        # Russell 2000
   - "^RUA"        # Russell 3000
   - "^VIX"        # CBOE Volatility Index
+  - "^GSPTSE"     # S&P/TSX Composite
   # Europe
   - "^FTSE"       # FTSE 100
   - "^GDAXI"      # DAX
@@ -104,6 +128,13 @@ indices:
   - "^KS11"       # KOSPI Composite Index
   - "^KQ11"       # KOSDAQ Composite Index
   - "^KS200"      # KOSPI 200 Index
+  - "^NSEI"       # Nifty 50 (India)
+  - "^BSESN"      # BSE Sensex (India)
+  - "000001.SS"   # SSE Composite (Shanghai)
+  - "399001.SZ"   # SZSE Component (Shenzhen)
+  - "000300.SS"   # CSI 300
+  # Australia
+  - "^AXJO"       # S&P/ASX 200
 
 rates:
   - "^IRX"        # 13-Week Treasury Bill yield

@@ -10,14 +10,20 @@ import pandas as pd
 import pytest
 
 from src.listings import (
+    ASX_DIRECTORY_URL,
     EUROPE_SUFFIXES,
+    NSE_EQUITY_URL,
     _sha256,
     _write_if_changed,
+    build_asx_listing_csv,
+    build_cn_listing_csv,
     build_europe_listing_csv,
     build_krx_listing_csv,
+    build_nse_listing_csv,
     build_plain_ticker_listing_csv,
     build_russell2000_listing_csv,
     build_tse_listing_csv,
+    build_tsx_listing_csv,
     build_twse_listing_csv,
     download_bytes,
     normalize_listing_entry,
@@ -73,6 +79,21 @@ def test_download_bytes() -> None:
         assert download_bytes("https://example.com/x.csv") == b"data"
         req = mock_open.call_args[0][0]
         assert req.get_header("User-agent") or req.headers.get("User-agent")
+
+
+def test_download_bytes_extra_headers() -> None:
+    mock_resp = MagicMock()
+    mock_resp.read.return_value = b"data"
+    mock_resp.__enter__.return_value = mock_resp
+    mock_resp.__exit__.return_value = False
+    with patch("src.listings.urllib.request.urlopen", return_value=mock_resp) as mock_open:
+        download_bytes(
+            "https://example.com/x.csv",
+            headers={"User-Agent": "Mozilla/5.0", "Accept": "text/csv"},
+        )
+    req = mock_open.call_args[0][0]
+    assert req.get_header("User-agent") == "Mozilla/5.0"
+    assert req.get_header("Accept") == "text/csv"
 
 
 def test_build_krx_listing_csv() -> None:
@@ -170,6 +191,254 @@ def test_build_twse_listing_csv_empty_raises() -> None:
     with patch("src.listings.download_bytes", return_value=b"[]"):
         with pytest.raises(RuntimeError, match="Empty TWSE listing"):
             build_twse_listing_csv()
+
+
+def test_build_tsx_listing_csv() -> None:
+    import json
+
+    tsx = {
+        "results": [
+            {
+                "symbol": "SHOP",
+                "name": "Shopify Inc.",
+                "instruments": [{"symbol": "SHOP", "name": "Shopify"}],
+            },
+            {
+                "symbol": "RY",
+                "name": "Royal Bank of Canada",
+                "instruments": [
+                    {"symbol": "RY", "name": "Royal Bank"},
+                    {"symbol": "RY.PR.A", "name": "pref"},
+                    {"symbol": "RY.U", "name": "usd"},
+                    {"symbol": "RY", "name": "dup"},
+                    "skip-me",
+                ],
+            },
+            {
+                "symbol": "REI.UN",
+                "name": "RioCan REIT",
+                "instruments": [{"symbol": "REI.UN", "name": "RioCan Un"}],
+            },
+            {
+                "symbol": "CTC",
+                "name": "Canadian Tire Corporation",
+                "instruments": [
+                    {"symbol": "CTC", "name": "CTC"},
+                    {"symbol": "CTC.A", "name": "CTC A"},
+                ],
+            },
+            {
+                "symbol": "ZWC",
+                "name": "BMO Covered Call ETF",
+                "instruments": [
+                    {"symbol": "ZWC", "name": "ETF"},
+                    {"symbol": "ZWC.F", "name": "series f"},
+                    {"symbol": "ZWC.T", "name": "series t"},
+                ],
+            },
+            {
+                "symbol": "HOT.DB.V",
+                "name": "",
+                "instruments": [
+                    {"symbol": "HOT.DB.V", "name": "debenture"},
+                    {"symbol": "HOT.WT", "name": "warrant"},
+                    {"symbol": "HOT.UN", "name": "American Hotel units"},
+                ],
+            },
+            "not-a-row",
+            {"symbol": "NOINST", "name": "No Instruments Co"},
+        ]
+    }
+    tsxv = {
+        "results": [
+            {
+                "symbol": "ONE",
+                "name": "01 Quantum Inc.",
+                "instruments": [{"symbol": "ONE", "name": "01 Quantum"}],
+            },
+            {
+                "symbol": "FIVD.P",
+                "name": "5D Acquisition Corp.",
+                "instruments": [{"symbol": "FIVD.P", "name": "5D"}],
+            },
+            {
+                "symbol": "BAD",
+                "name": "Bad",
+                "instruments": [{"symbol": "1BAD", "name": "Bad"}],
+            },
+        ]
+    }
+    payloads = [
+        json.dumps(tsx).encode("utf-8"),
+        json.dumps(tsxv).encode("utf-8"),
+    ]
+    with patch("src.listings.download_bytes", side_effect=payloads) as mock_dl:
+        raw = build_tsx_listing_csv(tsx_url="https://example.com/tsx", tsxv_url="https://example.com/tsxv")
+    assert mock_dl.call_args_list[0].args == ("https://example.com/tsx",)
+    assert mock_dl.call_args_list[1].args == ("https://example.com/tsxv",)
+    text = raw.decode("utf-8")
+    assert text.startswith("Symbol,Name,Market\n")
+    for symbol in (
+        "SHOP.TO",
+        "RY.TO",
+        "REI-UN.TO",
+        "CTC.TO",
+        "CTC-A.TO",
+        "ZWC.TO",
+        "HOT-UN.TO",
+        "NOINST.TO",
+        "ONE.V",
+        "FIVD-P.V",
+    ):
+        assert symbol in text
+    for skipped in ("RY-PR-A", "RY-U.TO", "ZWC-F", "ZWC-T", "HOT-WT", "1BAD"):
+        assert skipped not in text
+    assert text.count("RY.TO") == 1
+    assert "American Hotel units" in text
+    assert "TSXV" in text
+    assert text.index("CTC-A.TO") < text.index("SHOP.TO")
+
+
+def test_build_tsx_listing_csv_empty_raises() -> None:
+    with patch("src.listings.download_bytes", return_value=b'{"results": []}'):
+        with pytest.raises(RuntimeError, match="Empty TMX listing"):
+            build_tsx_listing_csv()
+
+
+def test_build_tsx_listing_csv_bad_json() -> None:
+    with patch("src.listings.download_bytes", return_value=b"not-json"):
+        with pytest.raises(RuntimeError, match="Invalid TMX listing JSON"):
+            build_tsx_listing_csv()
+
+
+def test_build_asx_listing_csv() -> None:
+    payload = (
+        '"ASX code","Company name","GICs industry group"\n'
+        '"BHP","BHP GROUP LIMITED","Materials"\n'
+        '"bhp","duplicate","DupInd"\n'
+        '"","blank",""\n'
+        '"CBA","COMMONWEALTH BANK","Banks"\n'
+        '"***","bad",""\n'
+        '"14D","1414 DEGREES LIMITED","Capital Goods"\n'
+    ).encode("utf-8")
+    with patch("src.listings.download_bytes", return_value=payload) as mock_dl:
+        raw = build_asx_listing_csv(url="https://example.com/asx.csv")
+    mock_dl.assert_called_once_with("https://example.com/asx.csv")
+    text = raw.decode("utf-8")
+    assert text.startswith("Symbol,Name,Industry\n")
+    assert "BHP.AX" in text
+    assert "CBA.AX" in text
+    assert "14D.AX" in text
+    assert text.count("BHP.AX") == 1
+    assert "BHP GROUP LIMITED" in text
+    assert "duplicate" not in text
+    assert "***" not in text
+    assert text.index("14D.AX") < text.index("BHP.AX") < text.index("CBA.AX")
+
+
+def test_build_asx_listing_csv_empty_raises() -> None:
+    payload = b'"ASX code","Company name"\n"",""\n'
+    with patch("src.listings.download_bytes", return_value=payload):
+        with pytest.raises(RuntimeError, match="Empty ASX listing"):
+            build_asx_listing_csv()
+
+
+def test_build_asx_listing_csv_missing_column() -> None:
+    with patch("src.listings.download_bytes", return_value=b"Foo\n1\n"):
+        with pytest.raises(RuntimeError, match="ASX code"):
+            build_asx_listing_csv()
+
+
+def test_build_nse_listing_csv() -> None:
+    payload = (
+        "SYMBOL,NAME OF COMPANY, SERIES, DATE OF LISTING\n"
+        "RELIANCE,Reliance Industries Limited,EQ,01-JAN-1995\n"
+        "TCS,Tata Consultancy Services,BE,01-JAN-2004\n"
+        "DEAD,Dead Co,BZ,01-JAN-2000\n"
+        "M&M,Mahindra & Mahindra,EQ,01-JAN-1995\n"
+        "BAJAJ-AUTO,Bajaj Auto,EQ,01-JAN-2008\n"
+        ",blank name,EQ,01-JAN-2000\n"
+        "RELIANCE,dup,EQ,01-JAN-1995\n"
+    ).encode("utf-8")
+    with patch("src.listings.download_bytes", return_value=payload) as mock_dl:
+        raw = build_nse_listing_csv(url="https://example.com/equity.csv")
+    mock_dl.assert_called_once_with(
+        "https://example.com/equity.csv",
+        headers=mock_dl.call_args.kwargs["headers"],
+    )
+    assert "Referer" in mock_dl.call_args.kwargs["headers"]
+    text = raw.decode("utf-8")
+    assert text.startswith("Symbol,Name,Series\n")
+    assert "RELIANCE.NS" in text
+    assert "TCS.NS" in text
+    assert "M&M.NS" in text
+    assert "BAJAJ-AUTO.NS" in text
+    assert "DEAD.NS" not in text
+    assert text.count("RELIANCE.NS") == 1
+    assert ",EQ," in text or text.endswith(",EQ\n") or ",EQ\n" in text
+    assert ",BE," in text or ",BE\n" in text
+    assert text.index("BAJAJ-AUTO.NS") < text.index("RELIANCE.NS")
+
+
+def test_build_nse_listing_csv_empty_raises() -> None:
+    payload = b"SYMBOL,NAME OF COMPANY,SERIES\nDEAD,Dead,BZ\n"
+    with patch("src.listings.download_bytes", return_value=payload):
+        with pytest.raises(RuntimeError, match="Empty NSE listing"):
+            build_nse_listing_csv()
+
+
+def test_build_nse_listing_csv_missing_column() -> None:
+    with patch("src.listings.download_bytes", return_value=b"SYMBOL\nRELIANCE\n"):
+        with pytest.raises(RuntimeError, match="SYMBOL/SERIES"):
+            build_nse_listing_csv()
+
+
+def test_build_cn_listing_csv() -> None:
+    sse = pd.DataFrame(
+        {
+            "Symbol": ["601288", "519", "600519.0", "ABC"],
+            "Name": ["AgBank", "Tiny", "Moutai", "Nope"],
+            "Industry": ["Bank", "X", "Drinks", "Y"],
+        }
+    )
+    szse = pd.DataFrame({"Code": ["300750"], "Label": ["CATL"]})
+
+    def fake_listing(market):
+        if market == "SSE":
+            return sse
+        if market == "SZSE":
+            return szse
+        return pd.DataFrame()
+
+    fake_fdr = MagicMock(StockListing=fake_listing)
+    with patch.dict("sys.modules", {"FinanceDataReader": fake_fdr}):
+        raw = build_cn_listing_csv()
+    text = raw.decode("utf-8")
+    assert "601288.SS" in text
+    assert "000519.SS" in text
+    assert "600519.SS" in text
+    assert "300750.SZ" in text
+    assert "ABC" not in text
+    assert "SSE" in text
+    assert "SZSE" in text
+    assert "Industry" in text
+    assert text.index("000519.SS") < text.index("300750.SZ") < text.index("601288.SS")
+
+
+def test_build_cn_listing_csv_empty_raises() -> None:
+    fake_fdr = MagicMock(StockListing=lambda _m: pd.DataFrame())
+    with patch.dict("sys.modules", {"FinanceDataReader": fake_fdr}):
+        with pytest.raises(RuntimeError, match="Empty China"):
+            build_cn_listing_csv()
+
+
+def test_build_cn_listing_csv_no_numeric_codes_raises() -> None:
+    fake_fdr = MagicMock(
+        StockListing=lambda _m: pd.DataFrame({"Symbol": ["ABC"], "Name": ["Nope"]})
+    )
+    with patch.dict("sys.modules", {"FinanceDataReader": fake_fdr}):
+        with pytest.raises(RuntimeError, match="Empty China"):
+            build_cn_listing_csv()
 
 
 def test_build_plain_ticker_listing_csv() -> None:
@@ -354,3 +623,68 @@ def test_refresh_listings_source_failures(tmp_path: Path) -> None:
     ):
         summary = refresh_listings(config)
     assert summary == {"checked": 5, "updated": 0, "failed": 5}
+
+
+def test_refresh_listings_tsx_asx_nse_china(tmp_path: Path) -> None:
+    config = tmp_path / "tickers.yaml"
+    config.write_text(
+        "listings:\n"
+        "  stocks_ca:\n"
+        "    - path: listings/tsx.csv\n"
+        "      source: tsx\n"
+        "  stocks_au:\n"
+        "    - path: listings/asx.csv\n"
+        "      url: https://example.com/asx.csv\n"
+        "      source: asx\n"
+        "  stocks_in:\n"
+        "    - path: listings/nse.csv\n"
+        "      url: https://example.com/equity.csv\n"
+        "      source: nse\n"
+        "  stocks_cn:\n"
+        "    - path: listings/cn.csv\n"
+        "      source: china\n",
+        encoding="utf-8",
+    )
+    with (
+        patch("src.listings.build_tsx_listing_csv", return_value=b"Symbol\nSHOP.TO\n") as mock_tsx,
+        patch("src.listings.build_asx_listing_csv", return_value=b"Symbol\nBHP.AX\n") as mock_asx,
+        patch("src.listings.build_nse_listing_csv", return_value=b"Symbol\nRELIANCE.NS\n") as mock_nse,
+        patch("src.listings.build_cn_listing_csv", return_value=b"Symbol\n601288.SS\n") as mock_cn,
+    ):
+        summary = refresh_listings(config)
+    assert summary == {"checked": 4, "updated": 4, "failed": 0}
+    mock_tsx.assert_called_once_with()
+    mock_asx.assert_called_once_with(url="https://example.com/asx.csv")
+    mock_nse.assert_called_once_with(url="https://example.com/equity.csv")
+    mock_cn.assert_called_once_with()
+    assert (tmp_path / "listings" / "tsx.csv").read_bytes() == b"Symbol\nSHOP.TO\n"
+
+
+def test_refresh_listings_tsx_asx_nse_china_failures(tmp_path: Path) -> None:
+    config = tmp_path / "tickers.yaml"
+    config.write_text(
+        "listings:\n"
+        "  stocks_ca:\n"
+        "    - path: listings/tsx.csv\n"
+        "      source: tsx\n"
+        "  stocks_au:\n"
+        "    - path: listings/asx.csv\n"
+        "      source: asx\n"
+        "  stocks_in:\n"
+        "    - path: listings/nse.csv\n"
+        "      source: nse\n"
+        "  stocks_cn:\n"
+        "    - path: listings/cn.csv\n"
+        "      source: china\n",
+        encoding="utf-8",
+    )
+    with (
+        patch("src.listings.build_tsx_listing_csv", side_effect=RuntimeError("tsx")),
+        patch("src.listings.build_asx_listing_csv", side_effect=RuntimeError("asx")) as mock_asx,
+        patch("src.listings.build_nse_listing_csv", side_effect=RuntimeError("nse")) as mock_nse,
+        patch("src.listings.build_cn_listing_csv", side_effect=RuntimeError("cn")),
+    ):
+        summary = refresh_listings(config)
+    assert summary == {"checked": 4, "updated": 0, "failed": 4}
+    mock_asx.assert_called_once_with(url=ASX_DIRECTORY_URL)
+    mock_nse.assert_called_once_with(url=NSE_EQUITY_URL)

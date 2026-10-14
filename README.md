@@ -13,7 +13,11 @@ Automated pipeline that pulls historical and intradaily market data from [Yahoo 
 | `stocks_eu`  | STOXX/DAX/CAC/FTSE/AEX/IBEX/…                  | `data/stocks_eu/`  |
 | `stocks_hk`  | Hang Seng Index (`.HK`)                        | `data/stocks_hk/`  |
 | `stocks_tw`  | TWSE listed (`.TW`)                            | `data/stocks_tw/`  |
-| `indices`    | ^GSPC, ^RUT, ^STOXX50E, ^KS11, …               | `data/indices/`    |
+| `stocks_ca`  | TSX + TSXV (`.TO` / `.V`)                      | `data/stocks_ca/`  |
+| `stocks_au`  | ASX listed (`.AX`)                             | `data/stocks_au/`  |
+| `stocks_in`  | NSE equities (`.NS`)                           | `data/stocks_in/`  |
+| `stocks_cn`  | Shanghai + Shenzhen (`.SS` / `.SZ`)            | `data/stocks_cn/`  |
+| `indices`    | ^GSPC, ^RUT, ^STOXX50E, ^KS11, ^GSPTSE, …      | `data/indices/`    |
 | `rates`      | ^IRX, ^FVX, ^TNX, ^TYX                         | `data/rates/`      |
 | `futures`    | CL=F, ES=F                                     | `data/futures/`    |
 | `crypto`     | BTC-USD, ETH-USD, SOL-USD, …                   | `data/crypto/`     |
@@ -46,6 +50,14 @@ Each pipeline run (including the scheduled GitHub Action) refreshes those listin
 - `[config/listings/hangseng-constituents.csv](config/listings/hangseng-constituents.csv)` ([source](https://yfiua.github.io/index-constituents/constituents-hsi.csv); Yahoo `.HK` symbols)
 
 **Taiwan stocks** (`stocks_tw`) are rebuilt each run from the TWSE OpenAPI listed-company directory into `[config/listings/twse-listed-symbols.csv](config/listings/twse-listed-symbols.csv)` ([source](https://openapi.twse.com.tw/v1/opendata/t187ap03_L); Yahoo `.TW` suffix via `source: twse`).
+
+**Canadian stocks** (`stocks_ca`) are rebuilt each run from the TMX company directory for the Toronto Stock Exchange and TSX Venture into `[config/listings/tsx-listed-symbols.csv](config/listings/tsx-listed-symbols.csv)` (Yahoo `.TO` / `.V` via `source: tsx`). Common shares, trust units, and single-letter share classes are kept; preferreds, debentures, warrants, notes, USD trading lines, and extra ETF series are dropped.
+
+**Australian stocks** (`stocks_au`) are rebuilt each run from the ASX listed-company directory into `[config/listings/asx-listed-symbols.csv](config/listings/asx-listed-symbols.csv)` ([source](https://asx.api.markitdigital.com/asx-research/1.0/companies/directory/file); Yahoo `.AX` suffix via `source: asx`).
+
+**Indian stocks** (`stocks_in`) are rebuilt each run from the NSE equity master into `[config/listings/nse-listed-symbols.csv](config/listings/nse-listed-symbols.csv)` ([source](https://nsearchives.nseindia.com/content/equities/EQUITY_L.csv); Yahoo `.NS` suffix via `source: nse`). `EQ` and `BE` series are kept.
+
+**Chinese stocks** (`stocks_cn`) are rebuilt each run from Shanghai and Shenzhen via [FinanceDataReader](https://github.com/FinanceData/FinanceDataReader) into `[config/listings/cn-listed-symbols.csv](config/listings/cn-listed-symbols.csv)`, with Yahoo suffixes `.SS` (SSE) and `.SZ` (SZSE).
 
 ## Storage layout
 
@@ -109,7 +121,7 @@ CSV index column is `Datetime` (UTC, ISO-8601). Columns: Open, High, Low, Close,
 ├── src/
 │   ├── __init__.py
 │   ├── fetcher.py      # download + CSV merge logic
-│   ├── listings.py     # remote/KRX/TSE/Europe/Russell2000 listing refresh
+│   ├── listings.py     # remote and exchange listing refresh
 │   ├── main.py         # CLI entry point
 │   └── summary.py      # fetch failure-rate report (CI artifact)
 ├── tests/
@@ -172,7 +184,7 @@ python src/main.py --config config/tickers.yaml --data-dir data --workers 12 --s
 | `--workers`               | `8`                    | Parallel Yahoo fetch threads                                                   |
 | `--sleep`                 | `0.25`                 | Seconds to pause after each request                                            |
 | `--skip-existing`         | off                    | Skip tickers that already have data (resume)                                   |
-| `--skip-listings-refresh` | off                    | Skip remote/KRX/TSE/Europe listing updates                                     |
+| `--skip-listings-refresh` | off                    | Skip remote and exchange listing updates                                       |
 | `--listings-only`         | off                    | Refresh listings without fetching market data                                  |
 | `--asset-classes`         | all in config          | Restrict fetch to named asset classes                                          |
 | `--shard-index`           | `0`                    | Zero-based slice when splitting a class in CI                                  |
@@ -181,7 +193,7 @@ python src/main.py --config config/tickers.yaml --data-dir data --workers 12 --s
 | `-v`                      | off                    | Debug logging                                                                  |
 
 
-CI splits the work so Actions stays practical: **daily** refreshes `1d`, `1wk`, `1mo`, and `3mo` for the full listing universe (~12k symbols) into [finance-dataset](https://www.kaggle.com/datasets/benjaminpo/finance-dataset); **intraday** refreshes `1m`…`1h` into [finance-dataset-intraday](https://www.kaggle.com/datasets/benjaminpo/finance-dataset-intraday) in one job that runs symbol shards sequentially (`[config/intraday_shards.yaml](config/intraday_shards.yaml)`) so each Kaggle dataset is pulled and published **once** per run. `5d` stays off the schedule and is uploaded only when those files are already present. Prefer `--intervals 1d` for the first local backfill, then publish. Use `--skip-existing` to resume after an interrupt.
+CI splits the work so Actions stays practical: **daily** refreshes `1d`, `1wk`, `1mo`, and `3mo` for the full listing universe (~27k symbols) into [finance-dataset](https://www.kaggle.com/datasets/benjaminpo/finance-dataset); **intraday** refreshes `1m`…`1h` into [finance-dataset-intraday](https://www.kaggle.com/datasets/benjaminpo/finance-dataset-intraday) in one job that runs symbol shards sequentially (`[config/intraday_shards.yaml](config/intraday_shards.yaml)`) so each Kaggle dataset is pulled and published **once** per run. `5d` stays off the schedule and is uploaded only when those files are already present. Prefer `--intervals 1d` for the first local backfill, then publish. Use `--skip-existing` to resume after an interrupt.
 
 Progress is printed per job, e.g. `Fetching AAPL [1d]... Success — 2 new/updated row(s)`.
 

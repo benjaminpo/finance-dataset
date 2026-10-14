@@ -69,6 +69,58 @@ shards:
     asset_classes: [stocks_tw]
     shard_index: 2
     shard_count: 3
+  - id: ca-0
+    asset_classes: [stocks_ca]
+    shard_index: 0
+    shard_count: 4
+  - id: ca-1
+    asset_classes: [stocks_ca]
+    shard_index: 1
+    shard_count: 4
+  - id: ca-2
+    asset_classes: [stocks_ca]
+    shard_index: 2
+    shard_count: 4
+  - id: ca-3
+    asset_classes: [stocks_ca]
+    shard_index: 3
+    shard_count: 4
+  - id: au-0
+    asset_classes: [stocks_au]
+    shard_index: 0
+    shard_count: 2
+  - id: au-1
+    asset_classes: [stocks_au]
+    shard_index: 1
+    shard_count: 2
+  - id: in-0
+    asset_classes: [stocks_in]
+    shard_index: 0
+    shard_count: 3
+  - id: in-1
+    asset_classes: [stocks_in]
+    shard_index: 1
+    shard_count: 3
+  - id: in-2
+    asset_classes: [stocks_in]
+    shard_index: 2
+    shard_count: 3
+  - id: cn-0
+    asset_classes: [stocks_cn]
+    shard_index: 0
+    shard_count: 4
+  - id: cn-1
+    asset_classes: [stocks_cn]
+    shard_index: 1
+    shard_count: 4
+  - id: cn-2
+    asset_classes: [stocks_cn]
+    shard_index: 2
+    shard_count: 4
+  - id: cn-3
+    asset_classes: [stocks_cn]
+    shard_index: 3
+    shard_count: 4
   - id: liquid
     asset_classes: [stocks_hk, crypto, indices, futures, currencies]
     shard_index: 0

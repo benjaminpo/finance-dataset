@@ -59,6 +59,14 @@ def _clear_cache():
         ("CL=F", "CL=F"),
         ("BTC-USD", "BTC-USD"),
         ("SAP.DE", "SAP.DE"),
+        ("SHOP.TO", "SHOP.TO"),
+        ("ABC.V", "ABC.V"),
+        ("FIVD-P.V", "FIVD-P.V"),
+        ("BHP.AX", "BHP.AX"),
+        ("RELIANCE.NS", "RELIANCE.NS"),
+        ("M&M.NS", "M&M.NS"),
+        ("601288.SS", "601288.SS"),
+        ("300750.SZ", "300750.SZ"),
     ],
 )
 def test_to_yahoo_symbol(raw: str, expected: str) -> None:

@@ -139,12 +139,15 @@ def _to_yahoo_symbol(symbol: str) -> str:
     Map listing symbols to Yahoo Finance form.
 
     US share classes use a hyphen (BRK.B → BRK-B). Exchange suffixes such as
-    ``.KS``, ``.KQ``, ``.L``, and ``.HK`` must be preserved.
+    ``.KS``, ``.TO``, ``.V``, ``.AX``, ``.NS``, ``.SS``, and ``.HK`` must be
+    preserved. ``.V`` is a single letter, so it has to be listed here or
+    TSX Venture symbols would be rewritten like US share classes (``ABC.V`` → ``ABC-V``).
     """
     symbol = symbol.strip()
     upper = symbol.upper()
     exchange_suffixes = (
         ".KS", ".KQ", ".L", ".HK", ".TW", ".TWO", ".T", ".SS", ".SZ",
+        ".TO", ".V", ".AX", ".NS", ".BO",
         ".DE", ".PA", ".AS", ".BR", ".MI", ".MC", ".SW",
         ".ST", ".HE", ".CO", ".OL", ".LS", ".VI", ".IR", ".F",
     )
